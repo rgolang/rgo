@@ -24,8 +24,8 @@ stdout "hello world"
 
 ```rust
 {print, scan} @rgo.os
-{f} @rgo.strings
+{fmt} @rgo.strings
 input scan 
-output f"hello {input}"
+output fmt"hello {input}"
 ```
 
