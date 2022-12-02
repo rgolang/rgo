@@ -1,4 +1,5 @@
 # rgo
+(pre-alpha version)
 `main.rgo`
 
 An ergonomic programming language/data interchange format made with human readability in mind.
@@ -33,3 +34,5 @@ one line formatting is supported:
 ```rust
 {print, scan} @rgo.os; {fmt} @rgo.strings; name scan; print fmt"hello {name}"
 ```
+
+## Math
