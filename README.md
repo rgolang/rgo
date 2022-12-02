@@ -1,5 +1,5 @@
 # rgo
-`rgo.rgo`
+`main.rgo`
 
 An ergonomic language made with human readability in mind.
 
