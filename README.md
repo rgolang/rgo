@@ -1,5 +1,5 @@
 # rgo
-(pre-alpha version)
+(pre-alpha version)  
 `main.rgo`
 
 An ergonomic programming language/data interchange format made with human readability in mind.
