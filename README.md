@@ -12,3 +12,20 @@ Mathematical notation is separated from code grammar using single quotes `'`, fo
 ```rgo
 gramatical code 'mathematical code' gramatical code 
 ```
+
+## Hello World
+
+```rust
+{stdout} rgo.os
+stdout "hello world"
+```
+
+## Hello Alice
+
+```rust
+{print, scan} rgo.os
+{f} rgo.strings
+input scan 
+output f"hello {input}"
+```
+
