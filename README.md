@@ -25,7 +25,11 @@ stdout "hello world"
 ```rust
 {print, scan} @rgo.os
 {fmt} @rgo.strings
-input scan 
+input scan
 output fmt"hello {input}"
 ```
 
+one line formatting is supported:
+```rust
+{print, scan} @rgo.os; {fmt} @rgo.strings; input scan; output fmt"hello {input}"
+```
