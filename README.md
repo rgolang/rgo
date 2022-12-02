@@ -38,3 +38,9 @@ rgo @ "github.com/thlib/rgo"; {print, scan} rgo.os; {fmt} rgo.strings; name scan
 ```
 
 ## Math
+
+## Syntax
+* `<` write one item from a list or channel into an undefined word or channel
+* `|` stream all items one by one from a list or channel into an undefined word or channel
+
+## Instances
