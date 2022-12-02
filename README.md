@@ -32,7 +32,7 @@ name scan
 print fmt"hello {name}"
 ```
 
-one line formatting is supported:
+in one line:
 ```rust
 rgo @ "github.com/thlib/rgo"; {print, scan} rgo.os; {fmt} rgo.strings; name scan; print fmt"hello {name}"
 ```
