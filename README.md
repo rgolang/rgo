@@ -13,26 +13,28 @@ Mathematical notation is separated from code grammar using single quotes `'`, fo
 ```rgo
 gramatical code 'mathematical code' gramatical code 
 ```
+This unlocks powerful grammar and allows the language to exist without keywords.
 
 ## Hello World
 
 ```rust
-{print} @rgo.os
+{print} @ "github.com/thlib/rgo/os"
 print "hello world"
 ```
 
 ## Hello Alice
 
 ```rust
-{print, scan} @rgo.os
-{fmt} @rgo.strings
+rgo @ "github.com/thlib/rgo"
+{print, scan} rgo.os
+{fmt} rgo.strings
 name scan
 print fmt"hello {name}"
 ```
 
 one line formatting is supported:
 ```rust
-{print, scan} @rgo.os; {fmt} @rgo.strings; name scan; print fmt"hello {name}"
+rgo @ "github.com/thlib/rgo"; {print, scan} rgo.os; {fmt} rgo.strings; name scan; print fmt"hello {name}"
 ```
 
 ## Math
