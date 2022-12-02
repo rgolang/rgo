@@ -16,8 +16,8 @@ gramatical code 'mathematical code' gramatical code
 ## Hello World
 
 ```rust
-{stdout} @rgo.os
-stdout "hello world"
+{print} @rgo.os
+print "hello world"
 ```
 
 ## Hello Alice
@@ -25,11 +25,11 @@ stdout "hello world"
 ```rust
 {print, scan} @rgo.os
 {fmt} @rgo.strings
-input scan
-output fmt"hello {input}"
+name scan
+print fmt"hello {name}"
 ```
 
 one line formatting is supported:
 ```rust
-{print, scan} @rgo.os; {fmt} @rgo.strings; input scan; output fmt"hello {input}"
+{print, scan} @rgo.os; {fmt} @rgo.strings; name scan; print fmt"hello {name}"
 ```
