@@ -16,15 +16,15 @@ gramatical code 'mathematical code' gramatical code
 ## Hello World
 
 ```rust
-{stdout} rgo.os
+{stdout} @rgo.os
 stdout "hello world"
 ```
 
 ## Hello Alice
 
 ```rust
-{print, scan} rgo.os
-{f} rgo.strings
+{print, scan} @rgo.os
+{f} @rgo.strings
 input scan 
 output f"hello {input}"
 ```
