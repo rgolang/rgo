@@ -36,7 +36,7 @@ For more examples see: [EXAMPLES.md](EXAMPLES.md)
 * `()` math
 * `<` move
 
-For a more detailed explanation of the syntax, see: [SYNTAX.md](SYNTAX.md)
+The meaning above is approximate, for a more accurate and detailed explanation of the syntax, see: [SYNTAX.md](SYNTAX.md)
 
 ## License
 
