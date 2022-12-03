@@ -14,7 +14,7 @@ The core idea is that it separates mathematical notation from grammatical to mak
 
 >Easy to start, hard to master.
 
-Mathematical notation is separated from code grammar using single quotes `'`, for example:
+Mathematical notation is separated from code grammar using round brackets `()`, for example:
 
 ```rgo
 grammatical code (mathematical code) grammatical code 
