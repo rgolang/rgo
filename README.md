@@ -48,6 +48,6 @@ The meaning above is approximate, for a more accurate and detailed explanation o
 [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 
 
-— Timo Huovinen, Dec 2022
+— Timo Huovinen
 
 
