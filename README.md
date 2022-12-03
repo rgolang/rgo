@@ -29,6 +29,7 @@ For more examples see: [EXAMPLES.md](EXAMPLES.md)
 ## Syntax
 
 * `x` a word
+* ` ` currying
 * `@` import
 * `{}` dictionary
 * `[]` list
