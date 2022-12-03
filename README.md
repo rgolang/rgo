@@ -51,6 +51,7 @@ For more examples see: [EXAMPLES.md](EXAMPLES.md)
 * `\` escape
 * `_` visual separator
 * `-` range
+* `~` approximate/omit
 * `=` macro equals
 * `''` macro placeholder
 * `{}` dictionary
@@ -64,19 +65,19 @@ For more examples see: [EXAMPLES.md](EXAMPLES.md)
 * `(<=)` less than or equals to
 * `(>=)` greater than or equals to
 * `(==)` equals
-* `(~)` approximate
+* `(~)` similar to
 * `(;)` nest a list
 * `(,)` make a list
-* `(=)` set the value of
+* `(=)` set equal to
 * `(%)` percentage
 * `(/)` per
 * `(_)` visual separator
 * `(-)` minus
 * `(+)` plus
 * `(*)` multiply
-* `({})` dictionary
-* `([])` list
-* `(())` group
+* `({})` a set
+* `([])` a list
+* `(())` a group
 
 The meaning above is approximate, for a more accurate and detailed explanation of the syntax, see: [SYNTAX.md](SYNTAX.md)
 
