@@ -33,13 +33,50 @@ For more examples see: [EXAMPLES.md](EXAMPLES.md)
 
 ## Syntax
 
-* `x` a word
+* `a` keyword `a` 
+* `1` number `1`
 * ` ` currying
+* `<` move
+* `:` define a keyword
+* `;` nest a list
+* `,` make a list
+* `!` error
+* `?` if then
+* `.` end/return/accessor/concatenation
+* `#` hashtag
 * `@` import
+* `$` placeholder
+* `%` probability
+* `/` or
+* `\` escape
+* `_` visual separator
+* `-` range
+* `=` macro equals
+* `''` macro placeholder
 * `{}` dictionary
 * `[]` list
 * `()` math
-* `<` move
+* `(a)` keyword `a`
+* `(1)` number `1`
+* `( )` currying
+* `(<)` less than
+* `(>)` greater than
+* `(<=)` less than or equals to
+* `(>=)` greater than or equals to
+* `(==)` equals
+* `(~)` approximate
+* `(;)` nest a list
+* `(,)` make a list
+* `(=)` set the value of
+* `(%)` percentage
+* `(/)` per
+* `(_)` visual separator
+* `(-)` minus
+* `(+)` plus
+* `(*)` multiply
+* `({})` dictionary
+* `([])` list
+* `(())` group
 
 The meaning above is approximate, for a more accurate and detailed explanation of the syntax, see: [SYNTAX.md](SYNTAX.md)
 
