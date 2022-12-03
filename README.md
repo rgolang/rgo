@@ -1,3 +1,9 @@
+---
+title: rgo language
+author: Timo Huovinen
+date: 2022 Dec
+---
+
 # rgo
 (pre-alpha version)  
 `main.rgo`
