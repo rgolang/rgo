@@ -1,5 +1,4 @@
 ---
-Title: Rgo language
 Author: Timo Huovinen
 Date: 2022 Dec
 ---
