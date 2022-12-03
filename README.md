@@ -1,7 +1,7 @@
 ---
-title: Rgo language
-author: Timo Huovinen
-date: 2022 Dec
+Title: Rgo language
+Author: Timo Huovinen
+Date: 2022 Dec
 ---
 
 # rgo
