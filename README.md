@@ -19,7 +19,7 @@ This unlocks powerful grammar and allows the language to exist without keywords.
 
 ```rust
 {print} @ "github.com/thlib/rgo/os"
-{f fmt} @ "github.com/thlib/rgo/strings"
+{f format} @ "github.com/thlib/rgo/strings"
 x: "World"
 print f"Hello {x}"
 ```
