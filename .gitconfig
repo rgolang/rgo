@@ -1,0 +1,10 @@
+[user]
+	name = Timo Huovinen
+	email = timoh89@gmail.com
+[pull]
+	rebase = false
+[commit]
+	gpgSign = false
+[gui]
+	pruneduringfetch = true
+
