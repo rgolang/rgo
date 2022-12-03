@@ -1,9 +1,3 @@
----
-title: rgo language
-author: Timo Huovinen
-date: 2022 Dec
----
-
 # rgo
 (pre-alpha version)  
 `main.rgo`
@@ -50,4 +44,10 @@ The meaning above is approximate, for a more accurate and detailed explanation o
 
 
 — Timo Huovinen, Dec 2022
+
+---
+title: rgo language
+author: Timo Huovinen
+date: 2022 Dec
+---
 
