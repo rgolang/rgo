@@ -11,7 +11,7 @@ The core idea is that it separates mathematical notation from grammatical to mak
 Mathematical notation is separated from code grammar using single quotes `'`, for example:
 
 ```rgo
-gramatical code 'mathematical code' gramatical code 
+grammatical code (mathematical code) grammatical code 
 ```
 This unlocks powerful grammar and allows the language to exist without keywords.
 
@@ -19,31 +19,28 @@ This unlocks powerful grammar and allows the language to exist without keywords.
 
 ```rust
 {print} @ "github.com/thlib/rgo/os"
-print "hello world"
+{f fmt} @ "github.com/thlib/rgo/strings"
+x: "World"
+print f"Hello {x}"
 ```
 
-## Hello Alice
-
-```rust
-rgo @ "github.com/thlib/rgo"
-{print, scan} rgo.os
-{fmt} rgo.strings
-name scan
-print fmt"hello {name}"
-```
-
-in one line:
-```rust
-rgo @ "github.com/thlib/rgo"; {print, scan} rgo.os; {fmt} rgo.strings; name scan; print fmt"hello {name}"
-```
-
-## Math
+For more examples see: [EXAMPLES.md](EXAMPLES.md)
 
 ## Syntax
-* `<` write one item from a list or channel into an undefined word or channel
-* `|` stream all items one by one from a list or channel into an undefined word or channel
 
-## Generator
-0-
+* `x` a word
+* `@` import
+* `{}` dictionary
+* `[]` list
+* `()` math
+* `<` move
 
-## Instances
+For a more detailed explanation of the syntax, see: [SYNTAX.md](SYNTAX.md)
+
+## License
+
+[Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+
+
+— Timo Huovinen, Dec 2022
+
