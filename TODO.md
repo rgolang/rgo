@@ -17,3 +17,7 @@ Type check?  Send message/email $0 = Todo:
 rgo is a declarative logical language // stream first, can mutate so not functional
 
 
+
+`.`  Terminal symbols TODO:  
+`:;,?!` Non-terminal symbols  TODO:  
+

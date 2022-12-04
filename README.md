@@ -15,10 +15,12 @@ The core idea is that it separates mathematical notation from grammatical to mak
 
 >Easy to start, hard to master.
 
+See [parsing](PARSING.md) for how it works.
+
 Mathematical notation is separated from code grammar using round brackets `()`, for example:
 
-```rgo
-grammatical code (mathematical code) grammatical code 
+```
+grammatical code (mathematical code {grammatical code} mathematical code) grammatical code 
 ```
 This unlocks powerful grammar and allows the language to exist without keywords.
 

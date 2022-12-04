@@ -2,14 +2,17 @@
 
 TODO: fill in the missing symbols below, provide `negex` (nested regex), explain why this symbol is used and the pros/cons.
 
+
+
+
 `a` keyword `a` 
 `1` number `1`  
 ` ` currying  
 `<` move  
 * Move memory operator, assembly `MOV`
 * TODO: verify if the assembly example matches
-`>`
-* Undefined TODO: maybe define it as a tree accessor for channels? Breadcrumbs?
+`>` quote if the first character of an expression
+* TODO: maybe define it as a tree accessor for channels? Breadcrumbs?
 `:` define a keyword  
 `;` nest a list  
 `,` make a list  
