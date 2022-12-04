@@ -42,7 +42,8 @@ x match:
     true(x) => // run code if true
     false(x) => // run code if false
 ```
-
+* A file to explain how uncertainty is handled
+  
 ---
 
 
@@ -55,6 +56,8 @@ TODO: Support all of https://developer.mozilla.org/en-US/docs/Web/JavaScript/Ref
 * check what shadowing actually means
 * Assembly is a signal processor
 * https://en.wikipedia.org/wiki/Parsing_expression_grammar (is this of any use?)
+* Doc: that `@` autoimprorts all keywords by default, unless captured `rgo:@"rgo.io/lang/rgo"` explain WHY?
+
 
 
 

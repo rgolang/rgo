@@ -34,7 +34,7 @@ To simplify describing the below, these characters will have special meaning:
 * `return` for code in `{}`
 `#` hashtag  
 `@` import  
-* import from the network, for example a domain
+* import all the keywords from a package on the network, for example a domain
 `$` unknown input placeholder  
 `%` probability  
 `/` or  

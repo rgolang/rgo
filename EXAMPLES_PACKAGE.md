@@ -20,7 +20,7 @@ When the `run` target is a directory/folder: `/bin/sh rgo run ./my_app` it will 
 
 ```js
 // in ./my_app
-{os, parse} @ "rgo.io/lang/rgo"
+{os, parse}: @ "rgo.io/lang/rgo"
 main: {
     cwd: os.cwd // sets cwd to the path handler of "./my_app"
     ...{ // TODO: Finish loops

@@ -4,7 +4,7 @@ Macros are code "drop-in" replacements using templates that are run during compi
 
 For example:
 ```js
-{print} @ "rgo.io/os"
+{print}: @ "rgo.io/os"
 ('true' = '1')
 ('false' = '0')
 ('bool' = 'true|false') 
@@ -18,7 +18,7 @@ print not true // prints 0
 Placeholders are supported:
 
 ```js
-{print} @ "rgo.io/os"
+{print}: @ "rgo.io/os"
 ('double $0' = '$0 + $0')
 print double 5 // prints 10
 ```
