@@ -1,17 +1,34 @@
 # Macros
 
-Macros are code replacements using templates that are run during compilation (build-time)
+Macros are code "drop-in" replacements using templates that are run during compilation (build-time)
 
 For example:
-```
+```js
+{print} @ "rgo.io/os"
 ('true' = '1')
 ('false' = '0')
 ('bool' = 'true|false') 
+('not true' = 'false')
+('not false' = 'true')
+print not true // prints 0
 ```
 
-true = 1// Todo:  
-false = 0// Todo:  
-bool: true/false // uncertain word, is a funnel that does type narrowing Todo:  
-  
-not true = false  
-not false = true  
+## Placeholders
+
+Placeholders are supported:
+
+```js
+{print} @ "rgo.io/os"
+('double $0' = '$0 + $0')
+print double 5 // prints 10
+```
+
+* `$0` equals the following negex: `$[a-zA-Z0-9_]+`
+* It does not check if the definition for `run` exists, that happens in the next compilation stage.
+
+See [negex.md](EXAMPLES_NEGEX.md) for examples.
+
+TODO:
+* These can be read in reverse to try and de-duplicate code
+* Checkout loops in rust
+* Make the negex example above proper
