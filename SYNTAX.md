@@ -35,7 +35,7 @@ To simplify describing the below, these characters will have special meaning:
 `#` hashtag  
 `@` import  
 * import from the network, for example a domain
-`$` placeholder  
+`$` unknown input placeholder  
 `%` probability  
 `/` or  
 `\` escape the next character
@@ -94,3 +94,9 @@ To simplify describing the below, these characters will have special meaning:
 `{}` dictionary  
 `[]` list  
 `()` group  
+
+
+TODO: 
+* Make the syntax in README.md match this one
+* Make the syntax in README.md shorter
+* Make the syntax in README.md and here alphabetically ordered.
