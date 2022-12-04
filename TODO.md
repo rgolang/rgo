@@ -61,6 +61,10 @@ TODO: Support all of https://developer.mozilla.org/en-US/docs/Web/JavaScript/Ref
 
 ---
 
+are `a` and `an` shadowing?
+
+---
+
 Figure out the `?` functionality
 ```rust
 x < ch?! "fatal: {x}"!
@@ -68,6 +72,18 @@ x < ch? // x is end of stream
 x < ch? "this is a default for x", print x. // can use ,; depending on context x < ch? default for x. // Return
 ```
 * `?` and `!` are non terminating? Does this mean that need to use `?.` and `!.` to `return`?
+
+How much was x? It was 55. What was x? It was a bird. (After the fact resolution) What is an x? It's a bird. (Before the fact resolution)
+
+```js
+what was x? it was {x: "a bird"}
+what is x? it is {x: "a bird"}
+x? it is {x: "a bird"}. // TODO: how to type check?
+```
+
+Build time? Runtime?
+
+---
 
 
 
