@@ -37,6 +37,7 @@ For more examples see: [EXAMPLES.md](EXAMPLES.md)
 
 ## Syntax
 
+In grammatical context `{}`:
 * `a` keyword `a` 
 * `1` number `1`
 * ` ` currying
@@ -61,27 +62,29 @@ For more examples see: [EXAMPLES.md](EXAMPLES.md)
 * `{}` dictionary
 * `[]` list
 * `()` math
-* `(a)` keyword `a`
-* `(1)` number `1`
-* `( )` currying
-* `(<)` less than
-* `(>)` greater than
-* `(<=)` less than or equals to
-* `(>=)` greater than or equals to
-* `(==)` equals
-* `(~)` similar to
-* `(;)` nest a list
-* `(,)` make a list
-* `(=)` set equal to
-* `(%)` percentage
-* `(/)` per
-* `(_)` visual separator
-* `(-)` minus
-* `(+)` plus
-* `(*)` multiply
-* `({})` a set
-* `([])` a list
-* `(())` a group
+
+In mathematical context `()`:
+* `a` keyword `a`
+* `1` number `1`
+* ` ` currying
+* `<` less than
+* `>` greater than
+* `<=` less than or equals to
+* `>=` greater than or equals to
+* `==` equals
+* `~` similar to
+* `;` nest a list
+* `,` make a list
+* `=` set equal to
+* `%` percentage
+* `/` per
+* `_` visual separator
+* `-` minus
+* `+` plus
+* `*` multiply
+* `{}` a set
+* `[]` a list
+* `()` a group
 
 The meaning above is approximate, for a more accurate and detailed explanation of the syntax, see: [SYNTAX.md](SYNTAX.md)
 

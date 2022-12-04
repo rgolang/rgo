@@ -21,3 +21,6 @@ rgo is a declarative logical language // stream first, can mutate so not functio
 `.`  Terminal symbols TODO:  
 `:;,?!` Non-terminal symbols  TODO:  
 
+TODO: `()` toggles math context? `{}` toggles grammar context?
+
+
