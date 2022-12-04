@@ -24,3 +24,26 @@ rgo is a declarative logical language // stream first, can mutate so not functio
 TODO: `()` toggles math context? `{}` toggles grammar context?
 
 
+---
+
+Explain why ('bool' = 'true|false') uses `|` instead of `/`, because it's way more common in functional programming `haskell` (TODO: Verify); `curry` (TODO: Verify) and `typescript`,`php` and `go` and to use `|` for union. `/` might also be confused with `per` and `or`, also by having `|` be build time, `/` can be for runtime `or`.
+
+TODO:
+```rust
+bool: true/false
+
+// gets run as possible options:
+
+x bool: true?
+x bool: false?
+
+// similar to rust match
+x match: 
+    true => // run code if true
+    false => // run code if false
+```
+
+---
+
+
+
