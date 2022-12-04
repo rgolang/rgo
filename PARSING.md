@@ -93,7 +93,7 @@ This is confusing so here are some more examples to help clarify:
 `,` list
 `;` nest list
 
-```
+``` js
 x: 1. // {x:1}
 x; 1. // [x,1]  
 x, 1. // [x,1]  
@@ -102,7 +102,7 @@ x, 1. // [x,1]
 x: 1. y: 2. // {x:1,y:2}
 ```
 
-```
+```js
 x: 1: 2: 3. // {x:{1:{2:3}}}  
 
 x; 1; 2; 3. // [x,1,2,3]  
@@ -121,3 +121,51 @@ x: 1; 2, 3.  // {x:[[1,2],3]}
 
 TODO: Generate examples of all possible permutations with `:`, `;`, `,` and `.`
 
+---
+
+a new line is also a separator, for example:
+
+```js
+{a: 1; b: 2}
+// is
+{a: 1, b: 2}
+// is
+{
+    a: 1
+    b: 2
+}
+```
+
+This means that
+
+```js
+{
+    a:1; b:2
+    c:3, d:4
+    e:5
+    f:6
+}
+```
+is parsed as
+```js
+{a:1; b:2; [c:3, d:4, e:5, f:6]}
+```
+but since anonymous lists like that don't make sense as they are auto exported // TODO: Maybe make sub-lists a sub-thread?
+```js
+{a:1; b:2; c:3; d:4; e:5; f:6}
+```
+Which is normalized into
+```js
+{a:1, b:2, c:3, d:4, e:5, f:6}
+```
+
+---
+
+## Default `{}`:
+
+By default all files except `main.rgo` are actually treated as already inside a shared code scope `{}`, hence typing:
+```js
+a: 1; b: 2 // produces {a: 1, b: 2}
+```
+
+For more examples see: [PACKAGE](PACKAGE.md)
