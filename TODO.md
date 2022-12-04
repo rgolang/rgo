@@ -53,5 +53,11 @@ TODO: Support all of https://developer.mozilla.org/en-US/docs/Web/JavaScript/Ref
 
 * `$0.x` can do shadowing and mean `$0.x₁`?
 * check what shadowing actually means
+* Assembly is a signal processor
+* https://en.wikipedia.org/wiki/Parsing_expression_grammar (is this of any use?)
+
+
+
+
 
 
