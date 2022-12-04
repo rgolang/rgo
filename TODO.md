@@ -39,8 +39,8 @@ x bool: false?
 
 // similar to rust match
 x match: 
-    true => // run code if true
-    false => // run code if false
+    true(x) => // run code if true
+    false(x) => // run code if false
 ```
 
 ---
