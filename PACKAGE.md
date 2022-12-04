@@ -48,7 +48,8 @@ f: 6
 g: 7
 ```
 
-and runs:
+`/bin/sh rgo run ./my_app`
+runs:
 ```js
 [{a:0},{b:1},{c:3},{d:4},{e:5},{f:6},{g:7}]
 ```
