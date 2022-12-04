@@ -55,6 +55,8 @@ To simplify describing the below, these characters will have special meaning:
 * for example: `(2*3)`
 `{}` dictionary  
 * dictionary of keywords, for example: `{word_a: "hello", word_b: "world"}`
+* is a stored procedure in the program grammar code context
+* is a scoped stream of operations for the CPU to process
 `[]` list  
 * for example: `[0, 1, 2, 3]`
 `...` spread/concatenate list

@@ -159,7 +159,13 @@ Which is normalized into
 {a:1, b:2, c:3, d:4, e:5, f:6}
 ```
 
----
+## `{}` meaning
+
+Is a scoped stored procedure in the program grammar code context:
+
+```js
+{a: 1, b: 2, c: {d: 1, e: 2}} // [a:1, b:2, c.d:1, c.e:2]
+```
 
 ## Default `{}`:
 

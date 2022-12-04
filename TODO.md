@@ -51,4 +51,7 @@ TODO: Support all of https://developer.mozilla.org/en-US/docs/Web/JavaScript/Ref
 
 
 
+* `$0.x` can do shadowing and mean `$0.x₁`?
+* check what shadowing actually means
+
 
