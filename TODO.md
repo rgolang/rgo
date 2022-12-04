@@ -47,6 +47,8 @@ x match:
 
 
 TODO: Implement negex
+TODO: Support all of https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Right_shift_assignment for rgo_js
+
 
 
 
