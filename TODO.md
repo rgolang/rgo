@@ -59,6 +59,20 @@ TODO: Support all of https://developer.mozilla.org/en-US/docs/Web/JavaScript/Ref
 * Doc: that `@` autoimprorts all keywords by default, unless captured `rgo:@"rgo.io/lang/rgo"` explain WHY?
 
 
+---
+
+Figure out the `?` functionality
+```rust
+x < ch?! "fatal: {x}"!
+x < ch? // x is end of stream 
+x < ch? "this is a default for x", print x. // can use ,; depending on context x < ch? default for x. // Return
+```
+* `?` and `!` are non terminating? Does this mean that need to use `?.` and `!.` to `return`?
+
+
+
+
+
 
 
 

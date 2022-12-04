@@ -26,12 +26,13 @@ To simplify describing the below, these characters will have special meaning:
 `,` make a list, excluding the preceding clause
 `!` error  
 `?` if  
-`.` accessor/concatenation
-* TODO:
-`.s` end/return
+`.s`/`.t` end/return
+* a `.` period followed by any whitespace or newline character is treated as a `return`
 * ends an imperative sentence started by `:`
 * ends a list
 * `return` for code in `{}`
+`.` accessor/concatenation
+* TODO:
 `#` hashtag  
 `@` import  
 * import all the keywords from a package on the network, for example a domain
