@@ -15,7 +15,7 @@ The core idea is that it separates mathematical notation from grammatical to mak
 
 >Easy to start, hard to master.
 
-See [parsing](PARSING.md) for how it works.
+See [parsing.md](parsing.md) for how it works.
 
 Mathematical notation is separated from code grammar using round brackets `()`, for example:
 
@@ -33,7 +33,7 @@ x: "World"
 print f"Hello {x}"
 ```
 
-For more examples see: [EXAMPLES.md](EXAMPLES.md)
+For more examples see: [examples.md](examples.md)
 
 ## Syntax
 
@@ -86,7 +86,7 @@ In mathematical context `()`:
 * `[]` a list
 * `()` a group
 
-The meaning above is approximate, for a more accurate and detailed explanation of the syntax, see: [SYNTAX.md](SYNTAX.md)
+The meaning above is approximate, for a more accurate and detailed explanation of the syntax, see: [syntax.md](syntax.md)
 
 ## License
 

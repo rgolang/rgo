@@ -174,4 +174,4 @@ By default all files except `main.rgo` are actually treated as already inside a 
 a: 1; b: 2 // produces {a: 1, b: 2}
 ```
 
-For more examples see: [Package](EXAMPLES_PACKAGE.md)
+For more examples see: [examples_package.md](examples_package.md)

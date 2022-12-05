@@ -26,7 +26,7 @@ print double 5 // prints 10
 * `$0` equals the following negex: `$[a-zA-Z0-9_]+`
 * It does not check if the definition for `run` exists, that happens in the next compilation stage.
 
-See [negex.md](EXAMPLES_NEGEX.md) for examples.
+See [examples_negex.md](examples_negex.md) for examples.
 
 TODO:
 * These can be read in reverse to try and de-duplicate code

@@ -7,7 +7,7 @@ The symbols below are described using [`regex`](https://en.wikipedia.org/wiki/Re
 To simplify describing the below, these characters will have special meaning:
 * `b` a word boundary, `\b` in regex, for example: "hello world" is actually `bhellob bworldb` 
 * `s` a spacing character, `\s` in regex, for example: "hello world" is actually `hellosworld`
-* `t` a terminating character, for example: `.` period, `\n` newline, `\r` carriage return and sometimes `;` semicolon (depending on context, see [PARSING][PARSING.md]) or the end of the file.
+* `t` a terminating character, for example: `.` period, `\n` newline, `\r` carriage return and sometimes `;` semicolon (depending on context, see [parsing.md][parsing.md]) or the end of the file.
 
 ## In grammatical context `{}`
 
