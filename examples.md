@@ -3,7 +3,7 @@
 ## Hello Alice
 
 ```rust
-rgo: @ "github.com/thlib/rgo"
+rgo: @ "github.com/rgolib/rgo"
 {print, scan} rgo.os
 {fmt} rgo.strings
 name scan
@@ -12,7 +12,7 @@ print fmt"hello {name}"
 
 in one line:
 ```rust
-rgo: @ "github.com/thlib/rgo"; {print, scan} rgo.os; {fmt} rgo.strings; name scan; print fmt"hello {name}"
+rgo: @ "github.com/rgolib/rgo"; {print, scan} rgo.os; {fmt} rgo.strings; name scan; print fmt"hello {name}"
 ```
 
 ## Generator TODO:

@@ -27,8 +27,8 @@ This unlocks powerful grammar and allows the language to exist without keywords.
 ## Hello World
 
 ```rust
-{print}: @ "github.com/thlib/rgo/os"
-{f format}: @ "github.com/thlib/rgo/text"
+{print}: @ "github.com/rgolib/rgo/os"
+{f format}: @ "github.com/rgolib/rgo/text"
 x: "World"
 print f"Hello {x}"
 ```
