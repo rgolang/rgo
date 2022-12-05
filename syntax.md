@@ -13,93 +13,98 @@ To simplify describing the below, these characters will have special meaning:
 
 ### `a` keyword `a` 
 ### `1` number `1`  
-`b` currying  
+### `b` currying  
 * `\b` is a word boundary, it can be created using a space ` `; `(`; `)`; `{` or `}`.
-`<` read one to  
+### `<` read one to  
 * TODO: Move memory operator, assembly `MOV` ?
 * TODO: verify if the assembly example matches
-`>` quote if the first character of an expression
+### `>` quote if the first character of an expression
 * TODO: maybe define it as a tree accessor for channels? Breadcrumbs?
-`:` define a keyword
+### `:` define a keyword
 * `:` starts a defining sentence for the preceding term and is terminated by `.` or `}` or `)`
-`;` make a list, including the preceding clause
-`,` make a list, excluding the preceding clause
-`!` error  
-`?` if  
-`.s`/`.t` end/return
+### `;` make a list, including the preceding clause
+### `,` make a list, excluding the preceding clause
+### `!` error  
+### `?` if  
+### `.s`/`.t` end/return
 * a `.` period followed by any whitespace or newline character is treated as a `return`
 * ends an imperative sentence started by `:`
 * ends a list
 * `return` for code in `{}`
-`.` accessor/concatenation
+### `.` accessor/concatenation
 * TODO:
-`#` hashtag  
-`@` import  
+### `#` hashtag  
+### `@` import  
 * import all the keywords from a package on the network, for example a domain
-`$` unknown input placeholder  
-`%` probability  
-`/` or  
-`\` escape the next character
-`|`
+### `$` unknown input placeholder  
+### `%` probability  
+### `/` or  
+### `\` escape the next character
+### `|`
 * Undefined TODO: `pipe` or `or`?
 * TODO: maybe: stream all items one by one from a list or channel into an undefined word or channel
-`_` visual separator  
+### `_` visual separator  
 * Does nothing
 * TODO: maybe use to define undefined variables? (Maybe ^ would be better as it's used for proof-reading)
-`-` range  
-`+`   
-`*` 
+* `1000_000_000`
+* `hello_world`
+### `-` range  
+* Infinite range from 0-inf `[0-]`
+* Finite range `[0-9]` is `[0,1,2,3,4,5,6,7,8,9]`
+### `+`   
+### `*` 
 * TODO: maybe: pointer or list item?
-`=` macro equals  
-`''` macro placeholder  
-`()` math
+### `=` macro equals  
+### `''` macro placeholder  
+### `()` math notation
 * for example: `(2*3)`
-`{}` dictionary  
+### `{}` dictionary  
 * dictionary of keywords, for example: `{word_a: "hello", word_b: "world"}`
 * is a stored procedure in the program grammar code context
 * is a scoped stream of operations for the CPU to process
-`[]` list  
+### `[]` list  
 * for example: `[0, 1, 2, 3]`
-`...` spread/concatenate list
+### `...` spread/concatenate list
 * for example: `a: 0, ...[1, 2], 3` becomes `{a: [0, 1, 2, 3]}` 
 * for example: `[...[0, 1, 2], ...[3, 4, 5]]` becomes `[0, 1, 2, 3, 4, 5]` 
 '`'
 * tilde
 
 ## In mathematical context `()`
-`` math  
-`a` keyword `a`  
-`1` number `1`  
-` ` currying  
-`<` less than  
-`>` greater than  
-`<=` less than or equals to  
-`>=` greater than or equals to  
-`==` equals  
-`~` approximate  
-`:`   
-`;` nest a list  
-`,` make a list  
-`!`   
-`?`   
-`.`   
-`=` set the value of  
-`#`   
-`@`   
-`$`   
-`%`   
-`/`   
-`\`   
-`|`   
-`_` visual separator  
-`-` minus  
-`+` plus  
-`{}` dictionary  
-`[]` list  
-`()` group  
+### `a` keyword `a`  
+### `1` number `1`  
+### ` ` currying  
+### `<` less than  
+### `>` greater than  
+### `<=` less than or equals to  
+### `>=` greater than or equals to  
+### `==` equals  
+### `~` approximate  
+### `:`   
+### `;` nest a list  
+### `,` make a list  
+### `!`   
+### `?`   
+### `.`   
+### `=` set the value of  
+### `#`   
+### `@`   
+### `$`   
+### `%`   
+### `/`   
+### `\`   
+### `|`   
+### `_` visual separator  
+### `-` minus  
+### `+` plus  
+### `{}` dictionary  
+### `[]` list  
+### `()` group  
 
 
 TODO: 
 * Make the syntax in README.md match this one
 * Make the syntax in README.md shorter
 * Make the syntax in README.md and here alphabetically ordered.
+* Fill in the missing keys that are available on some keyboards
+
