@@ -11,17 +11,20 @@ Rgo is a self describing declarative logical language.
 
 An ergonomic programming language/data interchange format made with human readability in mind.
 
-The core idea is that it separates mathematical notation from grammatical to make it more familiar to all people that can read English.
-
 >Easy to start, hard to master.
 
 See [parsing.md](parsing.md) for how it works.
 
-Mathematical notation is separated from code grammar using round brackets `()`, for example:
+The core ideas:
+* Is consistent
+* Separates mathematical notation from grammatical using `{}` and `()` to make it more familiar to all people that can read English.
 
-```
-grammatical code (mathematical code {grammatical code} mathematical code) grammatical code 
-```
+    ```
+    {grammatical code (mathematical code {grammatical code} mathematical code) grammatical code}
+    ```
+* Is keyword free and extendable
+* Is memory safe and concurrent
+
 This unlocks powerful grammar and allows the language to exist without keywords.
 
 ## Hello World
