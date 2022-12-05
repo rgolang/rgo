@@ -13,6 +13,12 @@ Take this little bag of dreams; Unloose the cord.
 
 * `;` creates a list and marks the preceding clause as part of the same list.
 * `.` marks the end of the imperative sentence and is often implied by ending the list.
+* Information flows from right to left while it is read left to right
+    ```
+    Take this little bag of dreams; Unloose the cord.
+    reading direction ------------------------------>
+    <----------------------------------- information.
+    ```
 
 This is parsed to:
 ```
