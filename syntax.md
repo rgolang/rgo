@@ -11,8 +11,8 @@ To simplify describing the below, these characters will have special meaning:
 
 ## In grammatical context `{}`
 
-`a` keyword `a` 
-`1` number `1`  
+### `a` keyword `a` 
+### `1` number `1`  
 `b` currying  
 * `\b` is a word boundary, it can be created using a space ` `; `(`; `)`; `{` or `}`.
 `<` read one to  
