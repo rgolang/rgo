@@ -106,3 +106,14 @@ x = 1,2,3 // [x=1, 2, 3] // error: 2, 3 are not global functions
 
 Use the word `array` instead of `list` and declare this in the readme at the very start and remove the declaration from examples_syntax.
 
+
+---
+
+{postgres}: @"example.com/postgres"
+or
+{postgres}: @"postgres"
+the latter can specify the version and the domain in the package file.
+though this means that packages with the same name can't be imported.
+
+---
+
