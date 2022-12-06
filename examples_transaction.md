@@ -4,7 +4,7 @@
 pg: @"example.com/postgres"
 conn: pg.connect "postgres://localhost:5432"
 out: conn.tx {op1: op1 in1} {op2: op2 in2} {
-    op3: log "transaction complete"? "transaction failed"!
+    op3: log "transaction complete"? "log failed, transaction aborted"!
 }
 print out.op1
 print out.op2
