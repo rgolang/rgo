@@ -18,7 +18,7 @@ conn.tx(op1(in1, out1), op2(in2, out2), fn () error {
     // if the code here fails, neither op1 or op2 will apply their changes
     err = log("transaction complete")
     if err != nil {
-        return err   
+        return fmt.Errorf("log failed, transaction aborted: %w", err)    
     }
 })
 fmt.print(out1)
