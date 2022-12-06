@@ -96,7 +96,13 @@ How to autocomplete?
 * https://en.wikipedia.org/wiki/Stack-oriented_programming
 
 
+---
+
+lit is more stream friendly than math  
+x: 1,2,3 // in math x = [1,2,3]  
+x = 1,2,3 // [x=1, 2, 3] // error: 2, 3 are not global functions 
 
 
 
+Use the word `array` instead of `list` and declare this in the readme at the very start and remove the declaration from examples_syntax.
 

@@ -25,7 +25,8 @@ The core ideas:
 * Is keyword free and extendable
 * Is memory safe and concurrent
 
-This unlocks powerful grammar and allows the language to exist without keywords.
+This unlocks powerful grammar and allows the language to exist without keywords.  
+For more detailed examples, see: [examples_syntax.md](examples_syntax.md)
 
 ## Hello World
 
