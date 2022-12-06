@@ -3,7 +3,7 @@
 ```rust
 pg: @"example.com/postgres"
 conn: pg.connect "postgres://localhost:5432"
-out: conn.tx {out1: op1 in1} {out2: op2 in2} {
+out: conn.tx < out1: op1 in1 < out2: op2 in2 < {
     out3: log "transaction complete"? "log failed, transaction aborted"!
 }
 print out.out1
