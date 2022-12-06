@@ -117,3 +117,9 @@ though this means that packages with the same name can't be imported.
 
 ---
 
+To magic
+`print "hello"`
+or not to magic
+`print < "hello"`
+that is the question.
+
