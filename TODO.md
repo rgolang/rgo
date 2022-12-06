@@ -123,3 +123,8 @@ or not to magic
 `print < "hello"`
 that is the question.
 
+---
+
+#noshadow
+#nolint
+
