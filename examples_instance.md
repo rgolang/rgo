@@ -22,8 +22,8 @@ instance.Add
 ---
 
 ```rust
-h: Heap {
-    x: $0
+h {
+    x: Heap $0
     set: {
         x < $0
     }
