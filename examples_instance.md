@@ -25,7 +25,7 @@ instance.Add
 h: Heap {
     x: $0
     set: {
-        h.x < $0 // TODO: figure out notation
+        x < $0
     }
 }
 h.add: {
