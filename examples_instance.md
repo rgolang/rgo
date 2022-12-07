@@ -32,7 +32,7 @@ h.add: {
     h.x < (+$0)
 }
 h.get: {
-    < h.x // TODO: Figure out notation
+    < h.x
 }
 x: h 1
 x.add 2
