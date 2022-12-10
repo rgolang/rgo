@@ -132,3 +132,15 @@ that is the question.
 
 TODO: The colons and semicolons are all messed up in English, maybe the claim that it looks like English is too much?
 
+---
+
+Assembly:
+index: a keyword in the OS
+
+x = usually means index
+
+di = destination index
+rdi = read from input to destination index
+rax = register accumulator extended
+
+
