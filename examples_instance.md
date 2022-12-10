@@ -35,10 +35,10 @@ h.get: {
     < h.x
 }
 x: h 1
-x.add 2
+x.add < 2
 y: x.get
 y // 3
-x.set 5
+x.set < 5
 z: x.get
 z // 5
 ```

@@ -128,3 +128,7 @@ that is the question.
 #noshadow
 #nolint
 
+---
+
+TODO: The colons and semicolons are all messed up in English, maybe the claim that it looks like English is too much?
+
