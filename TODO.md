@@ -143,4 +143,30 @@ di = destination index
 rdi = read from input to destination index
 rax = register accumulator extended
 
+---
+
+
+* Implement with `<` but remove it and see if it all still makes sense
+* Both input and output in the same signature because var names don't clash anyway, implement output part of the interface later
+* Use `()` for number based interfaces (numeric signatures) `myfunc (1, 2)` same as `myfunc {$0:1, $1:2}` and `myfunc (x, y) {}` same as `myfunc {x:$0, y:$1}` and `myfunc (x int, y str) {}` same as `myfunc {x:int $0, y:str $1}` 
+* Figure out if `()` notation can still be used for math even if it's used for numeric signatures
+* Maybe have a structure with many exported functions and applying data to the structure makes it available to all functions. TODO: Instances.
+* types, structs, functions, loops are all compiler concepts, program just knows binary and goto
+* `int` is a function that can be imported from `rgo` that accepts 1 input and throws an error if it's the wrong type, it's implemented as part of the compiler directly in machine code or in the intermediate representation language just like the `{}():=` symbols
+* `int`, `i32`, `i64`, `uint`, `u32`, `u64`, `str`, `s32`??, `s64`?? `[128]s` and `[128]i` and `[128]u` (The amount of memory a string takes up by default), maybe use `0iFF`, `0uFF` and `0sFF`?
+* `int` can be represented as raw bytes `0xFF` `[0,0xFF]` or whatever because of protobuf
+* `str` can be represented as raw bytes `0xFF` `[1,0xFF]` or whatever because of protobuf
+* Borrowing does not provide transactions, neither do channels, but both can accept a function that is dynamic and a transaction.
+* Curry allows passing only one required var and then the rest later.
+* Threads are a group of workers and kanban is a channel of tasks.
+* In math notation you must declare a variable with a value and no type. (Does this mean mathland doesn't have strings?) Untyped strings treated as very long numbers (because it's just bits)
+* Protobuf approach to strings and ints instead of having a terminator `\0` like `C`
+
+
+```go 
+eat 1 apple
+say "hello world"
+say "hello" "world" // two calls? no, it's composing.
+say "hello", "world" // two calls?
+```
 
