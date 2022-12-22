@@ -191,7 +191,8 @@ The language is language agnostic as much as possible, only these symbols are us
 
 and everything else is based on them.
 
-Hex notation is also language specific.
+Hex notation is also language specific, `A-F` is used because it comes after `9` in binary notation in utf-8, feel free to use a character set other than utf-8 to define hexadecimal numbers differently.
+
 
 
 
