@@ -153,7 +153,7 @@ rax = register accumulator extended
 * Maybe have a structure with many exported functions and applying data to the structure makes it available to all functions. TODO: Instances.
 * types, structs, functions, loops are all compiler concepts, program just knows binary and goto
 * `int` is a function that can be imported from `rgo` that accepts 1 input and throws an error if it's the wrong type, it's implemented as part of the compiler directly in machine code or in the intermediate representation language just like the `{}():=` symbols
-* `int`, `i32`, `i64`, `uint`, `u32`, `u64`, `str`, `s32`??, `s64`?? `[128]s` and `[128]i` and `[128]u` (The amount of memory a string takes up by default), maybe use `0iFF`, `0uFF` and `0sFF`?
+* `int`, `i32`, `i64`, `uint`, `u32`, `u64`, `str`, `s32`??, `s64`?? `[128]s` and `[128]i` and `[128]u` (The amount of memory a string takes up by default), maybe use `0iFF`, `0uFF` and `0sFF`? or `0xFF`, `1xFF`, `2xFF`
 * `int` can be represented as raw bytes `0xFF` `[0,0xFF]` or whatever because of protobuf
 * `str` can be represented as raw bytes `0xFF` `[1,0xFF]` or whatever because of protobuf
 * Borrowing does not provide transactions, neither do channels, but both can accept a function that is dynamic and a transaction.
@@ -169,4 +169,29 @@ say "hello world"
 say "hello" "world" // two calls? no, it's composing.
 say "hello", "world" // two calls?
 ```
+
+TODO:
+The language is language agnostic as much as possible, only these symbols are used:
+
+`utf-8` a keyword/variable
+` ` 
+`,`
+`!`
+`?`
+`;`
+`:`
+`()`
+`[]`
+`{}`
+`…`
+`@`
+`#` (as a hashtag)
+`math`
+`%`
+
+and everything else is based on them.
+
+Hex notation is also language specific.
+
+
 

@@ -9,11 +9,11 @@ To simplify describing the below, these characters will have special meaning:
 * `s` a spacing character, `\s` in regex, for example: "hello world" is actually `hellosworld`
 * `t` a terminating character, for example: `.` period, `\n` newline, `\r` carriage return and sometimes `;` semicolon (depending on context, see [parsing.md][parsing.md]) or the end of the file.
 
-## In grammatical context `{}`
+## In grammatical context
 
 ### `a` keyword `a` 
 ### `1` number `1`  
-### `b` currying  
+### `\b` currying  
 * `\b` is a word boundary, it can be created using a space ` `; `(`; `)`; `{` or `}`.
 ### `<` read one to  
 * TODO: Move memory operator, assembly `MOV` ?
@@ -70,7 +70,7 @@ To simplify describing the below, these characters will have special meaning:
 '`'
 * tilde
 
-## In mathematical context `()`
+## In mathematical context
 ### `a` keyword `a`  
 ### `1` number `1`  
 ### ` ` currying  
@@ -107,4 +107,44 @@ TODO:
 * Make the syntax in README.md shorter
 * Make the syntax in README.md and here alphabetically ordered.
 * Fill in the missing keys that are available on some keyboards
+
+
+https://en.wikipedia.org/wiki/List_of_QWERTY_keyboard_language_variants
+
+`0`: most keyboards
+`a`: latin keyboards
+` `: latin keyboards
+`\t`: all keyboards?
+`Caps`: latin keyboards
+
+
+
+`~`^: US Qwerty
+`backtick`: US Qwerty
+`!`^: US Qwerty
+`@`^: US Qwerty
+`#`^: US Qwerty
+`$`^: US Qwerty
+`%`^: US Qwerty
+`^`^: US Qwerty
+`&`^: US Qwerty
+`*`^: US Qwerty
+`()`^: US Qwerty
+`-`: US Qwerty
+`_`^: US Qwerty
+`=`: US Qwerty
+`+`^: US Qwerty
+`[]`^: US Qwerty
+`{}`^: US Qwerty
+`'`: US Qwerty
+`"`: US Qwerty
+`;`: US Qwerty
+`:`^: US Qwerty
+`\`: US Qwerty
+`|`^: US Qwerty
+`/`: US Qwerty
+`?`: US Qwerty
+`,`: US Qwerty
+`.`: US Qwerty
+`<>`^: US Qwerty
 

@@ -79,9 +79,9 @@ In mathematical context `()`:
 * `~` similar to
 * `;` nest a list
 * `,` make a list
-* `=` set equal to
+* `=` is equal to
 * `%` percentage
-* `/` per
+* `/` divide
 * `_` visual separator
 * `-` minus
 * `+` plus
