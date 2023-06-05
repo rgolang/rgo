@@ -50,7 +50,7 @@ To simplify describing the below, these characters will have special meaning:
 * `hello_world`
 ### `-` range  
 * Infinite range from 0-inf `[0-]`
-* Finite range `[0-9]` is `[0,1,2,3,4,5,6,7,8,9]`
+* Finite range `[0..9]` is `[0,1,2,3,4,5,6,7,8,9]`
 ### `+`   
 ### `*` 
 * TODO: maybe: pointer or list item?
