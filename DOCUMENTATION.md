@@ -50,6 +50,7 @@ str: "hi"
 ### `@prompt`
 Reads a certain number of characters into the stack and provides it to a callback function
 
+Signature
 ```c
 (limit: @int!, ok: (@str))
 ```
