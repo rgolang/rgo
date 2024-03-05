@@ -8,16 +8,16 @@ Date: 2024 Mar
 
 A novel approach to programming that combines the elegance of lambda calculus with the pragmatism of statement-based programming. Tailored for flow-based programming, it emphasizes functional programming, immutability, and higher-order functions, all while automating memory and resource management without relying on a garbage collector.
 
-It currently uses the LLVM backend and is compiled using golang, but performance can be improved by compiling directly to the target architecture assembly.
+Rgo is like a memory safe version of C and Lisp combined, it is most similar to assembly (but readable and safe) and looks similar to javascript/typescript.
 
-Rgo is like a memory safe version of C and Lisp combined, it is most similar to assembly (but readable and safe).
+Like brainteasers and math? See how rgo transforms and re-interprets the syntax of lambda calculus [LAMBDA.md](LAMBDA.md)
 
-See how rgo transforms and re-interprets the syntax for lambda calculus [LAMBDA.md](LAMBDA.md)
+It currently uses the [LLVM](https://en.wikipedia.org/wiki/LLVM) backend and is compiled using golang, but in the future performance can be improved by compiling directly to the target architecture assembly since LLVM lacks direct stack and heap access that rgo requires.
 
 ## Features
 - **Compiled**
 - **Statically typed**
-- **Memory safety**: Automatic compile time memory management through syntax and no garbage collector.
+- **Memory safe**: Automatic compile time memory management through syntax and no garbage collector.
 - **A simple syntax**: Syntax is declared exclusively through special characters, built-in functionality is prefixed with `@` making it easy to recognize what keyword is custom and what is part of the syntax, 
 - **Familiar syntax**: The syntax attempts to be familiar to developers by making it look more like the most popular programming languages.
 - **Functional programming**: built from the ground up to support and encourage functional programming paradigms.
