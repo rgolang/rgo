@@ -32,7 +32,7 @@ These purposefully don't exist to prevent user errors and simplify the language 
 
 ## Documentation
 
-For documentation of [syntax and built-in functions and types](DOCUMENTATION.md)
+For documentation of [syntax, built-in functions and types](DOCUMENTATION.md)
 
 ## Installation/Compiling
 
