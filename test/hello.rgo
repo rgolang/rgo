@@ -1,0 +1,1 @@
+@unsafe.libc.puts("Hello, world!\n", (code:@int){})

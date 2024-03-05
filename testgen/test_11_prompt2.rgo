@@ -1,0 +1,8 @@
+@printf("What is your name?\n")
+callback1: (title: @str, name: @str){
+    @printf("What is your age?\n")
+    @prompt(3, (age: @str){
+        @printf("Hello %s %s age %s!\n", title, name, age)
+    })
+}
+@prompt(10, callback1("Dear"))

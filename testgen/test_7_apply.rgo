@@ -1,0 +1,9 @@
+msg: "hello world"
+foo: (input: @str, n: @int){
+    @printf("%s x %ld", input, n)
+}
+bar: (cb:(@int)) {
+    cb(42)
+}
+qux: foo(msg)
+bar(qux)

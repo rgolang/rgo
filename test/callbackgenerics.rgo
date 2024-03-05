@@ -1,0 +1,13 @@
+foo: (ok:()){
+	ok()
+}
+print1: (n:@str){
+	@unsafe.libc.printf("The losing number is %s\n", n)
+}
+print2: (n:@str){
+	@unsafe.libc.printf("The winning number is %s\n", n)
+}
+p1: print1("41")
+p2: print2("42")
+foo(p1)
+foo(p2)

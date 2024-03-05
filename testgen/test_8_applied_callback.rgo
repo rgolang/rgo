@@ -1,0 +1,7 @@
+bar: (m1:@str, m2:@str) {
+    @printf("msg1: %s, msg2: %s\n", m1, m2)
+}
+foo: (cb:(@str)){
+    cb("bye")
+}
+foo(bar("hi"))

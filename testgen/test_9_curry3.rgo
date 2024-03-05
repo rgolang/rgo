@@ -1,0 +1,7 @@
+foo: (cb: ()){
+    cb()
+}
+bar: (name: @str) {
+    @printf("Hello, %s!\n", name)
+}
+foo(bar("John"))

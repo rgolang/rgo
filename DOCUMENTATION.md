@@ -1,6 +1,6 @@
 ## Syntax
 
-The list of special characters is very small `@:(){}!`
+The list of special characters is very small `@:(){}!/`
 
 ### `:`
 For labelling functions, literals (string/int/float) and parameters can be labelled like so:
@@ -21,6 +21,9 @@ Anything starting with `@` is built into the language.
 
 ### `!` 
 Compile time flag for types, this enforces the function argument to be available at compile time
+
+### `//`
+Comments start with `//` and end with the line.
 
 ## Built-in types
 ### `@int`

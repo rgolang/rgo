@@ -1,0 +1,8 @@
+@std
+foo: (ok:(n:string)){
+	ok("42")
+}
+print: (n:string){
+	@unsafe.libc.printf("The winning number is %s\n", n)
+}
+foo(print) 

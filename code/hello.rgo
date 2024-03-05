@@ -1,0 +1,2 @@
+x: "World"
+@printf("Hello %s\n", x)

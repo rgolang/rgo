@@ -1,0 +1,6 @@
+if: (cond: ((),()), ok:()){
+    cond(ok, {})
+}
+if(@igt(4, 3), {
+    @printf("More\n")
+})

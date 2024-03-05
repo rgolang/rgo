@@ -1,0 +1,8 @@
+msg: "hello world"
+foo: (input: @str){
+    @unsafe.libc.puts(input, (code:@int){})
+}
+bar: (cb:(@str)) {
+    cb(msg)
+}
+bar(foo)

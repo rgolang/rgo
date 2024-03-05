@@ -1,0 +1,4 @@
+foo: (s: @str!) {
+    @unsafe.libc.puts(s, (code:@int){})
+}
+foo("hi")

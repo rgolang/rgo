@@ -31,6 +31,10 @@ It currently uses the LLVM backend and is compiled using golang, but performance
 
 For documentation of [syntax and built-in functions and types](DOCUMENTATION.md)
 
+## Installation/Compiling
+
+To run the code, see [COMPILE.md](COMPILE.md)
+
 ## Examples
 
 ```c

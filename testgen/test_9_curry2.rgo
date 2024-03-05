@@ -1,0 +1,7 @@
+bar: (a:@str, b:@str, c:@str) {
+    @printf("a: %s, b: %s, c: %s\n", a, b, c)
+}
+foo: (cb:(@str)){
+    cb("c")
+}
+foo(bar("a", "b"))

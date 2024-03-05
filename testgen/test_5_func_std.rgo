@@ -1,0 +1,9 @@
+@std
+foo: (x:string){
+	ok: (s: string){
+		@unsafe.libc.puts(s, (code:@int){})
+	}
+	ok(x)
+	ok(x)
+}
+foo("hello world")

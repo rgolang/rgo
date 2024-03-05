@@ -1,0 +1,7 @@
+foo: (n:@str, s:@str){
+	@printf("The winning number for %s is %s\n", s, n)
+}
+bar: foo("42")
+baz: foo("43", "Bob")
+bar("Alice")
+baz()
