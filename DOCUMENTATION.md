@@ -9,6 +9,8 @@ label: declaration
 ```
 Labelling is purposefully only available for values that are present at compile time, this includes function parameters because their type is declared at compile time.
 
+Do not confuse this with variable assignation `=` in other languages, `:` is a compile time operation.
+
 ### `(){}`
 
 Functions look like `(){}` or `{}`, where the parameters go inside `()` and the body (inside `{}`) contains a list of newline or comma separated statements.  
