@@ -25,7 +25,8 @@ It currently uses the [LLVM](https://en.wikipedia.org/wiki/LLVM) backend and is 
 - **Higher-Order Functions**: Treats functions as first-class citizens, enabling functions that take other functions as arguments or return them as results.
 - **Error handling**: Through callback functions
 
-## Anti-features (These purposefully don't exist)
+## Anti-features
+These purposefully don't exist to prevent user errors and simplify the language and compiler
 - **No `return`**: Having returns would make the language a hybrid between expression and statement based, by not having returns the language becomes significantly simpler to compile and many problems related to memory and resource management disappear, it also makes the language very _async_ friendly.
 - **No variables**: There are no traditional variables, compile time values can be labelled, runtime values are created by built-in functions and are immutable.
 
