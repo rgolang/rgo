@@ -33,7 +33,7 @@ Comments start with `//` and end with the line.
 
 ## Built-in functions
 ### `@printf`
-Accepts a compile time 
+Accepts a compile time formatting string and variadic variables
 ```c
 (fmt: @str!, ..., ok: (@str))
 ```
