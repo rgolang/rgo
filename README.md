@@ -1,102 +1,74 @@
 ---
 Author: Timo Huovinen
-Date: 2022 Dec
+Date: 2024 Mar
 ---
 
-# rgo
-(pre-alpha version)  
-`main.rgo`
+# Rgo programming language
+(pre-alpha version)
 
-Rgo is a self describing declarative logical language.  
+Rgo is like a memory safe version of C and Lisp combined, it is most similar to assembly (but readable and safe).
 
-An ergonomic programming language/data interchange format made with human readability in mind.
+A novel approach to programming that combines the elegance of lambda calculus with the pragmatism of statement-based programming. Tailored for flow-based programming, Rgo emphasizes functional programming, immutability, and higher-order functions, all while automating memory and resource management without relying on a garbage collector.
 
->Easy to start, hard to master.
+It currently uses the LLVM backend and is compiled using golang, but performance can be improved by compiling directly to the target architecture assembly.
 
-See [parsing.md](parsing.md) for how it works.
+## Features
+- **Compiled**
+- **Statically typed**
+- **Memory safety**: Automatic compile time memory management through syntax and no garbage collector.
+- **A simple syntax**: Syntax is declared exclusively through special characters, built-in functionality is prefixed with `@` making it easy to recognize what keyword is custom and what is part of the syntax, 
+- **Familiar syntax**: The syntax attempts to be familiar to developers by making it look more like the most popular programming languages.
+- **Functional programming**: built from the ground up to support and encourage functional programming paradigms.
+- **Currying**: Functions support currying, encouraging for more flexible code reuse, function composition and to get out of "callback hell".
+- **Higher-Order Functions**: Treats functions as first-class citizens, enabling functions that take other functions as arguments or return them as results.
+- **Error handling**: Through callback functions
 
-The core ideas:
-* Is consistent
-* Separates mathematical notation from grammatical using `{}` and `()` to make it more familiar to all people that can read English.
+## Anti-features (These purposefully don't exist)
+- **No `return`**: Having returns would make the language a hybrid between expression and statement based, by not having returns the language becomes significantly simpler to compile and many problems related to memory and resource management disappear, it also makes the language very _async_ friendly.
+- **No variables**: There are no traditional variables, compile time values can be labelled, runtime values are created by built-in functions and are immutable.
 
-    ```
-    {grammatical code (mathematical code {grammatical code} mathematical code) grammatical code}
-    ```
-* Is keyword free and extendable
-* Is memory safe and concurrent
+## Documentation
 
-This unlocks powerful grammar and allows the language to exist without keywords.  
-For more detailed examples, see: [examples_syntax.md](examples_syntax.md)
+For documentation of [syntax and built-in functions and types](DOCUMENTATION.md)
 
-## Hello World
+## Examples
 
-```rust
-{print}: @ "github.com/rgolib/rgo/os"
-{f format}: @ "github.com/rgolib/rgo/text"
-x: "World"
-print f"Hello {x}"
+```c
+foo: (){} // a function with no parameters
+foo() // a function call
+
+bar: {} // a function with no parameters
+bar // a function call
 ```
 
-For more examples see: [examples.md](examples.md)
+### Hello World
 
-## Syntax
+```c
+x: "World"
+@printf("Hello %s\n", x)
+```
 
-In grammatical context `{}`:
-* `a` keyword `a` 
-* `1` number `1`
-* ` ` currying
-* `<` move
-* `:` define a keyword
-* `;` nest a list
-* `,` make a list
-* `!` error
-* `?` if then
-* `.` end/return/accessor/concatenation
-* `#` hashtag
-* `@` import
-* `$` placeholder
-* `%` probability
-* `/` or
-* `\` escape
-* `_` visual separator
-* `-` range
-* `~` approximate/omit
-* `=` macro equals
-* `''` macro placeholder
-* `{}` dictionary
-* `[]` list
-* `()` math
+### Hello user
 
-In mathematical context `()`:
-* `a` keyword `a`
-* `1` number `1`
-* ` ` currying
-* `<` less than
-* `>` greater than
-* `<=` less than or equals to
-* `>=` greater than or equals to
-* `==` equals
-* `~` similar to
-* `;` nest a list
-* `,` make a list
-* `=` is equal to
-* `%` percentage
-* `/` divide
-* `_` visual separator
-* `-` minus
-* `+` plus
-* `*` multiply
-* `{}` a set
-* `[]` a list
-* `()` a group
+```c
+@printf("What is your name?\n")
+@prompt(10, (name: @str){
+    @printf("Hello %s\n", name)
+})
+```
 
-The meaning above is approximate, for a more accurate and detailed explanation of the syntax, see: [syntax.md](syntax.md)
+### Arithmetic
+
+```c
+@add(3, 5, (res: @int){
+    @printf("%d\n", res) // prints 8
+})
+```
+
+## TODO:
+[To-Do](TODO.md)
 
 ## License
 
 [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
-
-
-— Timo Huovinen
-
 
