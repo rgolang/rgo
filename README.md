@@ -34,9 +34,9 @@ These purposefully don't exist to prevent user errors and simplify the language 
 
 For documentation of [syntax, built-in functions and types](DOCUMENTATION.md)
 
-## Installation/Compiling
+## Installation/Compiling/Running
 
-To run the code, see [COMPILE.md](COMPILE.md)
+To run the code, see [PLAY.md](PLAY.md)
 
 ## Examples
 

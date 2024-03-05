@@ -1,7 +1,7 @@
 ## Installation
 
-- Install Golang
-- Install LLVM
+- Install Golang https://go.dev/doc/install or using asdf https://github.com/asdf-community/asdf-golang
+- Install LLVM https://releases.llvm.org/download.html
 
 ## Compiling and running code
 ```sh
