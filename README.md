@@ -6,11 +6,11 @@ Date: 2024 Mar
 # Rgo programming language
 (pre-alpha version)
 
-Rgo is like a memory safe version of C and Lisp combined, it is most similar to assembly (but readable and safe).
-
-A novel approach to programming that combines the elegance of lambda calculus with the pragmatism of statement-based programming. Tailored for flow-based programming, Rgo emphasizes functional programming, immutability, and higher-order functions, all while automating memory and resource management without relying on a garbage collector.
+A novel approach to programming that combines the elegance of lambda calculus with the pragmatism of statement-based programming. Tailored for flow-based programming, it emphasizes functional programming, immutability, and higher-order functions, all while automating memory and resource management without relying on a garbage collector.
 
 It currently uses the LLVM backend and is compiled using golang, but performance can be improved by compiling directly to the target architecture assembly.
+
+Rgo is like a memory safe version of C and Lisp combined, it is most similar to assembly (but readable and safe).
 
 ## Features
 - **Compiled**
