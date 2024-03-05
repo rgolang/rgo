@@ -10,6 +10,7 @@ go run main.go "./code/hello.rgo"
 mkdir -p ./bin
 llc -filetype=obj -relocation-model=pic -opaque-pointers ./code/hello.ll -o ./bin/hello.o
 gcc ./bin/hello.o -o ./bin/hello
+./bin/hello
 ```
 
 ## Makefile utility functions
