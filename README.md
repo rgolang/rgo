@@ -12,6 +12,8 @@ It currently uses the LLVM backend and is compiled using golang, but performance
 
 Rgo is like a memory safe version of C and Lisp combined, it is most similar to assembly (but readable and safe).
 
+See how rgo transforms and re-interprets the syntax for lambda calculus [LAMBDA.md](LAMBDA.md)
+
 ## Features
 - **Compiled**
 - **Statically typed**
