@@ -5,20 +5,21 @@ https://en.wikipedia.org/wiki/Lambda_calculus
 
 >Lambda calculus (also written as λ-calculus) is a formal system in mathematical logic for expressing computation based on function abstraction and application using variable binding and substitution. It is a universal model of computation that can be used to simulate any Turing machine. It was introduced by the mathematician Alonzo Church in the 1930s as part of his research into the foundations of mathematics.
 
-It supports only one input and output, the function parameter and body is separated using `.`, units can be grouped using parenthesis `()`, one of its fundamental features is https://en.wikipedia.org/wiki/Currying and https://en.wikipedia.org/wiki/First-class_function
+It supports only one input and output, the function parameter and body is separated using `.`, units can be grouped using parenthesis `()`, some of its fundamental features are https://en.wikipedia.org/wiki/Currying and https://en.wikipedia.org/wiki/First-class_function
 
-## Step by step transformation
+## Intro
 
 Starting with pure lambda calculus with a predefined `@add` function and literal integer support `1`,`2`,`3`:  
-Showing how it calculates one line at a time, starting with `(λa.λb.@add a b) 5 3`:
+```js
+(λa.λb.@add a b) 5 3
+```
+Showing how it evaluates one line at a time:
 ```js
 (λa.λb.@add a b) 5 3
 (λb.@add 5 b) 3
 @add 5 3
 8
 ```
-
-Now we will tweak it step by step.
 
 A more complicated example with functions as arguments and a predefined `@mul` function. (each line shows how it's evaluated)
 ```js
@@ -32,6 +33,8 @@ A more complicated example with functions as arguments and a predefined `@mul` f
 @mul 2 8
 16 
 ```
+
+## Step by step transformation
 
 **Use ^**: Replace `λ` with `^` to make it easier to type
 ```c
