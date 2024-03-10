@@ -101,7 +101,8 @@ func (f *function) IsVariadic() bool {
 // a Param could be a function (which could be a closure) or a value
 type Param struct {
 	*ir.Param
-	node *ast.Type
+	node       *ast.Type
+	isVariadic bool
 }
 
 func (p *Param) Node() ast.Node {
@@ -120,6 +121,7 @@ func (p *Param) Params(frm *function) ([]*Param, error) {
 	// TODO: Inefficient
 	params := make([]*Param, len(p.node.Values))
 	if p.node.Value != "" {
+		// TODO: We know what this is for int `((@int), @int)`, what about string?
 		return nil, fmt.Errorf("value param: %q, value %v, values %+v", p.Name(), p.node.Value, p.node.Values)
 	}
 	for i, p := range p.node.Values {
@@ -542,17 +544,6 @@ func (f *function) new(name string, node ast.Node, params []*Param, hasBody, isV
 	return frm
 }
 
-func (f *function) addFunc(name string, fn callable) error {
-	if name == "" {
-		return fmt.Errorf("function name cannot be empty")
-	}
-	if _, ok := f.inner[name]; ok {
-		return fmt.Errorf("add function: label already exists: %v", name)
-	}
-	f.inner[name] = fn
-	return nil
-}
-
 func (f *function) addType(name string, typ types.Type) error {
 	if name == "" {
 		return fmt.Errorf("type name cannot be empty")
@@ -575,7 +566,7 @@ func (f *function) addValue(name string, fn value.Value) error {
 	return nil
 }
 
-func (f *function) getValue(name string) (value.Value, error) {
+func (f *function) getValue(name string) (value.Value, error) { // TODO: remove this, use getCallable
 	v, ok := f.inner[name]
 	if !ok {
 		v, ok = f.outer[name]
@@ -606,12 +597,12 @@ func (f *function) getType(name string) (types.Type, error) {
 	return nil, fmt.Errorf("reference %q found, but is not a type", name)
 }
 
-func (f *function) getCallable(name string, applyNode *ast.Apply) (callable, error) {
+func (f *function) getCallable(name string, applyNode *ast.Apply) (callable, error) { // TODO: everything should be callable, even types
 	v, ok := f.inner[name]
 	if !ok {
 		v, ok = f.outer[name]
 		if !ok {
-			v, ok = handleBuiltIn(f, name, applyNode)
+			v, ok = handleBuiltIn(f, name, applyNode) // TODO: handle this in handleCallable
 			if !ok {
 				return nil, fmt.Errorf("function %q not found in inner or outer scope", name)
 			}
@@ -663,119 +654,56 @@ func handleParam(frm *function, t *ast.Type) (*Param, error) {
 	}, nil
 }
 
-func handleVariadicArg(frm *function, node ast.Node) (string, value.Value, error) { // TODO: IMprove this
-	// Remember it internally
-	switch n := node.(type) { // TODO: This would have been the Declaration AST node
-	case *ast.Alias:
-		v, err := frm.getValue(n.Of)
-		if err != nil {
-			return n.Name, nil, fmt.Errorf("variadic arg: %w", err)
-		}
-		return n.Name, v, nil
-	case *ast.IntLiteral:
-		// TODO: slightly duplicated
-		v := constant.NewInt(types.I32, int64(n.Value)) // TODO: Assuming 64-bit integers
-		return n.Name, v, nil
-	case *ast.StringLiteral:
-		// TODO: slightly duplicated
-		globalStr := newConstString(n.Name, n.Value)
-		v := constant.NewGetElementPtr(globalStr.Typ.ElemType, globalStr, zero, zero) // TODO: Could this re-use the above?
-		frm.mod.Globals = append(frm.mod.Globals, globalStr)
-		return n.Name, v, nil
-	default:
-		return "", nil, fmt.Errorf("unsupported declaration type: %T", node)
-	}
-}
-
-func handleArgument(frm *function, node ast.Node, param *Param) (string, value.Value, error) {
+func handleNode(frm *function, node ast.Node, param *Param) (value.Value, error) {
+	var err error
+	var callee callable
 	// Remember it internally
 	switch n := node.(type) { // TODO: This would have been the Declaration AST node
 	case *ast.Function:
-		// The apply is adding more params than the callback param supports
-		callbackParams, err := param.Params(frm)
+		callee, err = handleFunctionNode(frm, n)
 		if err != nil {
-			return n.Name, nil, fmt.Errorf("fn, error getting callback params: %w", err)
+			return nil, fmt.Errorf("error handling function: %w", err)
 		}
-
-		if len(callbackParams) < len(n.Params) {
-			return n.Name, nil, fmt.Errorf("%q function has more parameters than the callback %q expects, expected %d, got %d", frm.id, param.Name(), len(callbackParams), len(n.Params))
-		}
-
-		fn, err := handleFunctionNode(frm, n)
-		if err != nil {
-			return n.Name, nil, fmt.Errorf("error handling function: %w", err)
-		}
-		return n.Name, fn, nil
 	case *ast.Apply:
-		// TODO: Check if we're calling a callback
-
-		// TODO: Check how many args are being expected by the callee and how many are provided by the caller (to detect a closure)
-		// TODO: Check how many args are being expected by the callee and how many are provided by the caller (to detect a closure)
-		callee, err := frm.getCallable(n.Of, n)
+		callee, err = handleApplyNode(frm, n)
 		if err != nil {
-			return n.Name, nil, fmt.Errorf("error finding callee: %w", err)
+			return nil, fmt.Errorf("error handling apply: %w", err)
 		}
-
-		calleeParams, err := callee.Params(frm)
-		if err != nil {
-			return n.Name, nil, fmt.Errorf("error getting callee params: %w", err)
-		}
-
-		// The apply is adding more params than the callee supports
-		if len(calleeParams) < len(n.Arguments) {
-			return n.Name, nil, fmt.Errorf("apply is adding more arguments than the callee expects, expected %d arguments, got %d", len(calleeParams), len(n.Arguments))
-		}
-
-		// The apply is adding more params than the callback param supports
-		callbackParams, err := param.Params(frm)
-		if err != nil {
-			return n.Name, nil, fmt.Errorf("apply, error getting callback params: %w", err)
-		}
-
-		args := make([]value.Value, 0, len(n.Arguments))
-		for i, arg := range n.Arguments {
-			_, v, err := handleArgument(frm, arg, calleeParams[i])
-			if err != nil {
-				return n.Name, nil, fmt.Errorf("[%d] error converting argument: %w", i, err)
-			}
-			args = append(args, v)
-		}
-
-		// it's basically a new function (which could be a closure)
-		params := make([]*Param, len(calleeParams[len(args):]))
-		for i, p := range calleeParams[len(args):] {
-			params[i] = p
-			args = append(args, p)
-		}
-		apply := frm.new(n.Name, n, params, true, false) // call frame
-
-		if len(callbackParams) < len(apply.params) {
-			return n.Name, nil, fmt.Errorf("apply is adding more arguments than the callback %q expects, %q expected %d arguments, got %d", apply.Name(), param.Name(), len(callbackParams), len(apply.params))
-		}
-
-		// Call the callee from inside the apply helper
-		apply.block.NewCall(callee, args...) // TODO: This might not be enough args
-
-		return n.Name, apply, nil
-	case *ast.Alias:
+	case *ast.Label:
+		// TODO: Allow variadic builtins here
 		v, err := frm.getValue(n.Of)
 		if err != nil {
-			return n.Name, nil, fmt.Errorf("error finding reference: %w", err)
+			return nil, fmt.Errorf("error finding label: %w", err)
 		}
-		return n.Name, v, nil
+		return v, nil
 	case *ast.IntLiteral:
 		// TODO: slightly duplicated
 		v := constant.NewInt(types.I32, int64(n.Value)) // TODO: Assuming 64-bit integers
-		return n.Name, v, nil
+		return v, nil
 	case *ast.StringLiteral:
 		// TODO: slightly duplicated
-		globalStr := newConstString(n.Name, n.Value)
+		globalStr := frm.newConstString(n.Name, n.Value)
 		v := constant.NewGetElementPtr(globalStr.Typ.ElemType, globalStr, zero, zero)
-		frm.mod.Globals = append(frm.mod.Globals, globalStr)
-		return n.Name, v, nil
+		return v, nil
 	default:
-		return "", nil, fmt.Errorf("unsupported declaration type: %T", node)
+		return nil, fmt.Errorf("unsupported declaration type: %T", node)
 	}
+
+	if param != nil {
+		// The apply is adding more params than the callback param supports
+		callbackParams, err := param.Params(frm)
+		if err != nil {
+			return nil, fmt.Errorf("error getting callback params: %w", err)
+		}
+		params, err := callee.Params(frm)
+		if err != nil {
+			return nil, fmt.Errorf("error getting apply params: %w", err)
+		}
+		if len(callbackParams) < len(params) {
+			return nil, fmt.Errorf("adding more arguments than the callback %q expects, %q expected %d arguments, got %d", callee.Name(), param.Name(), len(callbackParams), len(params))
+		}
+	}
+	return callee, nil
 }
 
 func handleFunctionNode(frm *function, n *ast.Function) (*function, error) {
@@ -804,63 +732,45 @@ func handleFunctionNode(frm *function, n *ast.Function) (*function, error) {
 	return fn, nil
 }
 
-func handleApplyNode(frm *function, n *ast.Apply) (callable, []value.Value, error) {
+func handleApplyNode(frm *function, n *ast.Apply) (callable, error) {
 	var callee callable
-	if n.Of == "" && n.Function != nil {
-		fn, err := handleFunctionNode(frm, n.Function)
+	switch f := n.Callee.(type) {
+	case *ast.Function:
+		fn, err := handleFunctionNode(frm, f)
 		if err != nil {
-			return nil, nil, fmt.Errorf("error handling anon function %q: %w", n.Name, err)
+			return nil, fmt.Errorf("error handling anon function %q: %w", n.Name, err)
 		}
 		callee = fn
-	} else {
-		// TODO: Check how many args are being expected by the callee and how many are provided by the caller (to detect a closure)
-		fn, err := frm.getCallable(n.Of, n)
+	case *ast.Label:
+		fn, err := frm.getCallable(f.Of, n) // TODO: Remove getCallable
 		if err != nil {
-			return nil, nil, fmt.Errorf("error finding callee: %w", err)
+			return nil, fmt.Errorf("error finding callee: %w", err)
 		}
 		callee = fn
+	default:
+		// TODO: handle other types of apply
+		return nil, fmt.Errorf("unsupported callee type: %T", n.Callee)
 	}
 
-	if callee.IsVariadic() {
-		// Just call the unsafe functions directly, hence they are unsafe
-		if n.Name != "" {
-			return nil, nil, fmt.Errorf("named variadic functions not yet supported")
-		}
-		args := make([]value.Value, 0, len(n.Arguments))
-		for i, arg := range n.Arguments {
-			_, v, err := handleVariadicArg(frm, arg)
-			if err != nil {
-				return nil, nil, fmt.Errorf("[%d] error converting argument: %w", i, err)
-			}
-			args = append(args, v)
-		}
-		return callee, args, nil
-	}
 	calleeParams, err := callee.Params(frm)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error getting callee params: %w", err)
+		return nil, fmt.Errorf("error getting callee params: %w", err)
 	}
 
 	// The apply is adding more params than the callee supports
 	if len(calleeParams) < len(n.Arguments) {
-		return nil, nil, fmt.Errorf("%q expected params %d, got %d", callee.Name(), len(calleeParams), len(n.Arguments))
+		return nil, fmt.Errorf("%q expected params %d, got %d", callee.Name(), len(calleeParams), len(n.Arguments))
 	}
 
 	args := make([]value.Value, 0, len(n.Arguments))
 	for i, arg := range n.Arguments {
-		_, v, err := handleArgument(frm, arg, calleeParams[i])
+		v, err := handleNode(frm, arg, calleeParams[i])
 		if err != nil {
-			return nil, nil, fmt.Errorf("[%d] error converting argument: %w", i, err)
+			return nil, fmt.Errorf("[%d] error converting argument: %w", i, err)
 		}
 		args = append(args, v)
 	}
 
-	if n.Name == "" {
-		// It's a direct call
-		return callee, args, nil
-	}
-
-	// if it's named, then it's basically a new function (which could be a closure)
 	params := make([]*Param, len(calleeParams[len(args):]))
 	for i, p := range calleeParams[len(args):] {
 		params[i] = p
@@ -870,56 +780,70 @@ func handleApplyNode(frm *function, n *ast.Apply) (callable, []value.Value, erro
 
 	// Call the callee from inside the apply helper
 	apply.block.NewCall(callee, args...) // TODO: This might not be enough args
-	return apply, args, nil
+	return apply, nil
 }
 
 func handleBody(frm *function, nodes []ast.Node) error {
 	for i, node := range nodes {
+		// TODO: Now that Label() is available, could simply use handleNode (for strings could do the pointer outside of handleNode? or get the thing the value points at?)
 		// A declaration can either a function, a constant or an alias to a function, constant or parameter.
 		// A declaration can never be a variable.
 		switch n := node.(type) { // TODO: This would have been the Declaration AST node
 		case *ast.Function:
-			fn, err := handleFunctionNode(frm, n)
+			callee, err := handleFunctionNode(frm, n)
 			if err != nil {
 				return fmt.Errorf("[%d] in body: error handling function %q: %w", i, n.Name, err)
 			}
 			if n.Name == "" {
-				frm.block.NewCall(fn)
+				frm.block.NewCall(callee)
 			} else {
-				err = frm.addFunc(n.Name, fn)
+				err = frm.addValue(n.Name, callee)
 				if err != nil {
 					return fmt.Errorf("add fn ref: %w", err)
 				}
 			}
 		case *ast.Apply:
-			callee, args, err := handleApplyNode(frm, n) // TODO: handleApplyNode knows if it's a call, it could return a list of instructions
-			if err != nil {
-				return fmt.Errorf("[%d] in body: error handling apply: %w", i, err)
-			}
 			if n.Name == "" {
+				var ok bool
+				var callee callable
+				if label, ok := n.Callee.(*ast.Label); ok {
+					// TODO: could return a function, since everything is a function
+					if builtin, ok := handleBuiltIn(frm, label.Of, n); ok {
+						if callee, ok = builtin.(callable); !ok {
+							return fmt.Errorf("handle builtin call: %v", label.Of)
+						}
+					}
+				}
+				if callee == nil {
+					// TODO: Change this to support any type
+					v, err := handleNode(frm, n.Callee, nil)
+					if err != nil {
+						return fmt.Errorf("handle call: %w", err)
+					}
+					if callee, ok = v.(callable); !ok {
+						return fmt.Errorf("expected callable but got %T", v)
+					}
+				}
+
+				// Just call the unsafe functions directly, hence they are unsafe
+				args := make([]value.Value, 0, len(n.Arguments))
+				for i, arg := range n.Arguments {
+					v, err := handleNode(frm, arg, nil)
+					if err != nil {
+						return fmt.Errorf("[%d] error converting argument: %w", i, err)
+					}
+					args = append(args, v)
+				}
 				frm.block.NewCall(callee, args...)
 			} else {
-				err = frm.addFunc(n.Name, callee)
+				callee, err := handleApplyNode(frm, n)
+				if err != nil {
+					return fmt.Errorf("[%d] in body: error handling apply: %w", i, err)
+				}
+				err = frm.addValue(n.Name, callee)
 				if err != nil {
 					return fmt.Errorf("add fn ref: %w", err)
 				}
-			}
-		case *ast.Alias:
-			if n.Name == "" {
-				callee, err := frm.getCallable(n.Of, nil)
-				if err != nil {
-					return fmt.Errorf("error finding callee: %w", err)
-				}
-				frm.block.NewCall(callee)
-				return nil
-			}
-			v, err := frm.getValue(n.Of)
-			if err != nil {
-				return fmt.Errorf("error finding reference: %w", err)
-			}
-			err = frm.addValue(n.Name, v)
-			if err != nil {
-				return fmt.Errorf("add ref ref: %w", err)
 			}
 		case *ast.IntLiteral:
 			// TODO: Duplicate code in handleNode
@@ -937,8 +861,7 @@ func handleBody(frm *function, nodes []ast.Node) error {
 			if n.Name == "" {
 				return fmt.Errorf("anonymous string literal statement is not supported")
 			}
-			globalStr := newConstString(n.Name, n.Value)
-			frm.mod.Globals = append(frm.mod.Globals, globalStr)
+			globalStr := frm.newConstString(n.Name, n.Value)
 			err := frm.addValue(n.Name, globalStr) // TODO: check for empty
 			if err != nil {
 				return fmt.Errorf("add str ref: %w", err)
@@ -950,7 +873,8 @@ func handleBody(frm *function, nodes []ast.Node) error {
 	return nil
 }
 
-func newConstString(name string, value string) *ir.Global {
+func (frm *function) newConstString(name string, value string) *ir.Global {
+	mod := frm.mod
 	// Convert the string literal to an LLVM IR constant array of characters
 	// Note: In LLVM, strings are typically null-terminated
 	strVal := value + "\x00"
@@ -962,7 +886,7 @@ func newConstString(name string, value string) *ir.Global {
 	constStr.Immutable = true                          // Mark as constant
 	constStr.Linkage = enum.LinkagePrivate             // For optimization
 	constStr.UnnamedAddr = enum.UnnamedAddrUnnamedAddr // For optimization
-
+	mod.Globals = append(mod.Globals, constStr)
 	return constStr
 }
 
@@ -970,9 +894,14 @@ func declarePrompt(id string, frm *function, limit int) *function { // TODO: Cou
 	name := "builtin." + strings.TrimLeft(id, "@")
 	// TODO: Limit should be a compile time param
 
-	scanf, err := frm.getCallable("@unsafe.libc.scanf", nil)
-	if err != nil {
-		panic(err)
+	scanfAny, isFunc := handleBuiltIn(frm, "@unsafe.libc.scanf", nil) // TODO: handle this in handleCallable
+	if !isFunc {
+		panic("@unsafe.libc.scanf not found")
+	}
+
+	scanf, isCallable := scanfAny.(callable)
+	if !isCallable {
+		panic("@unsafe.libc.scanf not a function")
 	}
 
 	// TODO: Maybe this can be implemented in rgo?
@@ -987,8 +916,7 @@ func declarePrompt(id string, frm *function, limit int) *function { // TODO: Cou
 	bufferType := types.NewArray(uint64(limit+1), types.I8)
 	inputBuffer := entry.NewAlloca(bufferType)
 
-	formatStr := newConstString("builtin.prompt$"+strconv.Itoa(limit)+".format", "%"+strconv.Itoa(limit)+"s")
-	frm.mod.Globals = append(frm.mod.Globals, formatStr)
+	formatStr := frm.newConstString("builtin.prompt$"+strconv.Itoa(limit)+".format", "%"+strconv.Itoa(limit)+"s")
 	formatStrPtr := constant.NewGetElementPtr(formatStr.Typ.ElemType, formatStr, zero, zero)
 	bufferPtr := entry.NewGetElementPtr(bufferType, inputBuffer, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 0))
 	entry.NewCall(scanf, formatStrPtr, bufferPtr)
@@ -1008,99 +936,3 @@ func declarePrompt(id string, frm *function, limit int) *function { // TODO: Cou
 		params: []*Param{limitParam, ok},
 	}
 }
-
-// func declarePrompt(frm *function, limit int) *ir.Func { // TODO: Could just use fscan with the limit inside prompt
-// 	// TODO: Limit should be a compile time param
-
-// 	// TODO: Maybe this can be implemented in rgo?
-// 	// TODO: Maybe use scanf("%3s", string)?
-// 	ok := ir.NewParam("ok", types.NewPointer(types.NewFunc(types.Void, types.I8Ptr)))
-// 	prompt := frm.mod.NewFunc("prompt", types.Void, ok)
-// 	entry := prompt.NewBlock("entry")
-
-// 	// Allocate a buffer with size equal to limit + 1 (for null terminator).
-// 	bufferType := types.NewArray(uint64(limit+1), types.I8)
-// 	buffer := entry.NewAlloca(bufferType)
-
-// 	// Declare loop variables
-// 	i := entry.NewAlloca(types.I32)
-// 	entry.NewStore(constant.NewInt(types.I32, 0), i)
-
-// 	// Loop condition block
-// 	condBlock := prompt.NewBlock("cond")
-// 	entry.NewBr(condBlock)
-
-// 	// Loop body block
-// 	loopBlock := prompt.NewBlock("loop")
-
-// 	storeBlock := prompt.NewBlock("store")
-
-// 	// Loop end block
-// 	endBlock := prompt.NewBlock("end")
-
-// 	// Condition check: i < limit && char != EOF && char != '\n'
-// 	condBlock.NewCondBr(
-// 		condBlock.NewICmp(enum.IPredULT, condBlock.NewLoad(types.I32, i), constant.NewInt(types.I32, int64(limit))),
-// 		loopBlock,
-// 		endBlock,
-// 	)
-
-// 	getchar, err := frm.getCallable("@unsafe.libc.getchar")
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	// Read a character
-// 	char := loopBlock.NewCall(getchar)
-// 	isEOF := loopBlock.NewICmp(enum.IPredEQ, char, constant.NewInt(types.I32, -1))       // Check for EOF
-// 	isNewline := loopBlock.NewICmp(enum.IPredEQ, char, constant.NewInt(types.I32, '\n')) // Check for newline
-// 	loopBlock.NewCondBr(loopBlock.NewOr(isEOF, isNewline), endBlock, storeBlock)
-
-// 	// Store the character in buffer
-// 	charPtr := storeBlock.NewGetElementPtr(bufferType, buffer, constant.NewInt(types.I32, 0), storeBlock.NewLoad(types.I32, i))
-// 	// Cast the character to i8 before storing
-// 	castChar := storeBlock.NewTrunc(char, types.I8)
-// 	storeBlock.NewStore(castChar, charPtr)
-
-// 	// Increment index i
-// 	nextI := storeBlock.NewAdd(storeBlock.NewLoad(types.I32, i), constant.NewInt(types.I32, 1))
-// 	storeBlock.NewStore(nextI, i)
-
-// 	// Loop back to condition check
-// 	storeBlock.NewBr(condBlock)
-
-// 	// Null-terminate the string in the buffer
-// 	endBlock.NewStore(constant.NewInt(types.I8, 0), endBlock.NewGetElementPtr(bufferType, buffer, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(limit))))
-
-// 	// Convert the buffer to a pointer to its first element (i8*)
-// 	i8PtrToBuffer := endBlock.NewBitCast(buffer, types.I8Ptr)
-// 	i8PtrToBuffer.LocalName = "input"
-
-// 	// Replace the dummy placeholder arg
-// 	// endCall.Args[1] = i8PtrToBuffer
-
-// 	// if cb, ok := applyPromptIRN.Args[1].(*ir.Func); ok {
-// 	// endBlock.NewCall(ir.NewFunc("whaterver", types.Void), i8PtrToBuffer)
-// 	// }
-
-// 	endBlock.NewCall(ok, i8PtrToBuffer)
-
-// 	// endBlock.NewCall(prompt.Params[1], i8PtrToBuffer)
-
-// 	// TODO:
-// 	// Call the callback function with the buffer
-// 	// switch call := callbackIRN.irv.(type) {
-// 	// case *ir.Func:
-// 	// 	endBlock.NewCall(call, i8PtrToBuffer)
-// 	// case *ir.InstCall:
-// 	// 	endBlock.Insts = append(endBlock.Insts, call)
-// 	// 	ctx.block.Insts = append(ctx.block.Insts, ir.NewCall(prompt, i8PtrToBuffer))
-// 	// default:
-// 	// 	panic("unsupported callback type") // TODO: don't panic
-// 	// }
-
-// 	// Return from the function
-// 	endBlock.NewRet(nil)
-
-// 	return prompt
-// }

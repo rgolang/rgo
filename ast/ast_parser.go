@@ -19,6 +19,7 @@ type EOF error
 // TODO: Get rid of Node, everything is a function, even ints and strings
 type Node interface { // TODO: use later to add a method to convert to llvm IR
 	Info() *reader.Info
+	Label() string // TODO: using Label because Name can't be used
 }
 
 type IntLiteral struct {
@@ -27,16 +28,28 @@ type IntLiteral struct {
 	Value int
 }
 
+func (n *IntLiteral) Label() string {
+	return n.Name
+}
+
 type FloatLiteral struct {
 	*lex.Token
 	Name  string
 	Value float64
 }
 
+func (n *FloatLiteral) Label() string {
+	return n.Name
+}
+
 type StringLiteral struct {
 	*lex.Token
 	Name  string
 	Value string
+}
+
+func (n *StringLiteral) Label() string {
+	return n.Name
 }
 
 type Type struct {
@@ -47,7 +60,8 @@ type Type struct {
 	CompTime bool
 }
 
-type Signature struct {
+func (n *Type) Label() string {
+	return n.Name
 }
 
 type Function struct { // TODO: make these private?
@@ -57,18 +71,30 @@ type Function struct { // TODO: make these private?
 	Body   []Node
 }
 
+func (n *Function) Label() string {
+	return n.Name
+}
+
 type Apply struct {
 	*lex.Token
 	Name      string
-	Of        string
-	Function  *Function
+	Callee    Node
 	Arguments []Node
 }
 
-type Alias struct {
+func (n *Apply) Label() string {
+	return n.Name
+}
+
+type Label struct {
 	*lex.Token
-	Name string
-	Of   string
+	Name      string
+	Of        string
+	IsBuiltIn bool
+}
+
+func (n *Label) Label() string {
+	return n.Name
 }
 
 func New(scanner *lex.Scanner) *Parser {
@@ -95,23 +121,10 @@ func (p *Parser) handleBody() ([]Node, error) {
 		case lex.TokenNewline, lex.TokenComma:
 			// continue to the next token
 			p.lex.NextToken() // eat the newline or `,`
-		case lex.TokenAt:
-			// Must be a function call
-			p.lex.NextToken() // eat the @
-			if p.lex.Token.Type != lex.TokenIdentifier {
-				return nil, fmt.Errorf("[%v] expected call identifier, got %v", c, p.lex.Token.Info())
-			}
-			callee := p.lex.Token.Value
-			p.lex.NextToken() // eat the call identifier
-			stmt, err := p.handleCall("@" + callee)
-			if err != nil {
-				return nil, fmt.Errorf("[%v] failed to handle @call statement: %w", c, err)
-			}
-			statements = append(statements, stmt)
 		case lex.TokenLeftBrace, lex.TokenLeftParen:
 			// Handle anon function
 			var stmt Node
-			fn, err := p.handleFunction("")
+			fn, err := p.handleFunction()
 			if err != nil {
 				return nil, fmt.Errorf("[%v] failed to handle anonymous function declaration: %w", c, err)
 			}
@@ -125,7 +138,7 @@ func (p *Parser) handleBody() ([]Node, error) {
 				}
 				stmt = &Apply{
 					Token:     p.lex.Token,
-					Function:  fn,
+					Callee:    fn,
 					Arguments: args,
 				}
 				statements = append(statements, stmt)
@@ -134,35 +147,47 @@ func (p *Parser) handleBody() ([]Node, error) {
 			default:
 				return nil, fmt.Errorf("[%v] expected anonymous function to be called or to terminate, got %v", c, p.lex.Token.Info())
 			}
-		case lex.TokenIdentifier:
-			calleeOrName := p.lex.Token.Value
-			p.lex.NextToken() // eat the declaration name
+		case lex.TokenAt, lex.TokenIdentifier:
+			// Assume it's a label, could be a named or unnamed one
+			label, err := p.handleLabel()
+			if err != nil {
+				return nil, fmt.Errorf("[%v] failed to handle label: %w", c, err)
+			}
 			if p.lex.Token.Type == lex.TokenColon {
-				p.lex.NextToken()                              // eat the colon
-				expr, err := p.handleDeclaration(calleeOrName) // Handle reference, literal or applied function declarations
+				if label.IsBuiltIn {
+					return nil, fmt.Errorf("declaring built-in labels is not supported")
+				}
+
+				p.lex.NextToken()                  // eat the colon
+				expr, err := p.handleDeclaration() // Handle reference, literal or applied function declarations
 				if err != nil {
 					return nil, fmt.Errorf("failed to parse declaration: %w", err)
 				}
-				// A direct call of the function
-				if p.lex.Token.Type == lex.TokenLeftParen {
-					if fn, ok := expr.(*Function); ok {
-						args, err := p.handleArgs()
-						if err != nil {
-							return nil, fmt.Errorf("failed to parse lambda function declaration arguments: %w", err)
-						}
-						fn.Name = ""
-						expr = &Apply{
-							Name:      calleeOrName,
-							Token:     p.lex.Token,
-							Function:  fn,
-							Arguments: args,
-						}
-					}
+
+				// TODO: this can be improved
+				switch e := expr.(type) {
+				case *Apply:
+					e.Name = label.Of
+				case *Function:
+					e.Name = label.Of
+				case *Label:
+					e.Name = label.Of
+				case *Type:
+					e.Name = label.Of
+				case *IntLiteral:
+					e.Name = label.Of
+				case *FloatLiteral:
+					e.Name = label.Of
+				case *StringLiteral:
+					e.Name = label.Of
+				default:
+					return nil, fmt.Errorf("failed to parse declaration result: %T", expr)
 				}
+
 				statements = append(statements, expr)
 				break
 			}
-			stmt, err := p.handleCall(calleeOrName)
+			stmt, err := p.handleCall(label)
 			if err != nil {
 				return nil, fmt.Errorf("[%v] failed to handle call statement: %w", c, err)
 			}
@@ -192,52 +217,75 @@ func (p *Parser) handleNameWithDots(callee string) (string, error) {
 	return b.String(), nil
 }
 
-func (p *Parser) handleCall(callee string) (Node, error) {
-	callee, err := p.handleNameWithDots(callee)
+func (p *Parser) handleCall(calleeLabel *Label) (Node, error) {
+	calleeName, err := p.handleNameWithDots(calleeLabel.Of)
 	if err != nil {
 		return nil, fmt.Errorf("failed to handle function call name: %w", err)
 	}
-	expr, err := p.handleApply("", callee)
+	calleeLabel.Of = calleeName
+	expr, err := p.handleApply(calleeLabel)
 	if err != nil {
-		return nil, fmt.Errorf("failed to handle function call of %q: %w", callee, err)
+		return nil, fmt.Errorf("failed to handle function call of %q: %w", calleeLabel.Of, err)
 	}
 	return expr, nil
 }
 
-func (p *Parser) handleDeclaration(name string) (Node, error) {
+func (p *Parser) handleDeclaration() (Node, error) {
+	var expr Node
 	switch p.lex.Token.Type {
 	case lex.TokenLeftParen, lex.TokenLeftBrace: // TODO: handle function declaration without parameters as `{}`
-		fn, err := p.handleFunction(name)
+		fn, err := p.handleFunction()
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse function declaration: %w", err)
 		}
-		return fn, nil
+		expr = fn
 	case lex.TokenInt, lex.TokenString:
-		expr, err := p.handleLiteral(name)
+		lit, err := p.handleLiteral()
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse literal: %w", err)
 		}
-		return expr, nil
-	case lex.TokenIdentifier:
-		expr, err := p.handleIdentifier(name)
+		expr = lit
+	case lex.TokenAt, lex.TokenIdentifier:
+		label, err := p.handleLabel()
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse identifier: %w", err)
 		}
-		return expr, nil
-	case lex.TokenAt:
-		expr, err := p.handleIdentifier(name)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse identifier: %w", err)
+		expr = label
+
+		// Not all function expressions contain `()`, but when they don't, it can stay as a reference
+		if p.lex.Token.Type == lex.TokenLeftParen {
+			// This must be an applied function
+			expr, err = p.handleApply(label)
+			if err != nil {
+				return nil, fmt.Errorf("failed to handle function application: %w", err)
+			}
 		}
-		return expr, nil
 	default:
 		return nil, fmt.Errorf("unknown token %q in definition: %+v", p.lex.Token.Value, p.lex.Token.Info())
 	}
+
+	// A direct call of the function
+	if p.lex.Token.Type == lex.TokenLeftParen {
+		if fn, ok := expr.(*Function); ok {
+			args, err := p.handleArgs()
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse lambda function declaration arguments: %w", err)
+			}
+			expr = &Apply{
+				Token:     p.lex.Token,
+				Callee:    fn,
+				Arguments: args,
+			}
+		}
+	}
+	return expr, nil
 }
 
-func (p *Parser) handleIdentifier(name string) (Node, error) {
+func (p *Parser) handleLabel() (*Label, error) {
+	isBuiltIn := false
 	refName := p.lex.Token.Value
 	if p.lex.Token.Type == lex.TokenAt {
+		isBuiltIn = true
 		p.lex.NextToken() // eat the @
 		if p.lex.Token.Type != lex.TokenIdentifier {
 			return nil, fmt.Errorf("expected call identifier, got %q: %+v", p.lex.Token.Value, p.lex.Token.Info())
@@ -248,33 +296,22 @@ func (p *Parser) handleIdentifier(name string) (Node, error) {
 	// Handle an name (e.g., a variable or a string reference)
 	p.lex.NextToken() // Move past the identifier
 
-	// Not all function expressions contain `()`, but when they don't, it can stay as a reference
-	if p.lex.Token.Type == lex.TokenLeftParen {
-		// This must be an applied function
-		expr, err := p.handleApply(name, refName)
-		if err != nil {
-			return nil, fmt.Errorf("failed to handle function application: %w", err)
-		}
-		return expr, nil
-	}
-
 	// TODO: aren't all references just functions?
-	return &Alias{ // Assuming you have a Reference type for identifiers
-		Token: p.lex.Token,
-		Name:  name,
-		Of:    refName,
+	return &Label{ // Assuming you have a Reference type for identifiers
+		Token:     p.lex.Token,
+		Of:        refName,
+		IsBuiltIn: isBuiltIn,
 	}, nil
 }
 
-func (p *Parser) handleApply(name string, callee string) (*Apply, error) { // TODO: Move ToIR to Statement
+func (p *Parser) handleApply(calleeLabel *Label) (*Apply, error) { // TODO: Move ToIR to Statement
 	args, err := p.handleArgs()
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 	return &Apply{
 		Token:     p.lex.Token,
-		Name:      name,
-		Of:        callee,
+		Callee:    calleeLabel,
 		Arguments: args,
 	}, nil
 }
@@ -296,7 +333,7 @@ func (p *Parser) handleArgs() ([]Node, error) {
 
 		// Parse arguments until closing parenthesis
 		for p.lex.Token.Type != lex.TokenRightParen {
-			expr, err := p.handleDeclaration("") // anonymous id, generate on the spot
+			expr, err := p.handleDeclaration() // anonymous id, generate on the spot
 			if err != nil {
 				return nil, fmt.Errorf("failed to handle argument: %w", err)
 			}
@@ -317,7 +354,7 @@ func (p *Parser) handleArgs() ([]Node, error) {
 	}
 }
 
-func (p *Parser) handleLiteral(name string) (x Node, err error) {
+func (p *Parser) handleLiteral() (x Node, err error) {
 	tok := p.lex.Token
 	switch tok.Type {
 	case lex.TokenInt:
@@ -326,19 +363,18 @@ func (p *Parser) handleLiteral(name string) (x Node, err error) {
 			return nil, fmt.Errorf("failed to parse int %q at %+v", tok.Info(), tok.Value)
 		}
 		p.lex.NextToken()
-		return &IntLiteral{Name: name, Token: p.lex.Token, Value: x}, nil
+		return &IntLiteral{Token: p.lex.Token, Value: x}, nil
 	case lex.TokenString:
 		p.lex.NextToken()
-		return &StringLiteral{Name: name, Token: p.lex.Token, Value: tok.Value[1 : len(tok.Value)-1]}, nil
+		return &StringLiteral{Token: p.lex.Token, Value: tok.Value[1 : len(tok.Value)-1]}, nil
 	default:
 		return x, fmt.Errorf("unknown token when expecting a literal: %#v", p.lex.Token)
 	}
 }
 
-func (p *Parser) handleFunction(name string) (*Function, error) {
+func (p *Parser) handleFunction() (*Function, error) {
 	fn := Function{
 		Token: p.lex.Token,
-		Name:  name,
 	}
 
 	var err error
