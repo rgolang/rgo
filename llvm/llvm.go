@@ -329,9 +329,9 @@ func handleBuiltIn(frm *function, name string, apply *ast.Apply) (any, bool) {
 		builtin[id] = f
 		return f, true
 	case "@std":
-		frm.addType("string", types.I8Ptr)
-		frm.addType("float", types.Float)
-		frm.addType("int", types.I32)
+		frm.addValue("string", types.I8Ptr)
+		frm.addValue("float", types.Float)
+		frm.addValue("int", types.I32)
 		f := mod.NewFunc("std", types.Void)
 		entry := f.NewBlock("entry")
 		entry.NewRet(nil)
@@ -532,25 +532,14 @@ func (f *function) new(name string, node ast.Node, params []*Param, hasBody, isV
 	return frm
 }
 
-func (f *function) addType(name string, typ types.Type) error {
+func (f *function) addValue(name string, v any) error {
 	if name == "" {
-		return fmt.Errorf("type name cannot be empty")
+		return fmt.Errorf("adding definition for label %q: label name cannot be empty", f.id)
 	}
 	if _, ok := f.inner[name]; ok {
-		return fmt.Errorf("add type: label already exists: %v", name)
+		return fmt.Errorf("add definition: label already exists: %v", name)
 	}
-	f.inner[name] = typ
-	return nil
-}
-
-func (f *function) addValue(name string, fn value.Value) error {
-	if name == "" {
-		return fmt.Errorf("adding value for function %q: value name cannot be empty", f.id)
-	}
-	if _, ok := f.inner[name]; ok {
-		return fmt.Errorf("add value: label already exists: %v", name)
-	}
-	f.inner[name] = fn
+	f.inner[name] = v
 	return nil
 }
 
