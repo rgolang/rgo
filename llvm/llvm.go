@@ -58,16 +58,15 @@ func ToIR(nodes []ast.Node) (*ir.Module, error) {
 	return module, nil
 }
 
-type callable interface {
+type callable interface { // TODO: Won't need callable once everything is a function
 	value.Value
 	Node() ast.Node
 	Value() value.Value
 	Params(frm *function) ([]*Param, error)
-	IsVariadic() bool
 	Name() string
 }
 
-type function struct {
+type function struct { // TODO: ABC Normalize everything to be a function, this means that a function can hold own params and a LLVMString method
 	c  int
 	id string
 	*ir.Func
@@ -94,15 +93,10 @@ func (f *function) Params(frm *function) ([]*Param, error) {
 	return f.params, nil
 }
 
-func (f *function) IsVariadic() bool {
-	return f.Func.Sig.Variadic
-}
-
 // a Param could be a function (which could be a closure) or a value
 type Param struct {
 	*ir.Param
-	node       *ast.Type
-	isVariadic bool
+	node *ast.Type
 }
 
 func (p *Param) Node() ast.Node {
@@ -134,11 +128,8 @@ func (p *Param) Params(frm *function) ([]*Param, error) {
 	return params, nil
 }
 
-func (p *Param) IsVariadic() bool {
-	return false // Can't tell, so defaulting to false for now // TODO:
-}
-
 func handleBuiltIn(frm *function, name string, apply *ast.Apply) (any, bool) {
+	// TODO: This needs improving and needs a lot more power, for example it should be able to return multiple instructions
 	id := name
 	comptimeArgs := map[int]any{}
 	if name == "@prompt" {
@@ -180,9 +171,6 @@ func handleBuiltIn(frm *function, name string, apply *ast.Apply) (any, bool) {
 	if _, ok := builtin[id]; ok {
 		return builtin[id], ok
 	}
-	// if _, ok := builtin[name]; ok {
-	// 	return builtin[name], ok
-	// }
 
 	mod := frm.mod
 
@@ -566,7 +554,7 @@ func (f *function) addValue(name string, fn value.Value) error {
 	return nil
 }
 
-func (f *function) getValue(name string) (value.Value, error) { // TODO: remove this, use getCallable
+func (f *function) getValue(name string) (value.Value, error) {
 	v, ok := f.inner[name]
 	if !ok {
 		v, ok = f.outer[name]
@@ -597,24 +585,7 @@ func (f *function) getType(name string) (types.Type, error) {
 	return nil, fmt.Errorf("reference %q found, but is not a type", name)
 }
 
-func (f *function) getCallable(name string, applyNode *ast.Apply) (callable, error) { // TODO: everything should be callable, even types
-	v, ok := f.inner[name]
-	if !ok {
-		v, ok = f.outer[name]
-		if !ok {
-			v, ok = handleBuiltIn(f, name, applyNode) // TODO: handle this in handleCallable
-			if !ok {
-				return nil, fmt.Errorf("function %q not found in inner or outer scope", name)
-			}
-		}
-	}
-	if v, ok := v.(callable); ok {
-		return v, nil
-	}
-	return nil, fmt.Errorf("reference %q found, but is not callable", name)
-}
-
-func (f *function) finish() error {
+func (f *function) finish() error { // TODO: ABC No need for finish if it's rendered using LLVMString
 	err := f.updateParams()
 	if err != nil {
 		return fmt.Errorf("error updating function %q params: %w", f.Name(), err)
@@ -671,7 +642,7 @@ func handleNode(frm *function, node ast.Node, param *Param) (value.Value, error)
 		}
 	case *ast.Label:
 		// TODO: Allow variadic builtins here
-		v, err := frm.getValue(n.Of)
+		v, err := frm.getValue(n.Of) // TODO: this is used identically in two places
 		if err != nil {
 			return nil, fmt.Errorf("error finding label: %w", err)
 		}
@@ -742,11 +713,17 @@ func handleApplyNode(frm *function, n *ast.Apply) (callable, error) {
 		}
 		callee = fn
 	case *ast.Label:
-		fn, err := frm.getCallable(f.Of, n) // TODO: Remove getCallable
-		if err != nil {
-			return nil, fmt.Errorf("error finding callee: %w", err)
+		var err error
+		v, ok := handleBuiltIn(frm, f.Of, n) // TODO: handle this in handleCallable
+		if !ok {
+			v, err = frm.getValue(f.Of)
+			if err != nil {
+				return nil, fmt.Errorf("error finding label: %w", err)
+			}
 		}
-		callee = fn
+		if callee, ok = v.(callable); !ok {
+			return nil, fmt.Errorf("reference found, but is not callable: %q", f.Of)
+		}
 	default:
 		// TODO: handle other types of apply
 		return nil, fmt.Errorf("unsupported callee type: %T", n.Callee)
