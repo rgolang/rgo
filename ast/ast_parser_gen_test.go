@@ -31,7 +31,11 @@ func Test10PromptAst(t *testing.T) {
                  "value": "What is your name?\n"
              }
          ],
-         "of": "@printf"
+         "callee": {
+             "_type": "Label",
+             "isbuiltin": true,
+             "of": "@printf"
+         }
      },
      {
          "_type": "Apply",
@@ -51,11 +55,15 @@ func Test10PromptAst(t *testing.T) {
                                  "value": "Hello, %s!\n"
                              },
                              {
-                                 "_type": "Alias",
+                                 "_type": "Label",
                                  "of": "name"
                              }
                          ],
-                         "of": "@printf"
+                         "callee": {
+                             "_type": "Label",
+                             "isbuiltin": true,
+                             "of": "@printf"
+                         }
                      }
                  ],
                  "params": [
@@ -67,7 +75,11 @@ func Test10PromptAst(t *testing.T) {
                  ]
              }
          ],
-         "of": "@prompt"
+         "callee": {
+             "_type": "Label",
+             "isbuiltin": true,
+             "of": "@prompt"
+         }
      }
  ]
 `
@@ -100,7 +112,11 @@ callback1: (title: @str, name: @str){
                  "value": "What is your name?\n"
              }
          ],
-         "of": "@printf"
+         "callee": {
+             "_type": "Label",
+             "isbuiltin": true,
+             "of": "@printf"
+         }
      },
      {
          "_name": "callback1",
@@ -114,7 +130,11 @@ callback1: (title: @str, name: @str){
                          "value": "What is your age?\n"
                      }
                  ],
-                 "of": "@printf"
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@printf"
+                 }
              },
              {
                  "_type": "Apply",
@@ -134,19 +154,23 @@ callback1: (title: @str, name: @str){
                                          "value": "Hello %s %s age %s!\n"
                                      },
                                      {
-                                         "_type": "Alias",
+                                         "_type": "Label",
                                          "of": "title"
                                      },
                                      {
-                                         "_type": "Alias",
+                                         "_type": "Label",
                                          "of": "name"
                                      },
                                      {
-                                         "_type": "Alias",
+                                         "_type": "Label",
                                          "of": "age"
                                      }
                                  ],
-                                 "of": "@printf"
+                                 "callee": {
+                                     "_type": "Label",
+                                     "isbuiltin": true,
+                                     "of": "@printf"
+                                 }
                              }
                          ],
                          "params": [
@@ -158,7 +182,11 @@ callback1: (title: @str, name: @str){
                          ]
                      }
                  ],
-                 "of": "@prompt"
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@prompt"
+                 }
              }
          ],
          "params": [
@@ -189,10 +217,17 @@ callback1: (title: @str, name: @str){
                          "value": "Dear"
                      }
                  ],
-                 "of": "callback1"
+                 "callee": {
+                     "_type": "Label",
+                     "of": "callback1"
+                 }
              }
          ],
-         "of": "@prompt"
+         "callee": {
+             "_type": "Label",
+             "isbuiltin": true,
+             "of": "@prompt"
+         }
      }
  ]
 `
@@ -223,7 +258,11 @@ func Test11Prompt3Ast(t *testing.T) {
                  "value": "What is your name?\n"
              }
          ],
-         "of": "@printf"
+         "callee": {
+             "_type": "Label",
+             "isbuiltin": true,
+             "of": "@printf"
+         }
      },
      {
          "_type": "Apply",
@@ -243,7 +282,11 @@ func Test11Prompt3Ast(t *testing.T) {
                                  "value": "What is your age?\n"
                              }
                          ],
-                         "of": "@printf"
+                         "callee": {
+                             "_type": "Label",
+                             "isbuiltin": true,
+                             "of": "@printf"
+                         }
                      },
                      {
                          "_type": "Apply",
@@ -263,11 +306,15 @@ func Test11Prompt3Ast(t *testing.T) {
                                                  "value": "Hello, %s!\n"
                                              },
                                              {
-                                                 "_type": "Alias",
+                                                 "_type": "Label",
                                                  "of": "name"
                                              }
                                          ],
-                                         "of": "@printf"
+                                         "callee": {
+                                             "_type": "Label",
+                                             "isbuiltin": true,
+                                             "of": "@printf"
+                                         }
                                      }
                                  ],
                                  "params": [
@@ -279,7 +326,11 @@ func Test11Prompt3Ast(t *testing.T) {
                                  ]
                              }
                          ],
-                         "of": "@prompt"
+                         "callee": {
+                             "_type": "Label",
+                             "isbuiltin": true,
+                             "of": "@prompt"
+                         }
                      }
                  ],
                  "params": [
@@ -291,7 +342,11 @@ func Test11Prompt3Ast(t *testing.T) {
                  ]
              }
          ],
-         "of": "@prompt"
+         "callee": {
+             "_type": "Label",
+             "isbuiltin": true,
+             "of": "@prompt"
+         }
      }
  ]
 `
@@ -333,11 +388,15 @@ func Test12MathAddAst(t *testing.T) {
                                  "value": "x: %d\n"
                              },
                              {
-                                 "_type": "Alias",
+                                 "_type": "Label",
                                  "of": "x"
                              }
                          ],
-                         "of": "@printf"
+                         "callee": {
+                             "_type": "Label",
+                             "isbuiltin": true,
+                             "of": "@printf"
+                         }
                      }
                  ],
                  "params": [
@@ -349,7 +408,11 @@ func Test12MathAddAst(t *testing.T) {
                  ]
              }
          ],
-         "of": "@add"
+         "callee": {
+             "_type": "Label",
+             "isbuiltin": true,
+             "of": "@add"
+         }
      }
  ]
 `
@@ -383,7 +446,11 @@ mymul((x: @int){
                  "value": 3
              }
          ],
-         "of": "@mul"
+         "callee": {
+             "_type": "Label",
+             "isbuiltin": true,
+             "of": "@mul"
+         }
      },
      {
          "_type": "Apply",
@@ -399,11 +466,15 @@ mymul((x: @int){
                                  "value": "x: %d\n"
                              },
                              {
-                                 "_type": "Alias",
+                                 "_type": "Label",
                                  "of": "x"
                              }
                          ],
-                         "of": "@printf"
+                         "callee": {
+                             "_type": "Label",
+                             "isbuiltin": true,
+                             "of": "@printf"
+                         }
                      }
                  ],
                  "params": [
@@ -415,7 +486,10 @@ mymul((x: @int){
                  ]
              }
          ],
-         "of": "mymul"
+         "callee": {
+             "_type": "Label",
+             "of": "mymul"
+         }
      }
  ]
 `
@@ -444,7 +518,7 @@ puts("hello world!")
                  "_type": "Apply",
                  "arguments": [
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "s"
                      },
                      {
@@ -458,7 +532,11 @@ puts("hello world!")
                          ]
                      }
                  ],
-                 "of": "@unsafe.libc.puts"
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@unsafe.libc.puts"
+                 }
              }
          ],
          "params": [
@@ -477,7 +555,10 @@ puts("hello world!")
                  "value": "hello world!"
              }
          ],
-         "of": "puts"
+         "callee": {
+             "_type": "Label",
+             "of": "puts"
+         }
      }
  ]
 `
@@ -507,14 +588,14 @@ foo()
                  "value": "hi"
              }
          ],
-         "function": {
+         "callee": {
              "_type": "Function",
              "inner": [
                  {
                      "_type": "Apply",
                      "arguments": [
                          {
-                             "_type": "Alias",
+                             "_type": "Label",
                              "of": "msg"
                          },
                          {
@@ -528,7 +609,11 @@ foo()
                              ]
                          }
                      ],
-                     "of": "@unsafe.libc.puts"
+                     "callee": {
+                         "_type": "Label",
+                         "isbuiltin": true,
+                         "of": "@unsafe.libc.puts"
+                     }
                  }
              ],
              "params": [
@@ -542,7 +627,10 @@ foo()
      },
      {
          "_type": "Apply",
-         "of": "foo"
+         "callee": {
+             "_type": "Label",
+             "of": "foo"
+         }
      }
  ]
 `
@@ -570,14 +658,14 @@ func Test15AnonCallAst(t *testing.T) {
                  "value": "hi"
              }
          ],
-         "function": {
+         "callee": {
              "_type": "Function",
              "inner": [
                  {
                      "_type": "Apply",
                      "arguments": [
                          {
-                             "_type": "Alias",
+                             "_type": "Label",
                              "of": "msg"
                          },
                          {
@@ -591,7 +679,11 @@ func Test15AnonCallAst(t *testing.T) {
                              ]
                          }
                      ],
-                     "of": "@unsafe.libc.puts"
+                     "callee": {
+                         "_type": "Label",
+                         "isbuiltin": true,
+                         "of": "@unsafe.libc.puts"
+                     }
                  }
              ],
              "params": [
@@ -630,7 +722,7 @@ foo("hi")
                  "_type": "Apply",
                  "arguments": [
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "s"
                      },
                      {
@@ -644,7 +736,11 @@ foo("hi")
                          ]
                      }
                  ],
-                 "of": "@unsafe.libc.puts"
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@unsafe.libc.puts"
+                 }
              }
          ],
          "params": [
@@ -664,7 +760,10 @@ foo("hi")
                  "value": "hi"
              }
          ],
-         "of": "foo"
+         "callee": {
+             "_type": "Label",
+             "of": "foo"
+         }
      }
  ]
 `
@@ -702,11 +801,15 @@ func Test17AtoiAst(t *testing.T) {
                                  "value": "result: %d\n"
                              },
                              {
-                                 "_type": "Alias",
+                                 "_type": "Label",
                                  "of": "x"
                              }
                          ],
-                         "of": "@printf"
+                         "callee": {
+                             "_type": "Label",
+                             "isbuiltin": true,
+                             "of": "@printf"
+                         }
                      }
                  ],
                  "params": [
@@ -718,7 +821,11 @@ func Test17AtoiAst(t *testing.T) {
                  ]
              }
          ],
-         "of": "@unsafe.libc.atoi"
+         "callee": {
+             "_type": "Label",
+             "isbuiltin": true,
+             "of": "@unsafe.libc.atoi"
+         }
      }
  ]
 `
@@ -761,7 +868,11 @@ func Test18GtAst(t *testing.T) {
                                  "value": "More\n"
                              }
                          ],
-                         "of": "@printf"
+                         "callee": {
+                             "_type": "Label",
+                             "isbuiltin": true,
+                             "of": "@printf"
+                         }
                      }
                  ]
              },
@@ -776,12 +887,20 @@ func Test18GtAst(t *testing.T) {
                                  "value": "Less\n"
                              }
                          ],
-                         "of": "@printf"
+                         "callee": {
+                             "_type": "Label",
+                             "isbuiltin": true,
+                             "of": "@printf"
+                         }
                      }
                  ]
              }
          ],
-         "of": "@igt"
+         "callee": {
+             "_type": "Label",
+             "isbuiltin": true,
+             "of": "@igt"
+         }
      }
  ]
 `
@@ -812,14 +931,17 @@ if(@igt(4, 3), {
                  "_type": "Apply",
                  "arguments": [
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "ok"
                      },
                      {
                          "_type": "Function"
                      }
                  ],
-                 "of": "cond"
+                 "callee": {
+                     "_type": "Label",
+                     "of": "cond"
+                 }
              }
          ],
          "params": [
@@ -856,7 +978,11 @@ if(@igt(4, 3), {
                          "value": 3
                      }
                  ],
-                 "of": "@igt"
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@igt"
+                 }
              },
              {
                  "_type": "Function",
@@ -869,12 +995,19 @@ if(@igt(4, 3), {
                                  "value": "More\n"
                              }
                          ],
-                         "of": "@printf"
+                         "callee": {
+                             "_type": "Label",
+                             "isbuiltin": true,
+                             "of": "@printf"
+                         }
                      }
                  ]
              }
          ],
-         "of": "if"
+         "callee": {
+             "_type": "Label",
+             "of": "if"
+         }
      }
  ]
 `
@@ -910,7 +1043,11 @@ func Test1PrintAst(t *testing.T) {
                  ]
              }
          ],
-         "of": "@unsafe.libc.puts"
+         "callee": {
+             "_type": "Label",
+             "isbuiltin": true,
+             "of": "@unsafe.libc.puts"
+         }
      }
  ]
 `
@@ -940,7 +1077,11 @@ func Test20AnonImmediateCallAst(t *testing.T) {
                          "value": "Hi\n"
                      }
                  ],
-                 "of": "@printf"
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@printf"
+                 }
              }
          ]
      }
@@ -972,7 +1113,11 @@ func Test21AnonImmediateCallAst(t *testing.T) {
                          "value": "Hi\n"
                      }
                  ],
-                 "of": "@printf"
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@printf"
+                 }
              }
          ]
      }
@@ -1006,11 +1151,15 @@ x: 12
                  "value": "%d"
              },
              {
-                 "_type": "Alias",
+                 "_type": "Label",
                  "of": "x"
              }
          ],
-         "of": "@printf"
+         "callee": {
+             "_type": "Label",
+             "isbuiltin": true,
+             "of": "@printf"
+         }
      }
  ]
 `
@@ -1038,7 +1187,7 @@ msg: "hello world"
          "_type": "Apply",
          "arguments": [
              {
-                 "_type": "Alias",
+                 "_type": "Label",
                  "of": "msg"
              },
              {
@@ -1052,7 +1201,11 @@ msg: "hello world"
                  ]
              }
          ],
-         "of": "@unsafe.libc.puts"
+         "callee": {
+             "_type": "Label",
+             "isbuiltin": true,
+             "of": "@unsafe.libc.puts"
+         }
      }
  ]
 `
@@ -1087,7 +1240,7 @@ foo()
                  "_type": "Apply",
                  "arguments": [
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "msg"
                      },
                      {
@@ -1101,13 +1254,20 @@ foo()
                          ]
                      }
                  ],
-                 "of": "@unsafe.libc.puts"
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@unsafe.libc.puts"
+                 }
              }
          ]
      },
      {
          "_type": "Apply",
-         "of": "foo"
+         "callee": {
+             "_type": "Label",
+             "of": "foo"
+         }
      }
  ]
 `
@@ -1141,7 +1301,7 @@ foo(msg)
                  "_type": "Apply",
                  "arguments": [
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "s"
                      },
                      {
@@ -1155,7 +1315,11 @@ foo(msg)
                          ]
                      }
                  ],
-                 "of": "@unsafe.libc.puts"
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@unsafe.libc.puts"
+                 }
              }
          ],
          "params": [
@@ -1170,11 +1334,14 @@ foo(msg)
          "_type": "Apply",
          "arguments": [
              {
-                 "_type": "Alias",
+                 "_type": "Label",
                  "of": "msg"
              }
          ],
-         "of": "foo"
+         "callee": {
+             "_type": "Label",
+             "of": "foo"
+         }
      }
  ]
 `
@@ -1209,7 +1376,7 @@ foo
                  "_type": "Apply",
                  "arguments": [
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "msg"
                      },
                      {
@@ -1223,13 +1390,20 @@ foo
                          ]
                      }
                  ],
-                 "of": "@unsafe.libc.puts"
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@unsafe.libc.puts"
+                 }
              }
          ]
      },
      {
          "_type": "Apply",
-         "of": "foo"
+         "callee": {
+             "_type": "Label",
+             "of": "foo"
+         }
      }
  ]
 `
@@ -1257,7 +1431,11 @@ foo("hello world")
 [
      {
          "_type": "Apply",
-         "of": "@std"
+         "callee": {
+             "_type": "Label",
+             "isbuiltin": true,
+             "of": "@std"
+         }
      },
      {
          "_name": "foo",
@@ -1271,7 +1449,7 @@ foo("hello world")
                          "_type": "Apply",
                          "arguments": [
                              {
-                                 "_type": "Alias",
+                                 "_type": "Label",
                                  "of": "s"
                              },
                              {
@@ -1285,7 +1463,11 @@ foo("hello world")
                                  ]
                              }
                          ],
-                         "of": "@unsafe.libc.puts"
+                         "callee": {
+                             "_type": "Label",
+                             "isbuiltin": true,
+                             "of": "@unsafe.libc.puts"
+                         }
                      }
                  ],
                  "params": [
@@ -1300,21 +1482,27 @@ foo("hello world")
                  "_type": "Apply",
                  "arguments": [
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "x"
                      }
                  ],
-                 "of": "ok"
+                 "callee": {
+                     "_type": "Label",
+                     "of": "ok"
+                 }
              },
              {
                  "_type": "Apply",
                  "arguments": [
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "x"
                      }
                  ],
-                 "of": "ok"
+                 "callee": {
+                     "_type": "Label",
+                     "of": "ok"
+                 }
              }
          ],
          "params": [
@@ -1333,7 +1521,10 @@ foo("hello world")
                  "value": "hello world"
              }
          ],
-         "of": "foo"
+         "callee": {
+             "_type": "Label",
+             "of": "foo"
+         }
      }
  ]
 `
@@ -1371,7 +1562,7 @@ bar(foo)
                  "_type": "Apply",
                  "arguments": [
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "input"
                      },
                      {
@@ -1385,7 +1576,11 @@ bar(foo)
                          ]
                      }
                  ],
-                 "of": "@unsafe.libc.puts"
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@unsafe.libc.puts"
+                 }
              }
          ],
          "params": [
@@ -1404,11 +1599,14 @@ bar(foo)
                  "_type": "Apply",
                  "arguments": [
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "msg"
                      }
                  ],
-                 "of": "cb"
+                 "callee": {
+                     "_type": "Label",
+                     "of": "cb"
+                 }
              }
          ],
          "params": [
@@ -1428,11 +1626,14 @@ bar(foo)
          "_type": "Apply",
          "arguments": [
              {
-                 "_type": "Alias",
+                 "_type": "Label",
                  "of": "foo"
              }
          ],
-         "of": "bar"
+         "callee": {
+             "_type": "Label",
+             "of": "bar"
+         }
      }
  ]
 `
@@ -1475,15 +1676,19 @@ bar(qux)
                          "value": "%s x %ld"
                      },
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "input"
                      },
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "n"
                      }
                  ],
-                 "of": "@printf"
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@printf"
+                 }
              }
          ],
          "params": [
@@ -1511,7 +1716,10 @@ bar(qux)
                          "value": 42
                      }
                  ],
-                 "of": "cb"
+                 "callee": {
+                     "_type": "Label",
+                     "of": "cb"
+                 }
              }
          ],
          "params": [
@@ -1532,21 +1740,27 @@ bar(qux)
          "_type": "Apply",
          "arguments": [
              {
-                 "_type": "Alias",
+                 "_type": "Label",
                  "of": "msg"
              }
          ],
-         "of": "foo"
+         "callee": {
+             "_type": "Label",
+             "of": "foo"
+         }
      },
      {
          "_type": "Apply",
          "arguments": [
              {
-                 "_type": "Alias",
+                 "_type": "Label",
                  "of": "qux"
              }
          ],
-         "of": "bar"
+         "callee": {
+             "_type": "Label",
+             "of": "bar"
+         }
      }
  ]
 `
@@ -1582,15 +1796,19 @@ foo(bar("hi"))
                          "value": "msg1: %s, msg2: %s\n"
                      },
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "m1"
                      },
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "m2"
                      }
                  ],
-                 "of": "@printf"
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@printf"
+                 }
              }
          ],
          "params": [
@@ -1618,7 +1836,10 @@ foo(bar("hi"))
                          "value": "bye"
                      }
                  ],
-                 "of": "cb"
+                 "callee": {
+                     "_type": "Label",
+                     "of": "cb"
+                 }
              }
          ],
          "params": [
@@ -1645,10 +1866,16 @@ foo(bar("hi"))
                          "value": "hi"
                      }
                  ],
-                 "of": "bar"
+                 "callee": {
+                     "_type": "Label",
+                     "of": "bar"
+                 }
              }
          ],
-         "of": "foo"
+         "callee": {
+             "_type": "Label",
+             "of": "foo"
+         }
      }
  ]
 `
@@ -1684,15 +1911,19 @@ baz()
                          "value": "The winning number for %s is %s\n"
                      },
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "s"
                      },
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "n"
                      }
                  ],
-                 "of": "@printf"
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@printf"
+                 }
              }
          ],
          "params": [
@@ -1717,7 +1948,10 @@ baz()
                  "value": "42"
              }
          ],
-         "of": "foo"
+         "callee": {
+             "_type": "Label",
+             "of": "foo"
+         }
      },
      {
          "_name": "baz",
@@ -1732,7 +1966,10 @@ baz()
                  "value": "Bob"
              }
          ],
-         "of": "foo"
+         "callee": {
+             "_type": "Label",
+             "of": "foo"
+         }
      },
      {
          "_type": "Apply",
@@ -1742,11 +1979,17 @@ baz()
                  "value": "Alice"
              }
          ],
-         "of": "bar"
+         "callee": {
+             "_type": "Label",
+             "of": "bar"
+         }
      },
      {
          "_type": "Apply",
-         "of": "baz"
+         "callee": {
+             "_type": "Label",
+             "of": "baz"
+         }
      }
  ]
 `
@@ -1782,19 +2025,23 @@ foo(bar("a", "b"))
                          "value": "a: %s, b: %s, c: %s\n"
                      },
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "a"
                      },
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "b"
                      },
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "c"
                      }
                  ],
-                 "of": "@printf"
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@printf"
+                 }
              }
          ],
          "params": [
@@ -1827,7 +2074,10 @@ foo(bar("a", "b"))
                          "value": "c"
                      }
                  ],
-                 "of": "cb"
+                 "callee": {
+                     "_type": "Label",
+                     "of": "cb"
+                 }
              }
          ],
          "params": [
@@ -1858,10 +2108,16 @@ foo(bar("a", "b"))
                          "value": "b"
                      }
                  ],
-                 "of": "bar"
+                 "callee": {
+                     "_type": "Label",
+                     "of": "bar"
+                 }
              }
          ],
-         "of": "foo"
+         "callee": {
+             "_type": "Label",
+             "of": "foo"
+         }
      }
  ]
 `
@@ -1891,7 +2147,10 @@ foo(bar("John"))
          "inner": [
              {
                  "_type": "Apply",
-                 "of": "cb"
+                 "callee": {
+                     "_type": "Label",
+                     "of": "cb"
+                 }
              }
          ],
          "params": [
@@ -1913,11 +2172,15 @@ foo(bar("John"))
                          "value": "Hello, %s!\n"
                      },
                      {
-                         "_type": "Alias",
+                         "_type": "Label",
                          "of": "name"
                      }
                  ],
-                 "of": "@printf"
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@printf"
+                 }
              }
          ],
          "params": [
@@ -1939,10 +2202,16 @@ foo(bar("John"))
                          "value": "John"
                      }
                  ],
-                 "of": "bar"
+                 "callee": {
+                     "_type": "Label",
+                     "of": "bar"
+                 }
              }
          ],
-         "of": "foo"
+         "callee": {
+             "_type": "Label",
+             "of": "foo"
+         }
      }
  ]
 `
