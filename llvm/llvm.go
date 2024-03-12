@@ -43,7 +43,8 @@ func GenerateIR(input io.Reader) (string, error) {
 func ToIR(nodes []ast.Node) (*ir.Module, error) {
 	module := ir.NewModule()
 	ret := constant.NewInt(types.I32, 0)
-	ctx := newContext(module, "main", ret, nil, true, false)
+	entry := ir.NewBlock("entry") // TODO: Rename entry to 0?
+	ctx := newContext(module, "main", ret, nil, entry, false)
 	err := handleBody(ctx, nodes, ret)
 	if err != nil {
 		return nil, fmt.Errorf("error converting root nodes to IR: %w", err)
@@ -51,10 +52,10 @@ func ToIR(nodes []ast.Node) (*ir.Module, error) {
 	return module, nil
 }
 
-type Context struct { // TODO: ABC Normalize everything to be a function, this means that a function can hold own params and a LLVMString method
-	c  int
-	id string
-	*ir.Func
+type Context struct { // TODO: Normalize everything to be a function, this means that a function can hold own params and a LLVMString method
+	c     int
+	id    string
+	Func  *ir.Func
 	block *ir.Block
 	inner map[string]any
 	outer map[string]any
@@ -66,9 +67,7 @@ func getParams(ctx *Context, node any) ([]*ir.Param, error) {
 	if f, ok := node.(*ir.Func); ok {
 		return f.Params, nil
 	}
-	if ctx, ok := node.(*Context); ok {
-		return ctx.Func.Params, nil
-	}
+
 	param, ok := node.(*ir.Param)
 	if !ok {
 		return nil, fmt.Errorf("getParams: %T", node)
@@ -280,9 +279,9 @@ func handleBuiltIn(ctx *Context, name string, apply *ast.Apply) (any, bool) {
 		builtin[id] = f
 		return f, true
 	case "@std":
-		ctx.addValue("string", types.I8Ptr)
-		ctx.addValue("float", types.Float)
-		ctx.addValue("int", types.I32)
+		ctx.set("string", types.I8Ptr)
+		ctx.set("float", types.Float)
+		ctx.set("int", types.I32)
 		f := mod.NewFunc("std", types.Void)
 		entry := f.NewBlock("entry")
 		entry.NewRet(nil)
@@ -336,28 +335,27 @@ func handleBuiltIn(ctx *Context, name string, apply *ast.Apply) (any, bool) {
 	return nil, false
 }
 
-func newContext(mod *ir.Module, id string, ret value.Value, params []*ir.Param, hasBody, isVariadic bool) *Context {
+func newContext(mod *ir.Module, id string, ret value.Value, params []*ir.Param, entry *ir.Block, isVariadic bool) *Context {
 	var retType types.Type = types.Void
 	if ret != nil {
 		retType = ret.Type()
 	}
 	fnc := mod.NewFunc(id, retType, params...)
 	fnc.Sig.Variadic = isVariadic
-	var entry *ir.Block = nil
-	if hasBody {
-		entry = fnc.NewBlock("entry") // TODO: Rename entry to 0?
+	if entry != nil {
+		entry.Parent = fnc
+		fnc.Blocks = append(fnc.Blocks, entry)
 	}
-	ctx := &Context{
+	return &Context{
 		id:    id,
 		Func:  fnc,
 		block: entry,
 		inner: make(map[string]any),
 		outer: make(map[string]any),
 	}
-	return ctx
 }
 
-func (ctx *Context) new(name string, params []*ir.Param, hasBody, isVariadic bool) *Context {
+func (ctx *Context) new(name string, params []*ir.Param, entry *ir.Block, isVariadic bool) *Context {
 	id := strings.Builder{}
 	id.WriteString(ctx.id)
 	id.WriteString(".")
@@ -367,9 +365,9 @@ func (ctx *Context) new(name string, params []*ir.Param, hasBody, isVariadic boo
 	} else {
 		id.WriteString(name)
 	}
-	newCtx := newContext(ctx.Func.Parent, id.String(), nil, params, hasBody, isVariadic)
+	newCtx := newContext(ctx.Func.Parent, id.String(), nil, params, entry, isVariadic)
 
-	// copy outer frame inner to this frame outer
+	// Copy outer frame inner to this frame outer
 	for k, v := range ctx.outer {
 		newCtx.outer[k] = v
 	}
@@ -392,7 +390,7 @@ func (ctx *Context) new(name string, params []*ir.Param, hasBody, isVariadic boo
 			continue
 		}
 		switch n := v.(type) {
-		case *Context:
+		case *ir.Func:
 		case *ir.Global:
 		case *types.FloatType:
 		case *types.IntType:
@@ -403,20 +401,19 @@ func (ctx *Context) new(name string, params []*ir.Param, hasBody, isVariadic boo
 			default:
 				panic(fmt.Sprintf("outer ptr type not supported: %s %T", k, t))
 			}
+		case *ir.InstPtrToInt:
+			src, ok := n.From.(*ir.Global)
+			if !ok {
+				panic(fmt.Sprintf("outer int load type not supported: %s %T", k, n.From))
+			}
+			i := newCtx.block.NewPtrToInt(src, n.Type())
+			i.LocalName = k
+			newCtx.outer[k] = i
 		case *ir.InstLoad:
 			if _, ok := n.Src.(*ir.Global); !ok {
 				panic(fmt.Sprintf("outer load type not supported: %s %T", k, n.Src))
 			}
-			var v value.Value = n
-			isInt := n.Type().Equal(types.I32)
-			if isInt {
-				v = ctx.block.NewAlloca(n.Type()) // TODO: maybe there's a better way
-				ctx.block.NewStore(n.Src, v)
-			}
-			load := newCtx.block.NewLoad(v.Type(), n.Src)
-			if isInt {
-				load = newCtx.block.NewLoad(n.Type(), load) // TODO: maybe there's a better way
-			}
+			load := newCtx.block.NewLoad(n.Type(), n.Src) // n.Src is the global, this forwards it
 			load.LocalName = k
 			newCtx.outer[k] = load
 		case *ir.Param:
@@ -426,16 +423,20 @@ func (ctx *Context) new(name string, params []*ir.Param, hasBody, isVariadic boo
 			var v value.Value = n
 			isInt := n.Type().Equal(types.I32)
 			if isInt {
-				v = ctx.block.NewAlloca(n.Type()) // TODO: maybe there's a better way
-				ctx.block.NewStore(n, v)
+				// a ptr is actually an int, this skips unnecessary allocations and transfers the int as a ptr
+				v = ctx.block.NewIntToPtr(n, types.NewPointer(nil))
 			}
 			ctx.block.NewStore(v, g)
-			load := newCtx.block.NewLoad(v.Type(), g)
 			if isInt {
-				load = newCtx.block.NewLoad(n.Type(), load) // TODO: maybe there's a better way
+				i := newCtx.block.NewPtrToInt(g, n.Type())
+				i.LocalName = k
+				v = i
+			} else {
+				load := newCtx.block.NewLoad(v.Type(), g)
+				load.LocalName = k
+				v = load
 			}
-			load.LocalName = k
-			newCtx.outer[k] = load
+			newCtx.outer[k] = v
 		default:
 			panic(fmt.Sprintf("outer type not supported: %q with type %T, called from %q", k, v, ctx.id))
 		}
@@ -443,7 +444,7 @@ func (ctx *Context) new(name string, params []*ir.Param, hasBody, isVariadic boo
 	return newCtx
 }
 
-func (f *Context) addValue(name string, fn any) error {
+func (f *Context) set(name string, fn any) error {
 	if name == "" {
 		return fmt.Errorf("adding definition for label %q: label name cannot be empty", f.id)
 	}
@@ -454,35 +455,15 @@ func (f *Context) addValue(name string, fn any) error {
 	return nil
 }
 
-func (f *Context) getValue(name string) (value.Value, error) {
+func (f *Context) get(name string) (any, error) {
 	v, ok := f.inner[name]
 	if !ok {
 		v, ok = f.outer[name]
 		if !ok {
-			return nil, fmt.Errorf("value %q not found in inner or outer scope", name)
+			return nil, fmt.Errorf("label %q not found in inner or outer scope", name)
 		}
 	}
-	if v, ok := v.(value.Value); ok {
-		return v, nil
-	}
-	return nil, fmt.Errorf("reference %q found, but is not a value", name)
-}
-
-func (f *Context) getType(name string) (types.Type, error) {
-	v, ok := f.inner[name]
-	if !ok {
-		v, ok = f.outer[name]
-		if !ok {
-			v, ok = handleBuiltIn(f, name, nil)
-			if !ok {
-				return nil, fmt.Errorf("type %q not found in inner or outer scope", name)
-			}
-		}
-	}
-	if v, ok := v.(types.Type); ok {
-		return v, nil
-	}
-	return nil, fmt.Errorf("reference %q found, but is not a type", name)
+	return v, nil
 }
 
 func handleParam(ctx *Context, t *ast.Type) (*ir.Param, error) {
@@ -492,11 +473,20 @@ func handleParam(ctx *Context, t *ast.Type) (*ir.Param, error) {
 
 	// Handle basic types
 	if t.Value != "" {
-		typ, err := ctx.getType(t.Value)
+		if builtin, ok := handleBuiltIn(ctx, t.Value, nil); ok {
+			if typ, ok := builtin.(types.Type); ok {
+				return ir.NewParam(t.Name, typ), nil
+			}
+			return nil, fmt.Errorf("built-in type is not a type: %q %T", t.Value, builtin)
+		}
+		x, err := ctx.get(t.Value)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get type: %w", err)
 		}
-		return ir.NewParam(t.Name, typ), nil
+		if typ, ok := x.(types.Type); ok {
+			return ir.NewParam(t.Name, typ), nil
+		}
+		return nil, fmt.Errorf("param type is not a type: %q %T", t.Value, x)
 	}
 
 	// Handle function pointer
@@ -528,11 +518,14 @@ func handleNode(ctx *Context, node ast.Node, param *ir.Param) (value.Value, erro
 		}
 	case *ast.Label:
 		// TODO: Allow variadic builtins here
-		v, err := ctx.getValue(n.Of) // TODO: this is used identically in two places
+		a, err := ctx.get(n.Of) // TODO: this is used identically in two places
 		if err != nil {
 			return nil, fmt.Errorf("error finding label: %w", err)
 		}
-		return v, nil
+		if v, ok := a.(value.Value); ok {
+			return v, nil
+		}
+		return nil, fmt.Errorf("found label %q, but is not a value: %w", n.Of, err)
 	case *ast.IntLiteral:
 		// TODO: slightly duplicated
 		v := constant.NewInt(types.I32, int64(n.Value)) // TODO: Assuming 64-bit integers
@@ -563,7 +556,7 @@ func handleNode(ctx *Context, node ast.Node, param *ir.Param) (value.Value, erro
 	return callee, nil
 }
 
-func handleFunctionNode(ctx *Context, n *ast.Function) (*Context, error) {
+func handleFunctionNode(ctx *Context, n *ast.Function) (*ir.Func, error) {
 	name := n.Name
 	if name == "" {
 		name = strconv.Itoa(ctx.c)
@@ -580,13 +573,12 @@ func handleFunctionNode(ctx *Context, n *ast.Function) (*Context, error) {
 		params[i] = p
 	}
 
-	fn := ctx.new(name, params, true, false)
-
+	fn := ctx.new(name, params, ir.NewBlock("entry"), false)
 	err := handleBody(fn, n.Body, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error handling function body for function %q: %w", n.Name, err)
 	}
-	return fn, nil
+	return fn.Func, nil
 }
 
 func handleApplyNode(ctx *Context, n *ast.Apply) (value.Value, error) {
@@ -602,13 +594,13 @@ func handleApplyNode(ctx *Context, n *ast.Apply) (value.Value, error) {
 		var err error
 		v, ok := handleBuiltIn(ctx, f.Of, n) // TODO: handle this in handleCallable
 		if !ok {
-			v, err = ctx.getValue(f.Of)
+			v, err = ctx.get(f.Of)
 			if err != nil {
 				return nil, fmt.Errorf("error finding label: %w", err)
 			}
 		}
 		if callee, ok = v.(value.Value); !ok {
-			return nil, fmt.Errorf("reference found, but is not value: %q", f.Of)
+			return nil, fmt.Errorf("label found, but is not value: %q", f.Of)
 		}
 	default:
 		// TODO: handle other types of apply
@@ -639,12 +631,12 @@ func handleApplyNode(ctx *Context, n *ast.Apply) (value.Value, error) {
 		params[i] = p
 		args = append(args, p)
 	}
-	apply := ctx.new(n.Name, params, true, false) // call frame
+	apply := ctx.new(n.Name, params, ir.NewBlock("entry"), false) // call frame
 
 	// Call the callee from inside the apply helper
 	apply.block.NewCall(callee, args...) // TODO: This might not be enough args
 	apply.block.NewRet(nil)
-	return apply, nil
+	return apply.Func, nil
 }
 
 func handleBody(ctx *Context, nodes []ast.Node, ret value.Value) error {
@@ -661,7 +653,7 @@ func handleBody(ctx *Context, nodes []ast.Node, ret value.Value) error {
 			if n.Name == "" {
 				ctx.block.NewCall(callee)
 			} else {
-				err = ctx.addValue(n.Name, callee)
+				err = ctx.set(n.Name, callee)
 				if err != nil {
 					return fmt.Errorf("add fn ref: %w", err)
 				}
@@ -701,7 +693,7 @@ func handleBody(ctx *Context, nodes []ast.Node, ret value.Value) error {
 				if err != nil {
 					return fmt.Errorf("[%d] in body: error handling apply: %w", i, err)
 				}
-				err = ctx.addValue(n.Name, callee)
+				err = ctx.set(n.Name, callee)
 				if err != nil {
 					return fmt.Errorf("add fn ref: %w", err)
 				}
@@ -712,11 +704,8 @@ func handleBody(ctx *Context, nodes []ast.Node, ret value.Value) error {
 				return fmt.Errorf("calling an int literal statement is not supported")
 			}
 
-			v, err := handleNode(ctx, n, nil)
-			if err != nil {
-				return fmt.Errorf("add int ref: %w", err)
-			}
-			err = ctx.addValue(n.Name, v) // TODO: check for empty
+			v := constant.NewInt(types.I32, int64(n.Value)) // TODO: Assuming 64-bit integers
+			err := ctx.set(n.Name, v)                       // TODO: check for empty
 			if err != nil {
 				return fmt.Errorf("add int ref: %w", err)
 			}
@@ -726,7 +715,7 @@ func handleBody(ctx *Context, nodes []ast.Node, ret value.Value) error {
 				return fmt.Errorf("anonymous string literal statement is not supported")
 			}
 			globalStr := ctx.newConstString(n.Name, n.Value)
-			err := ctx.addValue(n.Name, globalStr) // TODO: check for empty
+			err := ctx.set(n.Name, globalStr) // TODO: check for empty
 			if err != nil {
 				return fmt.Errorf("add str ref: %w", err)
 			}
