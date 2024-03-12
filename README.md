@@ -38,6 +38,9 @@ For documentation of [syntax, built-in functions and types](DOCUMENTATION.md)
 
 To run the code, see [PLAY.md](PLAY.md)
 
+## Custom GPT to assist with rgo
+[Lambdaghini](https://chat.openai.com/g/g-fV99Xls3h-lambdaghini) (it sometimes forgets and starts using returns, it often makes mistakes)
+
 ## Examples
 
 ```c
