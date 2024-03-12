@@ -19,7 +19,6 @@ type EOF error
 // TODO: Get rid of Node, everything is a function, even ints and strings
 type Node interface { // TODO: use later to add a method to convert to llvm IR
 	Info() *reader.Info
-	Label() string // TODO: using Label because Name can't be used
 }
 
 type IntLiteral struct {
@@ -28,28 +27,16 @@ type IntLiteral struct {
 	Value int
 }
 
-func (n *IntLiteral) Label() string {
-	return n.Name
-}
-
 type FloatLiteral struct {
 	*lex.Token
 	Name  string
 	Value float64
 }
 
-func (n *FloatLiteral) Label() string {
-	return n.Name
-}
-
 type StringLiteral struct {
 	*lex.Token
 	Name  string
 	Value string
-}
-
-func (n *StringLiteral) Label() string {
-	return n.Name
 }
 
 type Type struct {
@@ -60,19 +47,11 @@ type Type struct {
 	CompTime bool
 }
 
-func (n *Type) Label() string {
-	return n.Name
-}
-
 type Function struct { // TODO: make these private?
 	*lex.Token
 	Name   string
 	Params []*Type
 	Body   []Node
-}
-
-func (n *Function) Label() string {
-	return n.Name
 }
 
 type Apply struct {
@@ -82,19 +61,11 @@ type Apply struct {
 	Arguments []Node
 }
 
-func (n *Apply) Label() string {
-	return n.Name
-}
-
 type Label struct {
 	*lex.Token
 	Name      string
 	Of        string
 	IsBuiltIn bool
-}
-
-func (n *Label) Label() string {
-	return n.Name
 }
 
 func New(scanner *lex.Scanner) *Parser {
