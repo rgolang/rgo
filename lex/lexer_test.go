@@ -1,7 +1,6 @@
 package lex
 
 import (
-	"bufio"
 	"strings"
 	"testing"
 
@@ -10,7 +9,7 @@ import (
 )
 
 func newReader(input string) *reader.Reader {
-	return reader.New(bufio.NewReader(strings.NewReader(input)))
+	return reader.New(strings.NewReader(input))
 }
 
 func TestNextTokenSimple(t *testing.T) {
@@ -51,7 +50,7 @@ func TestNextTokenSimple(t *testing.T) {
 			require.Equal(t, "1234", tok.Value)
 			require.Equal(t, "", tok.Info().File) // TODO: add file support
 			require.Equal(t, tc.line, tok.Info().Line)
-			require.Equal(t, tc.lineoffset, tok.Info().LineOffset)
+			require.Equal(t, tc.lineoffset, tok.Info().LineRuneOffset)
 			require.Equal(t, tc.byteoffset, tok.Info().ByteOffset)
 			tok = nextToken(r)
 			require.Equal(t, TokenEnd, tok.Type)
@@ -97,7 +96,7 @@ func TestStringTokenSimple(t *testing.T) {
 			require.Equal(t, `"1234"`, tok.Value)
 			require.Equal(t, "", tok.Info().File) // TODO: add file support
 			require.Equal(t, tc.line, tok.Info().Line)
-			require.Equal(t, tc.lineoffset, tok.Info().LineOffset)
+			require.Equal(t, tc.lineoffset, tok.Info().LineRuneOffset)
 			require.Equal(t, tc.byteoffset, tok.Info().ByteOffset)
 			tok = nextToken(r)
 			require.Equal(t, TokenEnd, tok.Type)
@@ -114,7 +113,7 @@ func TestTokensWithDot(t *testing.T) {
 	require.Equal(t, `x`, tok.Value)
 	require.Equal(t, "", tok.Info().File) // TODO: add file support
 	require.Equal(t, 0, tok.Info().Line)
-	require.Equal(t, 0, tok.Info().LineOffset)
+	require.Equal(t, 0, tok.Info().LineRuneOffset)
 	require.Equal(t, 0, tok.Info().ByteOffset)
 
 	tok = nextToken(r)
@@ -122,7 +121,7 @@ func TestTokensWithDot(t *testing.T) {
 	require.Equal(t, `.`, tok.Value)
 	require.Equal(t, "", tok.Info().File) // TODO: add file support
 	require.Equal(t, 0, tok.Info().Line)
-	require.Equal(t, 1, tok.Info().LineOffset)
+	require.Equal(t, 1, tok.Info().LineRuneOffset)
 	require.Equal(t, 1, tok.Info().ByteOffset)
 
 	tok = nextToken(r)
@@ -130,7 +129,7 @@ func TestTokensWithDot(t *testing.T) {
 	require.Equal(t, `1`, tok.Value)
 	require.Equal(t, "", tok.Info().File) // TODO: add file support
 	require.Equal(t, 0, tok.Info().Line)
-	require.Equal(t, 2, tok.Info().LineOffset)
+	require.Equal(t, 2, tok.Info().LineRuneOffset)
 	require.Equal(t, 2, tok.Info().ByteOffset)
 
 	tok = nextToken(r)
@@ -138,7 +137,7 @@ func TestTokensWithDot(t *testing.T) {
 	require.Equal(t, `.`, tok.Value)
 	require.Equal(t, "", tok.Info().File) // TODO: add file support
 	require.Equal(t, 0, tok.Info().Line)
-	require.Equal(t, 3, tok.Info().LineOffset)
+	require.Equal(t, 3, tok.Info().LineRuneOffset)
 	require.Equal(t, 3, tok.Info().ByteOffset)
 
 	tok = nextToken(r)
@@ -146,7 +145,7 @@ func TestTokensWithDot(t *testing.T) {
 	require.Equal(t, `2`, tok.Value)
 	require.Equal(t, "", tok.Info().File) // TODO: add file support
 	require.Equal(t, 0, tok.Info().Line)
-	require.Equal(t, 4, tok.Info().LineOffset)
+	require.Equal(t, 4, tok.Info().LineRuneOffset)
 	require.Equal(t, 4, tok.Info().ByteOffset)
 
 	tok = nextToken(r)
@@ -177,7 +176,7 @@ func TestSimpleExpression(t *testing.T) {
 	require.Equal(t, "1", tok.Value)
 	require.Equal(t, "", tok.Info().File) // TODO: add file support
 	require.Equal(t, 0, tok.Info().Line)
-	require.Equal(t, 0, tok.Info().LineOffset)
+	require.Equal(t, 0, tok.Info().LineRuneOffset)
 	require.Equal(t, 0, tok.Info().ByteOffset)
 
 	tok = nextToken(r)

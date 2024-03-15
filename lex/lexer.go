@@ -1,8 +1,8 @@
 package lex
 
 import (
-	"bufio"
 	"fmt"
+	"io"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -48,9 +48,14 @@ type Token struct {
 
 func (t Token) Info() *reader.Info {
 	i := t.info
-	i.ByteOffset -= len(t.Value)
-	i.LineOffset -= utf8.RuneCountInString(t.Value)
+	i.ByteOffset -= len([]byte(t.Value))
+	i.LineRuneOffset -= utf8.RuneCountInString(t.Value)
+	i.LineOffset -= len([]byte(t.Value))
 	return &i
+}
+
+func NewToken(r *reader.Reader, typ TokenType, value string) *Token {
+	return &Token{info: r.Info, Type: typ, Value: value}
 }
 
 var hasDebug bool
@@ -61,7 +66,7 @@ type Scanner struct {
 	Reader *reader.Reader
 }
 
-func New(r *bufio.Reader) *Scanner {
+func New(r io.ReadSeeker) *Scanner {
 	rdr := reader.New(r)
 	return &Scanner{
 		Index:  0,
@@ -130,7 +135,7 @@ func nextToken(r *reader.Reader) *Token {
 
 	// Consume end of statement.
 	if lastChar == reader.EOF {
-		return &Token{info: r.Info, Type: TokenEnd}
+		return NewToken(r, TokenEnd, "")
 	}
 	if lastChar == '\n' || lastChar == '\r' {
 		for unicode.IsSpace(lastChar) || lastChar == '\n' || lastChar == '\r' {
@@ -138,11 +143,11 @@ func nextToken(r *reader.Reader) *Token {
 			print("read: %s - end", lastChar)
 		}
 		if lastChar == reader.EOF {
-			return &Token{info: r.Info, Type: TokenEnd}
+			return NewToken(r, TokenEnd, "")
 		}
 		r.UnreadRune()
 		print("unrd: %s", lastChar)
-		return &Token{info: r.Info, Type: TokenNewline}
+		return NewToken(r, TokenNewline, string(lastChar))
 	}
 
 	// Consume comments until end of line.
@@ -171,7 +176,7 @@ func nextToken(r *reader.Reader) *Token {
 				}
 				r.UnreadRune()
 				print("unrd: %s", lastChar)
-				return &Token{info: r.Info, Type: TokenDocComment, Value: strings.TrimSpace("///" + docComment.String())}
+				return NewToken(r, TokenDocComment, strings.TrimSpace("///"+docComment.String()))
 			}
 			for lastChar != '\n' && lastChar != '\r' && lastChar != reader.EOF {
 				lastChar = r.ReadRune()
@@ -193,7 +198,7 @@ func nextToken(r *reader.Reader) *Token {
 		}
 		r.UnreadRune()
 		print("unrd: %s", lastChar)
-		return &Token{info: r.Info, Type: TokenIdentifier, Value: idStr.String()}
+		return NewToken(r, TokenIdentifier, idStr.String())
 	}
 
 	// Consume number.
@@ -206,7 +211,7 @@ func nextToken(r *reader.Reader) *Token {
 		}
 		r.UnreadRune()
 		print("unrd: %s", lastChar)
-		return &Token{info: r.Info, Type: TokenInt, Value: numStr.String()}
+		return NewToken(r, TokenInt, numStr.String())
 	}
 
 	// Consume strings.
@@ -245,46 +250,46 @@ func nextToken(r *reader.Reader) *Token {
 				str.WriteRune(lastChar)
 			}
 		}
-		return &Token{info: r.Info, Type: TokenString, Value: str.String()}
+		return NewToken(r, TokenString, str.String())
 	}
 
 	print("read: %s - symbol", lastChar)
 	switch lastChar {
 	case '@':
-		return &Token{info: r.Info, Type: TokenAt, Value: string(lastChar)}
+		return NewToken(r, TokenAt, string(lastChar))
 	case '(':
-		return &Token{info: r.Info, Type: TokenLeftParen, Value: string(lastChar)}
+		return NewToken(r, TokenLeftParen, string(lastChar))
 	case ')':
-		return &Token{info: r.Info, Type: TokenRightParen, Value: string(lastChar)}
+		return NewToken(r, TokenRightParen, string(lastChar))
 	case '{':
-		return &Token{info: r.Info, Type: TokenLeftBrace, Value: string(lastChar)}
+		return NewToken(r, TokenLeftBrace, string(lastChar))
 	case '}':
-		return &Token{info: r.Info, Type: TokenRightBrace, Value: string(lastChar)}
+		return NewToken(r, TokenRightBrace, string(lastChar))
 	case ',':
-		return &Token{info: r.Info, Type: TokenComma, Value: string(lastChar)}
+		return NewToken(r, TokenComma, string(lastChar))
 	case ':':
-		return &Token{info: r.Info, Type: TokenColon, Value: string(lastChar)}
+		return NewToken(r, TokenColon, string(lastChar))
 	case ';':
-		return &Token{info: r.Info, Type: TokenSemicolon, Value: string(lastChar)}
+		return NewToken(r, TokenSemicolon, string(lastChar))
 	case '.':
-		return &Token{info: r.Info, Type: TokenDot, Value: string(lastChar)}
+		return NewToken(r, TokenDot, string(lastChar))
 	case '!':
-		return &Token{info: r.Info, Type: TokenExclaim, Value: string(lastChar)}
+		return NewToken(r, TokenExclaim, string(lastChar))
 	case '?':
-		return &Token{info: r.Info, Type: TokenQuestion, Value: string(lastChar)}
+		return NewToken(r, TokenQuestion, string(lastChar))
 	case '-':
-		return &Token{info: r.Info, Type: TokenBinOp, Value: string(lastChar)}
+		return NewToken(r, TokenBinOp, string(lastChar))
 	case '+':
-		return &Token{info: r.Info, Type: TokenBinOp, Value: string(lastChar)}
+		return NewToken(r, TokenBinOp, string(lastChar))
 	case '*':
-		return &Token{info: r.Info, Type: TokenBinOp, Value: string(lastChar)}
+		return NewToken(r, TokenBinOp, string(lastChar))
 	case '<':
-		return &Token{info: r.Info, Type: TokenBinOp, Value: string(lastChar)}
+		return NewToken(r, TokenBinOp, string(lastChar))
 	case '"':
-		return &Token{info: r.Info, Type: TokenDoubleQuote, Value: string(lastChar)}
+		return NewToken(r, TokenDoubleQuote, string(lastChar))
 	case '\'':
-		return &Token{info: r.Info, Type: TokenSingleQuote, Value: string(lastChar)}
+		return NewToken(r, TokenSingleQuote, string(lastChar))
 	}
 
-	return &Token{info: r.Info, Type: TokenUnknown, Value: string(lastChar)}
+	return NewToken(r, TokenUnknown, string(lastChar))
 }

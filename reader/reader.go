@@ -5,16 +5,18 @@ package reader
 import (
 	"bufio"
 	"io"
+	"unicode/utf8"
 )
 
 const EOF rune = 3 // Pretend there's an EOF byte at the end of the file to simplify control flow, it's treated like a newline TODO: might be better to use -1
 
 type Info struct {
-	prevRune   rune
-	Line       int
-	LineOffset int
-	ByteOffset int
-	File       string
+	prevRune       rune   // The previous read rune
+	Line           int    // The line number (start with 0)
+	LineRuneOffset int    // The number of runes read on this line
+	LineOffset     int    // The number of bytes read on this line
+	ByteOffset     int    // The number of bytes read so far
+	File           string // The file path if present
 }
 
 type Reader struct {
@@ -22,11 +24,13 @@ type Reader struct {
 	Info     Info
 	PrevInfo Info
 	reader   *bufio.Reader
+	seeker   io.ReadSeeker
 }
 
-func New(reader *bufio.Reader) *Reader {
+func New(readSeeker io.ReadSeeker) *Reader {
 	return &Reader{
-		reader: reader,
+		reader: bufio.NewReader(readSeeker),
+		seeker: readSeeker,
 	}
 }
 
@@ -40,6 +44,7 @@ func (r *Reader) ReadRune() rune {
 			r.isEnd = true
 			r.PrevInfo = r.Info
 			r.Info.ByteOffset++
+			r.Info.LineRuneOffset = 0
 			r.Info.LineOffset = 0
 			r.Info.Line++
 			return EOF
@@ -61,12 +66,14 @@ func (r *Reader) ReadRune() rune {
 	// We just read \r or \n, increment line
 	if lastRune == '\r' || lastRune == '\n' {
 		r.Info.Line++
+		r.Info.LineRuneOffset = 0
 		r.Info.LineOffset = 0
 		return lastRune
 	}
 
 	// Add rune to line offset
-	r.Info.LineOffset++
+	r.Info.LineRuneOffset++
+	r.Info.LineOffset += utf8.RuneLen(lastRune)
 	return lastRune
 }
 
@@ -78,4 +85,9 @@ func (r *Reader) UnreadRune() {
 		}
 	}
 	r.Info = r.PrevInfo // Restore info to previous state
+}
+
+func (r *Reader) Seek(offset int64, whence int) (int64, error) {
+	r.isEnd = false
+	return r.seeker.Seek(offset, whence)
 }

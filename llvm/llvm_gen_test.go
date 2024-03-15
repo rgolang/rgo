@@ -550,16 +550,16 @@ entry:
 
 define void @main.if(void (void ()*, void ()*)* %cond, void ()* %ok) {
 entry:
-	store void ()* %ok, ptr @0
-	store void (void ()*, void ()*)* %cond, ptr @1
+	store void (void ()*, void ()*)* %cond, ptr @0
+	store void ()* %ok, ptr @1
 	call void %cond(void ()* %ok, void ()* @main.if.0)
 	ret void
 }
 
 define void @main.if.0() {
 entry:
-	%ok = load void ()*, ptr @0
-	%cond = load void (void ()*, void ()*)*, ptr @1
+	%cond = load void (void ()*, void ()*)*, ptr @0
+	%ok = load void ()*, ptr @1
 	ret void
 }
 
@@ -692,7 +692,7 @@ msg: "hello world"
 
 define i32 @main() {
 entry:
-	call void @unsafe.libc.puts([12 x i8]* @msg, void (i32)* @main.0)
+	call void @unsafe.libc.puts(i8* getelementptr ([12 x i8], [12 x i8]* @msg, i32 0, i32 0), void (i32)* @main.0)
 	ret i32 0
 }
 
@@ -727,7 +727,7 @@ entry:
 
 define void @main.foo() {
 entry:
-	call void @unsafe.libc.puts([12 x i8]* @msg, void (i32)* @main.foo.0)
+	call void @unsafe.libc.puts(i8* getelementptr ([12 x i8], [12 x i8]* @msg, i32 0, i32 0), void (i32)* @main.foo.0)
 	ret void
 }
 
@@ -756,7 +756,7 @@ foo(msg)
 
 define i32 @main() {
 entry:
-	call void @main.foo([12 x i8]* @msg)
+	call void @main.foo(i8* getelementptr ([12 x i8], [12 x i8]* @msg, i32 0, i32 0))
 	ret i32 0
 }
 
@@ -799,7 +799,7 @@ entry:
 
 define void @main.foo() {
 entry:
-	call void @unsafe.libc.puts([12 x i8]* @msg, void (i32)* @main.foo.0)
+	call void @unsafe.libc.puts(i8* getelementptr ([12 x i8], [12 x i8]* @msg, i32 0, i32 0), void (i32)* @main.foo.0)
 	ret void
 }
 
@@ -910,7 +910,7 @@ entry:
 
 define void @main.bar(void (i8*)* %cb) {
 entry:
-	call void %cb([12 x i8]* @msg)
+	call void %cb(i8* getelementptr ([12 x i8], [12 x i8]* @msg, i32 0, i32 0))
 	ret void
 }
 
@@ -963,7 +963,7 @@ entry:
 
 define void @main.qux(i32 %n) {
 entry:
-	call void @main.foo([12 x i8]* @msg, i32 %n)
+	call void @main.foo(i8* getelementptr ([12 x i8], [12 x i8]* @msg, i32 0, i32 0), i32 %n)
 	ret void
 }
 

@@ -3,7 +3,6 @@
 package main
 
 import (
-	"bufio"
 	"log"
 	"os"
 	"path/filepath"
@@ -35,8 +34,7 @@ func main() {
 	defer dfr(rf.Close)
 
 	// Generate the code
-	reader := bufio.NewReader(rf)
-	lexer := lex.New(reader)
+	lexer := lex.New(rf)
 	parser := ast.New(lexer)
 
 	tree, err := parser.Parse()

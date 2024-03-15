@@ -3,7 +3,7 @@
 
 define i32 @main() {
 entry:
-	call void @"printf$JXM="(i8* getelementptr ([10 x i8], [10 x i8]* @0, i32 0, i32 0), [6 x i8]* @x)
+	call void @"printf$JXM="(i8* getelementptr ([10 x i8], [10 x i8]* @0, i32 0, i32 0), i8* getelementptr ([6 x i8], [6 x i8]* @x, i32 0, i32 0))
 	ret i32 0
 }
 

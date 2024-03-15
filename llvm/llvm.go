@@ -1,7 +1,6 @@
 package llvm
 
 import (
-	"bufio"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -16,6 +15,7 @@ import (
 	"github.com/rgolang/rgo/ast"
 	"github.com/rgolang/rgo/lex"
 	"github.com/rgolang/rgo/libcutils"
+	"github.com/rgolang/rgo/omap"
 )
 
 // TODO: Library code should provide two variants of a public function that accepts at least one callback, one with a ctx param and one without appended as the last or first param and the callback will also have it appended as the last or first param, the user must use only one variant at all times to avoid having the function get duplicated in the binary.
@@ -24,9 +24,8 @@ import (
 var zero = constant.NewInt(types.I32, 0)
 var builtin = make(map[string]any)
 
-func GenerateIR(input io.Reader) (string, error) {
-	reader := bufio.NewReader(input)
-	lexer := lex.New(reader)
+func GenerateIR(input io.ReadSeeker) (string, error) {
+	lexer := lex.New(input)
 	parser := ast.New(lexer)
 
 	tree, err := parser.Parse()
@@ -57,8 +56,8 @@ type Context struct { // TODO: Normalize everything to be a function, this means
 	id    string
 	Func  *ir.Func
 	block *ir.Block
-	inner map[string]any
-	outer map[string]any
+	inner *omap.Map[string, any]
+	outer *omap.Map[string, any]
 	// we can use names in inner/outer to figure out if it's the same param being passed as the closure env
 	// TODO: it doesn't matter really, just the amount matters, all params can be ptr type (even ints)
 }
@@ -108,7 +107,7 @@ func handleBuiltIn(ctx *Context, name string, apply *ast.Apply) (any, bool) {
 
 		specs, err := libcutils.ParsePrintfFmt(fmtStr.Value)
 		if !ok {
-			panic(fmt.Sprintf("error parsing printf format string %q: %s", fmtStr, err)) // TODO: Remove panic
+			panic(fmt.Sprintf("error parsing printf format string %q: %s", fmtStr.Value, err)) // TODO: Remove panic
 		}
 		sb := strings.Builder{}
 		for i := range specs {
@@ -350,8 +349,8 @@ func newContext(mod *ir.Module, id string, ret value.Value, params []*ir.Param, 
 		id:    id,
 		Func:  fnc,
 		block: entry,
-		inner: make(map[string]any),
-		outer: make(map[string]any),
+		inner: omap.New[string, any](),
+		outer: omap.New[string, any](),
 	}
 }
 
@@ -368,30 +367,31 @@ func (ctx *Context) new(name string, params []*ir.Param, entry *ir.Block, isVari
 	newCtx := newContext(ctx.Func.Parent, id.String(), nil, params, entry, isVariadic)
 
 	// Copy outer frame inner to this frame outer
-	for k, v := range ctx.outer {
-		newCtx.outer[k] = v
-	}
-	for k, v := range ctx.inner {
-		newCtx.outer[k] = v
-	}
+	ctx.outer.Each(func(k string, v any) {
+		newCtx.outer.Set(k, v)
+	})
+	ctx.inner.Each(func(k string, v any) {
+		newCtx.outer.Set(k, v)
+	})
 
 	// Copy params to inner (overwriting any outer values, shadowing)
 	for _, p := range params {
 		if p.Name() == "" {
 			panic("param has no name")
 		}
-		newCtx.inner[p.Name()] = p
+		newCtx.inner.Set(p.Name(), p)
 	}
 
 	// Replace every outer value that is not constant to be a global
-	for k, v := range newCtx.outer {
+	newCtx.outer.Each(func(k string, v any) {
 		// if already part of inner, skip
-		if _, ok := newCtx.inner[k]; ok {
-			continue
+		if _, ok := newCtx.inner.Map[k]; ok {
+			return
 		}
 		switch n := v.(type) {
 		case *ir.Func:
 		case *ir.Global:
+		case *constant.ExprGetElementPtr:
 		case *types.FloatType:
 		case *types.IntType:
 		case *types.PointerType:
@@ -408,14 +408,14 @@ func (ctx *Context) new(name string, params []*ir.Param, entry *ir.Block, isVari
 			}
 			i := newCtx.block.NewPtrToInt(src, n.Type())
 			i.LocalName = k
-			newCtx.outer[k] = i
+			newCtx.outer.Set(k, i)
 		case *ir.InstLoad:
 			if _, ok := n.Src.(*ir.Global); !ok {
 				panic(fmt.Sprintf("outer load type not supported: %s %T", k, n.Src))
 			}
 			load := newCtx.block.NewLoad(n.Type(), n.Src) // n.Src is the global, this forwards it
 			load.LocalName = k
-			newCtx.outer[k] = load
+			newCtx.outer.Set(k, load)
 		case *ir.Param:
 			// This is a hack around the llvm limitation of not being able to use the stack outside of the function
 			// TODO: Recycle these globals based on max amount of needed globals instead of creating on demand
@@ -436,11 +436,11 @@ func (ctx *Context) new(name string, params []*ir.Param, entry *ir.Block, isVari
 				load.LocalName = k
 				v = load
 			}
-			newCtx.outer[k] = v
+			newCtx.outer.Set(k, v)
 		default:
 			panic(fmt.Sprintf("outer type not supported: %q with type %T, called from %q", k, v, ctx.id))
 		}
-	}
+	})
 	return newCtx
 }
 
@@ -448,19 +448,19 @@ func (f *Context) set(name string, fn any) error {
 	if name == "" {
 		return fmt.Errorf("adding definition for label %q: label name cannot be empty", f.id)
 	}
-	if _, ok := f.inner[name]; ok {
+	if _, ok := f.inner.Map[name]; ok {
 		return fmt.Errorf("add definition: label already exists: %v", name)
 	}
-	f.inner[name] = fn
+	f.inner.Set(name, fn)
 	return nil
 }
 
 func (f *Context) get(name string) (any, error) {
-	v, ok := f.inner[name]
+	v, ok := f.inner.Get(name)
 	if !ok {
-		v, ok = f.outer[name]
+		v, ok = f.outer.Get(name)
 		if !ok {
-			return nil, fmt.Errorf("label %q not found in inner or outer scope", name)
+			return nil, fmt.Errorf("label %q not found in this scope", name)
 		}
 	}
 	return v, nil
@@ -481,7 +481,7 @@ func handleParam(ctx *Context, t *ast.Type) (*ir.Param, error) {
 		}
 		x, err := ctx.get(t.Value)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get type: %w", err)
+			return nil, fmt.Errorf("cannot find type: %w\n%s", err, ast.DebugPrintLocation(t))
 		}
 		if typ, ok := x.(types.Type); ok {
 			return ir.NewParam(t.Name, typ), nil
@@ -532,8 +532,7 @@ func handleNode(ctx *Context, node ast.Node, param *ir.Param) (value.Value, erro
 		return v, nil
 	case *ast.StringLiteral:
 		// TODO: slightly duplicated
-		globalStr := ctx.newConstString(n.Name, n.Value)
-		v := constant.NewGetElementPtr(globalStr.Typ.ElemType, globalStr, zero, zero)
+		v := ctx.newConstString(n.Name, n.Value)
 		return v, nil
 	default:
 		return nil, fmt.Errorf("unsupported declaration type: %T", node)
@@ -714,8 +713,8 @@ func handleBody(ctx *Context, nodes []ast.Node, ret value.Value) error {
 			if n.Name == "" {
 				return fmt.Errorf("anonymous string literal statement is not supported")
 			}
-			globalStr := ctx.newConstString(n.Name, n.Value)
-			err := ctx.set(n.Name, globalStr) // TODO: check for empty
+			v := ctx.newConstString(n.Name, n.Value)
+			err := ctx.set(n.Name, v) // TODO: check for empty
 			if err != nil {
 				return fmt.Errorf("add str ref: %w", err)
 			}
@@ -727,7 +726,7 @@ func handleBody(ctx *Context, nodes []ast.Node, ret value.Value) error {
 	return nil
 }
 
-func (ctx *Context) newConstString(name string, value string) *ir.Global {
+func (ctx *Context) newConstString(name string, value string) *constant.ExprGetElementPtr {
 	mod := ctx.Func.Parent
 	// Convert the string literal to an LLVM IR constant array of characters
 	// Note: In LLVM, strings are typically null-terminated
@@ -741,7 +740,7 @@ func (ctx *Context) newConstString(name string, value string) *ir.Global {
 	constStr.Linkage = enum.LinkagePrivate             // For optimization
 	constStr.UnnamedAddr = enum.UnnamedAddrUnnamedAddr // For optimization
 	mod.Globals = append(mod.Globals, constStr)
-	return constStr
+	return constant.NewGetElementPtr(constStr.Typ.ElemType, constStr, zero, zero)
 }
 
 func declarePrompt(ctx *Context, id string, limit int) *ir.Func { // TODO: Could just use fscan with the limit inside prompt
@@ -770,8 +769,7 @@ func declarePrompt(ctx *Context, id string, limit int) *ir.Func { // TODO: Could
 	bufferType := types.NewArray(uint64(limit+1), types.I8)
 	inputBuffer := entry.NewAlloca(bufferType)
 
-	formatStr := ctx.newConstString("builtin.prompt$"+strconv.Itoa(limit)+".format", "%"+strconv.Itoa(limit)+"s")
-	formatStrPtr := constant.NewGetElementPtr(formatStr.Typ.ElemType, formatStr, zero, zero)
+	formatStrPtr := ctx.newConstString("builtin.prompt$"+strconv.Itoa(limit)+".format", "%"+strconv.Itoa(limit)+"s")
 	bufferPtr := entry.NewGetElementPtr(bufferType, inputBuffer, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 0))
 	entry.NewCall(scanf, formatStrPtr, bufferPtr)
 

@@ -18,29 +18,81 @@ type EOF error
 
 // TODO: Get rid of Node, everything is a function, even ints and strings
 type Node interface { // TODO: use later to add a method to convert to llvm IR
-	Info() *reader.Info
+	GetInfo() Info
+}
+
+type Position struct {
+	Offset int // Offset from the beginning of the file
+	Line   int // Line number
+	Column int // Column number
+}
+
+type Info struct {
+	Reader *reader.Reader
+	Start  Position
+	End    Position
+}
+
+func (i Info) GetInfo() Info {
+	return i
+}
+
+func (i Info) DebugLine() string {
+	_, err := i.Reader.Seek(int64(i.Start.Offset-i.Start.Column), 0) // Seek to the start of the line (TODO: Column might count in runes, while Offset counts in bytes)
+	if err != nil {
+		panic(err.Error()) // TODO: How to not panic?
+	}
+	b := strings.Builder{}
+	var r rune
+	for {
+		r = i.Reader.ReadRune()
+		if r == '\n' || r == '\r' || r == reader.EOF {
+			break // Do not write the terminating character to the builder
+		}
+		_, err = b.WriteRune(r)
+		if err != nil {
+			panic(err.Error()) // TODO: How to not panic?
+		}
+	}
+	return b.String()
+}
+
+func NewInfo(r *reader.Reader, startTok *lex.Token, endTok *lex.Token) Info {
+	return Info{
+		Reader: r,
+		Start: Position{
+			Offset: startTok.Info().ByteOffset,
+			Line:   startTok.Info().Line,
+			Column: startTok.Info().LineRuneOffset,
+		},
+		End: Position{
+			Offset: endTok.Info().ByteOffset,
+			Line:   endTok.Info().Line,
+			Column: endTok.Info().LineRuneOffset,
+		},
+	}
 }
 
 type IntLiteral struct {
-	*lex.Token
+	Info
 	Name  string
 	Value int
 }
 
 type FloatLiteral struct {
-	*lex.Token
+	Info
 	Name  string
 	Value float64
 }
 
 type StringLiteral struct {
-	*lex.Token
+	Info
 	Name  string
 	Value string
 }
 
 type Type struct {
-	*lex.Token
+	Info
 	Name     string
 	Values   []*Type
 	Value    string
@@ -48,21 +100,21 @@ type Type struct {
 }
 
 type Function struct { // TODO: make these private?
-	*lex.Token
+	Info
 	Name   string
 	Params []*Type
 	Body   []Node
 }
 
 type Apply struct {
-	*lex.Token
+	Info
 	Name      string
 	Callee    Node
 	Arguments []Node
 }
 
 type Label struct {
-	*lex.Token
+	Info
 	Name      string
 	Of        string
 	IsBuiltIn bool
@@ -86,6 +138,7 @@ func (p *Parser) handleBody() ([]Node, error) {
 	statements := []Node{}
 	c := 0
 	for {
+		startTok := p.lex.Token
 		switch p.lex.Token.Type {
 		case lex.TokenEnd:
 			return statements, nil
@@ -108,7 +161,7 @@ func (p *Parser) handleBody() ([]Node, error) {
 					return nil, fmt.Errorf("[%d] failed to parse anonymous function call arguments: %w", c, err)
 				}
 				stmt = &Apply{
-					Token:     p.lex.Token,
+					Info:      NewInfo(p.lex.Reader, startTok, p.lex.Token),
 					Callee:    fn,
 					Arguments: args,
 				}
@@ -158,7 +211,7 @@ func (p *Parser) handleBody() ([]Node, error) {
 				statements = append(statements, expr)
 				break
 			}
-			stmt, err := p.handleCall(label)
+			stmt, err := p.handleCall(startTok, label)
 			if err != nil {
 				return nil, fmt.Errorf("[%v] failed to handle call statement: %w", c, err)
 			}
@@ -188,13 +241,13 @@ func (p *Parser) handleNameWithDots(callee string) (string, error) {
 	return b.String(), nil
 }
 
-func (p *Parser) handleCall(calleeLabel *Label) (Node, error) {
+func (p *Parser) handleCall(startTok *lex.Token, calleeLabel *Label) (Node, error) {
 	calleeName, err := p.handleNameWithDots(calleeLabel.Of)
 	if err != nil {
 		return nil, fmt.Errorf("failed to handle function call name: %w", err)
 	}
 	calleeLabel.Of = calleeName
-	expr, err := p.handleApply(calleeLabel)
+	expr, err := p.handleApply(startTok, calleeLabel)
 	if err != nil {
 		return nil, fmt.Errorf("failed to handle function call of %q: %w", calleeLabel.Of, err)
 	}
@@ -202,6 +255,7 @@ func (p *Parser) handleCall(calleeLabel *Label) (Node, error) {
 }
 
 func (p *Parser) handleDeclaration() (Node, error) {
+	startTok := p.lex.Token
 	var expr Node
 	switch p.lex.Token.Type {
 	case lex.TokenLeftParen, lex.TokenLeftBrace: // TODO: handle function declaration without parameters as `{}`
@@ -226,7 +280,7 @@ func (p *Parser) handleDeclaration() (Node, error) {
 		// Not all function expressions contain `()`, but when they don't, it can stay as a reference
 		if p.lex.Token.Type == lex.TokenLeftParen {
 			// This must be an applied function
-			expr, err = p.handleApply(label)
+			expr, err = p.handleApply(startTok, label)
 			if err != nil {
 				return nil, fmt.Errorf("failed to handle function application: %w", err)
 			}
@@ -243,7 +297,7 @@ func (p *Parser) handleDeclaration() (Node, error) {
 				return nil, fmt.Errorf("failed to parse lambda function declaration arguments: %w", err)
 			}
 			expr = &Apply{
-				Token:     p.lex.Token,
+				Info:      NewInfo(p.lex.Reader, startTok, p.lex.Token),
 				Callee:    fn,
 				Arguments: args,
 			}
@@ -253,6 +307,7 @@ func (p *Parser) handleDeclaration() (Node, error) {
 }
 
 func (p *Parser) handleLabel() (*Label, error) {
+	startTok := p.lex.Token
 	isBuiltIn := false
 	refName := p.lex.Token.Value
 	if p.lex.Token.Type == lex.TokenAt {
@@ -269,19 +324,19 @@ func (p *Parser) handleLabel() (*Label, error) {
 
 	// TODO: aren't all references just functions?
 	return &Label{ // Assuming you have a Reference type for identifiers
-		Token:     p.lex.Token,
+		Info:      NewInfo(p.lex.Reader, startTok, p.lex.Token),
 		Of:        refName,
 		IsBuiltIn: isBuiltIn,
 	}, nil
 }
 
-func (p *Parser) handleApply(calleeLabel *Label) (*Apply, error) { // TODO: Move ToIR to Statement
+func (p *Parser) handleApply(startTok *lex.Token, calleeLabel *Label) (*Apply, error) { // TODO: Move ToIR to Statement
 	args, err := p.handleArgs()
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 	return &Apply{
-		Token:     p.lex.Token,
+		Info:      NewInfo(p.lex.Reader, startTok, p.lex.Token),
 		Callee:    calleeLabel,
 		Arguments: args,
 	}, nil
@@ -334,19 +389,18 @@ func (p *Parser) handleLiteral() (x Node, err error) {
 			return nil, fmt.Errorf("failed to parse int %q at %+v", tok.Info(), tok.Value)
 		}
 		p.lex.NextToken()
-		return &IntLiteral{Token: p.lex.Token, Value: x}, nil
+		return &IntLiteral{Info: NewInfo(p.lex.Reader, tok, p.lex.Token), Value: x}, nil
 	case lex.TokenString:
 		p.lex.NextToken()
-		return &StringLiteral{Token: p.lex.Token, Value: tok.Value[1 : len(tok.Value)-1]}, nil
+		return &StringLiteral{Info: NewInfo(p.lex.Reader, tok, p.lex.Token), Value: tok.Value[1 : len(tok.Value)-1]}, nil
 	default:
 		return x, fmt.Errorf("unknown token when expecting a literal: %#v", p.lex.Token)
 	}
 }
 
 func (p *Parser) handleFunction() (*Function, error) {
-	fn := Function{
-		Token: p.lex.Token,
-	}
+	startTok := p.lex.Token
+	fn := Function{}
 
 	var err error
 	if p.lex.Token.Type == lex.TokenLeftParen { // TODO: this loop is to prevent `MyFunc: MyType{}` func declarations, which could be confusing, or not?
@@ -375,10 +429,13 @@ func (p *Parser) handleFunction() (*Function, error) {
 	}
 	p.lex.NextToken() // eat '}'
 
+	fn.Info = NewInfo(p.lex.Reader, startTok, p.lex.Token)
+
 	return &fn, nil
 }
 
 func (p *Parser) handleType(name string) (*Type, error) {
+	startTok := p.lex.Token
 	prefix := ""
 	if p.lex.Token.Type == lex.TokenAt {
 		prefix = "@"
@@ -389,8 +446,8 @@ func (p *Parser) handleType(name string) (*Type, error) {
 	case lex.TokenRightParen: // Empty type `()`
 		p.lex.NextToken() // eat the )
 		return &Type{
-			Token: p.lex.Token,
-			Name:  name,
+			Info: NewInfo(p.lex.Reader, startTok, p.lex.Token),
+			Name: name, // TODO: How can this Type not have a value?
 		}, nil
 	case lex.TokenIdentifier:
 		// TODO: handle references
@@ -411,7 +468,7 @@ func (p *Parser) handleType(name string) (*Type, error) {
 			compTime = true
 		}
 		return &Type{
-			Token:    p.lex.Token,
+			Info:     NewInfo(p.lex.Reader, startTok, p.lex.Token),
 			Name:     name,
 			Value:    prefix + typeOrName,
 			CompTime: compTime,
@@ -439,11 +496,49 @@ func (p *Parser) handleType(name string) (*Type, error) {
 		p.lex.NextToken() // eat ')'
 
 		return &Type{
-			Token:  p.lex.Token,
+			Info:   NewInfo(p.lex.Reader, startTok, p.lex.Token),
 			Name:   name,
 			Values: types,
 		}, nil
 	default:
 		return nil, fmt.Errorf("unexpected token %q while parsing type: %+v", p.lex.Token.Value, p.lex.Token.Info())
 	}
+}
+
+func expandTabs(s string, tabWidth int) (string, int) {
+	var expanded strings.Builder
+	tabCount := 0
+	for _, r := range s {
+		if r == '\t' {
+			expanded.WriteString(strings.Repeat(" ", tabWidth))
+			tabCount++
+		} else {
+			expanded.WriteRune(r)
+		}
+	}
+	return expanded.String(), tabCount
+}
+
+func DebugPrintLocation(node Node) string {
+	if node == nil {
+		return ""
+	}
+	info := node.GetInfo()
+
+	//    |
+	// 15 | callback: (name: &strr) {
+	//    |                   ^^^^
+
+	// Example line of code where the error occurred
+	const tabWidth = 4
+	codeLine, numTabs := expandTabs(info.DebugLine(), tabWidth)
+
+	const redBoldStart = "\033[1;31m"
+	const resetRed = "\033[0m"
+
+	// Generate the underline for the error
+	underline := redBoldStart + strings.Repeat(" ", info.Start.Column+((tabWidth-1)*numTabs)) + strings.Repeat("^", info.End.Column-info.Start.Column) + resetRed
+
+	// Printing the error message
+	return fmt.Sprintf("   |\n%2d | %s\n   | %s\n", info.Start.Line+1, codeLine, underline)
 }

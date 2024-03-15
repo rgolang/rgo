@@ -1,7 +1,6 @@
 package ast
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,9 +10,8 @@ import (
 	"github.com/rgolang/rgo/lex"
 )
 
-func ToAst(input io.Reader) ([]byte, error) {
-	reader := bufio.NewReader(input)
-	lexer := lex.New(reader)
+func ToAst(input io.ReadSeeker) ([]byte, error) {
+	lexer := lex.New(input)
 	parser := New(lexer)
 
 	ast, err := parser.Parse()
@@ -59,14 +57,6 @@ func resolvePointer(val reflect.Value) reflect.Value {
 	return val
 }
 
-func resolveInterface(val reflect.Value) reflect.Value {
-	// If the value is an interface, get its concrete value
-	if val.Kind() == reflect.Interface && !val.IsNil() {
-		val = val.Elem()
-	}
-	return val
-}
-
 func processAny(v reflect.Value, opts ...func(map[string]any, reflect.Value)) any {
 	switch v.Kind() {
 	case reflect.Slice:
@@ -96,7 +86,11 @@ func processAny(v reflect.Value, opts ...func(map[string]any, reflect.Value)) an
 	case reflect.Map:
 		return processMap(v, opts...)
 	case reflect.Interface:
-		return processAny(resolveInterface(v), opts...)
+		// If the value is an interface, get its concrete value
+		if v.IsNil() {
+			return nil
+		}
+		return processAny(v.Elem(), opts...)
 	default:
 		if !v.IsValid() {
 			return nil
@@ -140,8 +134,8 @@ func processStruct(v reflect.Value, opts ...func(map[string]any, reflect.Value))
 			continue
 		}
 
-		// Skip nil structs
-		if field.Kind() == reflect.Struct && field.IsNil() {
+		// Skip zero structs
+		if field.Kind() == reflect.Struct && field.IsZero() {
 			continue
 		}
 
