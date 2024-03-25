@@ -1126,6 +1126,696 @@ func Test21AnonImmediateCallAst(t *testing.T) {
 	require.JSONEq(t, expected, actual, fmt.Sprintf("got: %v", actual))
 }
 
+func Test22ClosureIntAst(t *testing.T) {
+	input := `
+baz: (x: @int, y: @int) {
+    ok: @add(3, x)
+    ok((res: @int){
+        @printf("%d %d\n", res, y)
+    })
+}
+baz(5, 1)
+
+`
+	b, err := ToAst(strings.NewReader(input))
+	require.NoError(t, err)
+	actual := string(b)
+
+	expected := `
+[
+     {
+         "_name": "baz",
+         "_type": "Function",
+         "inner": [
+             {
+                 "_name": "ok",
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "IntLiteral",
+                         "value": 3
+                     },
+                     {
+                         "_type": "Label",
+                         "of": "x"
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@add"
+                 }
+             },
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "Function",
+                         "inner": [
+                             {
+                                 "_type": "Apply",
+                                 "arguments": [
+                                     {
+                                         "_type": "StringLiteral",
+                                         "value": "%d %d\n"
+                                     },
+                                     {
+                                         "_type": "Label",
+                                         "of": "res"
+                                     },
+                                     {
+                                         "_type": "Label",
+                                         "of": "y"
+                                     }
+                                 ],
+                                 "callee": {
+                                     "_type": "Label",
+                                     "isbuiltin": true,
+                                     "of": "@printf"
+                                 }
+                             }
+                         ],
+                         "params": [
+                             {
+                                 "_name": "res",
+                                 "_type": "Type",
+                                 "value": "@int"
+                             }
+                         ]
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "of": "ok"
+                 }
+             }
+         ],
+         "params": [
+             {
+                 "_name": "x",
+                 "_type": "Type",
+                 "value": "@int"
+             },
+             {
+                 "_name": "y",
+                 "_type": "Type",
+                 "value": "@int"
+             }
+         ]
+     },
+     {
+         "_type": "Apply",
+         "arguments": [
+             {
+                 "_type": "IntLiteral",
+                 "value": 5
+             },
+             {
+                 "_type": "IntLiteral",
+                 "value": 1
+             }
+         ],
+         "callee": {
+             "_type": "Label",
+             "of": "baz"
+         }
+     }
+ ]
+`
+	require.JSONEq(t, expected, actual, fmt.Sprintf("got: %v", actual))
+}
+
+func Test23ClosureIntAst(t *testing.T) {
+	input := `
+foo: (x:@int){
+	ok: (s: @int){
+		@unsafe.libc.printf("num: %d\n", s, (code:@int){})
+	}
+	ok(x)
+	ok(x)
+}
+foo(5)
+`
+	b, err := ToAst(strings.NewReader(input))
+	require.NoError(t, err)
+	actual := string(b)
+
+	expected := `
+[
+     {
+         "_name": "foo",
+         "_type": "Function",
+         "inner": [
+             {
+                 "_name": "ok",
+                 "_type": "Function",
+                 "inner": [
+                     {
+                         "_type": "Apply",
+                         "arguments": [
+                             {
+                                 "_type": "StringLiteral",
+                                 "value": "num: %d\n"
+                             },
+                             {
+                                 "_type": "Label",
+                                 "of": "s"
+                             },
+                             {
+                                 "_type": "Function",
+                                 "params": [
+                                     {
+                                         "_name": "code",
+                                         "_type": "Type",
+                                         "value": "@int"
+                                     }
+                                 ]
+                             }
+                         ],
+                         "callee": {
+                             "_type": "Label",
+                             "isbuiltin": true,
+                             "of": "@unsafe.libc.printf"
+                         }
+                     }
+                 ],
+                 "params": [
+                     {
+                         "_name": "s",
+                         "_type": "Type",
+                         "value": "@int"
+                     }
+                 ]
+             },
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "Label",
+                         "of": "x"
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "of": "ok"
+                 }
+             },
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "Label",
+                         "of": "x"
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "of": "ok"
+                 }
+             }
+         ],
+         "params": [
+             {
+                 "_name": "x",
+                 "_type": "Type",
+                 "value": "@int"
+             }
+         ]
+     },
+     {
+         "_type": "Apply",
+         "arguments": [
+             {
+                 "_type": "IntLiteral",
+                 "value": 5
+             }
+         ],
+         "callee": {
+             "_type": "Label",
+             "of": "foo"
+         }
+     }
+ ]
+`
+	require.JSONEq(t, expected, actual, fmt.Sprintf("got: %v", actual))
+}
+
+func Test24RecursivePrintAst(t *testing.T) {
+	input := `
+printnums: (n: @int) {
+    @printf("%d\n", n)
+    @add(1, n, (n: @int){
+        printnums(n)
+    })
+}
+printnums(0)
+
+`
+	b, err := ToAst(strings.NewReader(input))
+	require.NoError(t, err)
+	actual := string(b)
+
+	expected := `
+[
+     {
+         "_name": "printnums",
+         "_type": "Function",
+         "inner": [
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "StringLiteral",
+                         "value": "%d\n"
+                     },
+                     {
+                         "_type": "Label",
+                         "of": "n"
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@printf"
+                 }
+             },
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "IntLiteral",
+                         "value": 1
+                     },
+                     {
+                         "_type": "Label",
+                         "of": "n"
+                     },
+                     {
+                         "_type": "Function",
+                         "inner": [
+                             {
+                                 "_type": "Apply",
+                                 "arguments": [
+                                     {
+                                         "_type": "Label",
+                                         "of": "n"
+                                     }
+                                 ],
+                                 "callee": {
+                                     "_type": "Label",
+                                     "of": "printnums"
+                                 }
+                             }
+                         ],
+                         "params": [
+                             {
+                                 "_name": "n",
+                                 "_type": "Type",
+                                 "value": "@int"
+                             }
+                         ]
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@add"
+                 }
+             }
+         ],
+         "params": [
+             {
+                 "_name": "n",
+                 "_type": "Type",
+                 "value": "@int"
+             }
+         ]
+     },
+     {
+         "_type": "Apply",
+         "arguments": [
+             {
+                 "_type": "IntLiteral",
+                 "value": 0
+             }
+         ],
+         "callee": {
+             "_type": "Label",
+             "of": "printnums"
+         }
+     }
+ ]
+`
+	require.JSONEq(t, expected, actual, fmt.Sprintf("got: %v", actual))
+}
+
+func Test25RecursivePrintLimitAst(t *testing.T) {
+	input := `
+printnums: (n: @int) {
+    @printf("%d\n", n)
+    @ieq(n, 1000, {}, {
+        @add(1, n, printnums)
+    })
+}
+printnums(0)
+
+`
+	b, err := ToAst(strings.NewReader(input))
+	require.NoError(t, err)
+	actual := string(b)
+
+	expected := `
+[
+     {
+         "_name": "printnums",
+         "_type": "Function",
+         "inner": [
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "StringLiteral",
+                         "value": "%d\n"
+                     },
+                     {
+                         "_type": "Label",
+                         "of": "n"
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@printf"
+                 }
+             },
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "Label",
+                         "of": "n"
+                     },
+                     {
+                         "_type": "IntLiteral",
+                         "value": 1000
+                     },
+                     {
+                         "_type": "Function"
+                     },
+                     {
+                         "_type": "Function",
+                         "inner": [
+                             {
+                                 "_type": "Apply",
+                                 "arguments": [
+                                     {
+                                         "_type": "IntLiteral",
+                                         "value": 1
+                                     },
+                                     {
+                                         "_type": "Label",
+                                         "of": "n"
+                                     },
+                                     {
+                                         "_type": "Label",
+                                         "of": "printnums"
+                                     }
+                                 ],
+                                 "callee": {
+                                     "_type": "Label",
+                                     "isbuiltin": true,
+                                     "of": "@add"
+                                 }
+                             }
+                         ]
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@ieq"
+                 }
+             }
+         ],
+         "params": [
+             {
+                 "_name": "n",
+                 "_type": "Type",
+                 "value": "@int"
+             }
+         ]
+     },
+     {
+         "_type": "Apply",
+         "arguments": [
+             {
+                 "_type": "IntLiteral",
+                 "value": 0
+             }
+         ],
+         "callee": {
+             "_type": "Label",
+             "of": "printnums"
+         }
+     }
+ ]
+`
+	require.JSONEq(t, expected, actual, fmt.Sprintf("got: %v", actual))
+}
+
+func Test26LinkedListAst(t *testing.T) {
+	input := `
+list: ((@int, list)) // recursive type 
+nil: (cb:(@int, list)){}
+cons: (h:@int, t:list, cb:(@int, list)){
+    cb(h, t)
+}
+iterate: (head:@int, tail: list){
+    @printf("%d\n", head)
+    tail(iterate) // if tail is nil, it does nothing 
+}
+mylist: cons(1, cons(2, cons(3, cons(4, nil)))) // TODO: when the target type is ptr, then the arg type can also be a ptr?
+mylist(iterate)
+
+`
+	b, err := ToAst(strings.NewReader(input))
+	require.NoError(t, err)
+	actual := string(b)
+
+	expected := `
+[
+     {
+         "_name": "list",
+         "_type": "Type",
+         "values": [
+             {
+                 "_type": "Type",
+                 "values": [
+                     {
+                         "_type": "Type",
+                         "value": "@int"
+                     },
+                     {
+                         "_type": "Type",
+                         "value": "list"
+                     }
+                 ]
+             }
+         ]
+     },
+     {
+         "_name": "nil",
+         "_type": "Function",
+         "params": [
+             {
+                 "_name": "cb",
+                 "_type": "Type",
+                 "values": [
+                     {
+                         "_type": "Type",
+                         "value": "@int"
+                     },
+                     {
+                         "_type": "Type",
+                         "value": "list"
+                     }
+                 ]
+             }
+         ]
+     },
+     {
+         "_name": "cons",
+         "_type": "Function",
+         "inner": [
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "Label",
+                         "of": "h"
+                     },
+                     {
+                         "_type": "Label",
+                         "of": "t"
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "of": "cb"
+                 }
+             }
+         ],
+         "params": [
+             {
+                 "_name": "h",
+                 "_type": "Type",
+                 "value": "@int"
+             },
+             {
+                 "_name": "t",
+                 "_type": "Type",
+                 "value": "list"
+             },
+             {
+                 "_name": "cb",
+                 "_type": "Type",
+                 "values": [
+                     {
+                         "_type": "Type",
+                         "value": "@int"
+                     },
+                     {
+                         "_type": "Type",
+                         "value": "list"
+                     }
+                 ]
+             }
+         ]
+     },
+     {
+         "_name": "iterate",
+         "_type": "Function",
+         "inner": [
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "StringLiteral",
+                         "value": "%d\n"
+                     },
+                     {
+                         "_type": "Label",
+                         "of": "head"
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@printf"
+                 }
+             },
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "Label",
+                         "of": "iterate"
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "of": "tail"
+                 }
+             }
+         ],
+         "params": [
+             {
+                 "_name": "head",
+                 "_type": "Type",
+                 "value": "@int"
+             },
+             {
+                 "_name": "tail",
+                 "_type": "Type",
+                 "value": "list"
+             }
+         ]
+     },
+     {
+         "_name": "mylist",
+         "_type": "Apply",
+         "arguments": [
+             {
+                 "_type": "IntLiteral",
+                 "value": 1
+             },
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "IntLiteral",
+                         "value": 2
+                     },
+                     {
+                         "_type": "Apply",
+                         "arguments": [
+                             {
+                                 "_type": "IntLiteral",
+                                 "value": 3
+                             },
+                             {
+                                 "_type": "Apply",
+                                 "arguments": [
+                                     {
+                                         "_type": "IntLiteral",
+                                         "value": 4
+                                     },
+                                     {
+                                         "_type": "Label",
+                                         "of": "nil"
+                                     }
+                                 ],
+                                 "callee": {
+                                     "_type": "Label",
+                                     "of": "cons"
+                                 }
+                             }
+                         ],
+                         "callee": {
+                             "_type": "Label",
+                             "of": "cons"
+                         }
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "of": "cons"
+                 }
+             }
+         ],
+         "callee": {
+             "_type": "Label",
+             "of": "cons"
+         }
+     },
+     {
+         "_type": "Apply",
+         "arguments": [
+             {
+                 "_type": "Label",
+                 "of": "iterate"
+             }
+         ],
+         "callee": {
+             "_type": "Label",
+             "of": "mylist"
+         }
+     }
+ ]
+`
+	require.JSONEq(t, expected, actual, fmt.Sprintf("got: %v", actual))
+}
+
 func Test2IntConstAst(t *testing.T) {
 	input := `
 x: 12
@@ -1412,9 +2102,8 @@ foo
 
 func Test5FuncStdAst(t *testing.T) {
 	input := `
-@std
-foo: (x:string){
-	ok: (s: string){
+foo: (x: @str){
+	ok: (s: @str){
 		@unsafe.libc.puts(s, (code:@int){})
 	}
 	ok(x)
@@ -1429,14 +2118,6 @@ foo("hello world")
 
 	expected := `
 [
-     {
-         "_type": "Apply",
-         "callee": {
-             "_type": "Label",
-             "isbuiltin": true,
-             "of": "@std"
-         }
-     },
      {
          "_name": "foo",
          "_type": "Function",
@@ -1474,7 +2155,7 @@ foo("hello world")
                      {
                          "_name": "s",
                          "_type": "Type",
-                         "value": "string"
+                         "value": "@str"
                      }
                  ]
              },
@@ -1509,7 +2190,7 @@ foo("hello world")
              {
                  "_name": "x",
                  "_type": "Type",
-                 "value": "string"
+                 "value": "@str"
              }
          ]
      },

@@ -1,0 +1,7 @@
+printnums: (n: @int) {
+    @printf("%d\n", n)
+    @ieq(n, 1000, {}, {
+        @add(1, n, printnums)
+    })
+}
+printnums(0)

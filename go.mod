@@ -2,7 +2,7 @@ module github.com/rgolang/rgo
 
 go 1.21.5
 
-replace github.com/llir/llvm => github.com/rgolang/llvm v0.0.0-20240303132334-b7b0eff3e07e
+replace github.com/llir/llvm => github.com/rgolang/llvm v0.0.0-20240325144728-36810f40fc45
 
 require (
 	github.com/kr/pretty v0.3.1

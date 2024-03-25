@@ -1,0 +1,7 @@
+printnums: (n: @int) {
+    @printf("%d\n", n)
+    @add(1, n, (n: @int){
+        printnums(n)
+    })
+}
+printnums(0)

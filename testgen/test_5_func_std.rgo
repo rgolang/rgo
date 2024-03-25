@@ -1,6 +1,5 @@
-@std
-foo: (x:string){
-	ok: (s: string){
+foo: (x: @str){
+	ok: (s: @str){
 		@unsafe.libc.puts(s, (code:@int){})
 	}
 	ok(x)

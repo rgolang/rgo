@@ -658,6 +658,294 @@ entry:
 	require.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(actual), fmt.Sprintf("got: %v", actual))
 }
 
+func Test22ClosureIntCodegen(t *testing.T) {
+	input := `
+baz: (x: @int, y: @int) {
+    ok: @add(3, x)
+    ok((res: @int){
+        @printf("%d %d\n", res, y)
+    })
+}
+baz(5, 1)
+
+`
+	actual, err := GenerateIR(strings.NewReader(input))
+	require.NoError(t, err)
+	expected := `
+@0 = global ptr null
+@1 = global ptr null
+@2 = global ptr null
+@3 = global ptr null
+@4 = private unnamed_addr constant [7 x i8] c"%d %d\0A\00"
+
+define i32 @main() {
+entry:
+	call void @main.baz(i32 5, i32 1)
+	ret i32 0
+}
+
+define void @main.baz(i32 %x, i32 %y) {
+entry:
+	store i32 %x, ptr @0
+	store i32 %y, ptr @1
+	store i32 %x, ptr @2
+	store i32 %y, ptr @3
+	call void @main.baz.ok(void (i32)* @main.baz.0)
+	ret void
+}
+
+define void @main.baz.ok(void (i32)* %ok) {
+entry:
+	%x = load i32, ptr @0
+	%y = load i32, ptr @1
+	call void @builtin.add(i32 3, i32 %x, void (i32)* %ok)
+	ret void
+}
+
+define void @main.baz.0(i32 %res) {
+entry:
+	%x = load i32, ptr @2
+	%y = load i32, ptr @3
+	call void @"printf$JWQlZA=="(i8* getelementptr ([7 x i8], [7 x i8]* @4, i32 0, i32 0), i32 %res, i32 %y)
+	ret void
+}
+
+define void @"printf$JWQlZA=="(i8* %fmt, i32 %p0, i32 %p1) {
+entry:
+	%0 = call i32 (i8*, ...) @printf(i8* %fmt, i32 %p0, i32 %p1)
+	ret void
+}
+
+`
+	require.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(actual), fmt.Sprintf("got: %v", actual))
+}
+
+func Test23ClosureIntCodegen(t *testing.T) {
+	input := `
+foo: (x:@int){
+	ok: (s: @int){
+		@unsafe.libc.printf("num: %d\n", s, (code:@int){})
+	}
+	ok(x)
+	ok(x)
+}
+foo(5)
+`
+	actual, err := GenerateIR(strings.NewReader(input))
+	require.NoError(t, err)
+	expected := `
+@0 = global ptr null
+@1 = private unnamed_addr constant [9 x i8] c"num: %d\0A\00"
+@2 = global ptr null
+
+define i32 @main() {
+entry:
+	call void @main.foo(i32 5)
+	ret i32 0
+}
+
+define void @main.foo(i32 %x) {
+entry:
+	store i32 %x, ptr @0
+	call void @main.foo.ok(i32 %x)
+	call void @main.foo.ok(i32 %x)
+	ret void
+}
+
+define void @main.foo.ok(i32 %s) {
+entry:
+	%x = load i32, ptr @0
+	store i32 %s, ptr @2
+	%0 = call i32 (i8*, ...) @printf(i8* getelementptr ([9 x i8], [9 x i8]* @1, i32 0, i32 0), i32 %s, void (i32)* @main.foo.ok.0)
+	ret void
+}
+
+define void @main.foo.ok.0(i32 %code) {
+entry:
+	%x = load i32, ptr @0
+	%s = load i32, ptr @2
+	ret void
+}
+
+`
+	require.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(actual), fmt.Sprintf("got: %v", actual))
+}
+
+func Test24RecursivePrintCodegen(t *testing.T) {
+	input := `
+printnums: (n: @int) {
+    @printf("%d\n", n)
+    @add(1, n, (n: @int){
+        printnums(n)
+    })
+}
+printnums(0)
+
+`
+	actual, err := GenerateIR(strings.NewReader(input))
+	require.NoError(t, err)
+	expected := `
+@0 = private unnamed_addr constant [4 x i8] c"%d\0A\00"
+
+define i32 @main() {
+entry:
+	call void @main.printnums(i32 0)
+	ret i32 0
+}
+
+define void @main.printnums(i32 %n) {
+entry:
+	call void @"printf$JWQ="(i8* getelementptr ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i32 %n)
+	call void @builtin.add(i32 1, i32 %n, void (i32)* @main.printnums.0)
+	ret void
+}
+
+define void @main.printnums.0(i32 %n) {
+entry:
+	call void @main.printnums(i32 %n)
+	ret void
+}
+
+`
+	require.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(actual), fmt.Sprintf("got: %v", actual))
+}
+
+func Test25RecursivePrintLimitCodegen(t *testing.T) {
+	input := `
+printnums: (n: @int) {
+    @printf("%d\n", n)
+    @ieq(n, 1000, {}, {
+        @add(1, n, printnums)
+    })
+}
+printnums(0)
+
+`
+	actual, err := GenerateIR(strings.NewReader(input))
+	require.NoError(t, err)
+	expected := `
+@0 = private unnamed_addr constant [4 x i8] c"%d\0A\00"
+@1 = global ptr null
+@2 = global ptr null
+
+define i32 @main() {
+entry:
+	call void @main.printnums(i32 0)
+	ret i32 0
+}
+
+define void @main.printnums(i32 %n) {
+entry:
+	call void @"printf$JWQ="(i8* getelementptr ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i32 %n)
+	store i32 %n, ptr @1
+	store i32 %n, ptr @2
+	call void @builtin.ieq(i32 %n, i32 1000, void ()* @main.printnums.0, void ()* @main.printnums.1)
+	ret void
+}
+
+define void @builtin.ieq(i32 %x, i32 %y, void ()* %true, void ()* %false) {
+entry:
+	%0 = icmp eq i32 %x, %y
+	br i1 %0, label %iftrue, label %iffalse
+
+iftrue:
+	call void %true()
+	ret void
+
+iffalse:
+	call void %false()
+	ret void
+}
+
+define void @main.printnums.0() {
+entry:
+	%n = load i32, ptr @1
+	ret void
+}
+
+define void @main.printnums.1() {
+entry:
+	%n = load i32, ptr @2
+	call void @builtin.add(i32 1, i32 %n, void (i32)* @main.printnums)
+	ret void
+}
+
+`
+	require.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(actual), fmt.Sprintf("got: %v", actual))
+}
+
+func Test26LinkedListCodegen(t *testing.T) {
+	input := `
+list: ((@int, list)) // recursive type 
+nil: (cb:(@int, list)){}
+cons: (h:@int, t:list, cb:(@int, list)){
+    cb(h, t)
+}
+iterate: (head:@int, tail: list){
+    @printf("%d\n", head)
+    tail(iterate) // if tail is nil, it does nothing 
+}
+mylist: cons(1, cons(2, cons(3, cons(4, nil)))) // TODO: when the target type is ptr, then the arg type can also be a ptr?
+mylist(iterate)
+
+`
+	actual, err := GenerateIR(strings.NewReader(input))
+	require.NoError(t, err)
+	expected := `
+@0 = private unnamed_addr constant [4 x i8] c"%d\0A\00"
+
+define i32 @main() {
+entry:
+	call void @main.mylist(void (i32, void (void (i32, ptr)*)*)* @main.iterate)
+	ret i32 0
+}
+
+define void @main.nil(void (i32, void (void (i32, ptr)*)*)* %cb) {
+entry:
+	ret void
+}
+
+define void @main.cons(i32 %h, void (void (i32, ptr)*)* %t, void (i32, void (void (i32, ptr)*)*)* %cb) {
+entry:
+	call void %cb(i32 %h, void (void (i32, ptr)*)* %t)
+	ret void
+}
+
+define void @main.iterate(i32 %head, void (void (i32, ptr)*)* %tail) {
+entry:
+	call void @"printf$JWQ="(i8* getelementptr ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i32 %head)
+	call void %tail(void (i32, void (void (i32, ptr)*)*)* @main.iterate)
+	ret void
+}
+
+define void @main.0(void (i32, void (void (i32, ptr)*)*)* %cb) {
+entry:
+	call void @main.cons(i32 4, void (void (i32, void (void (i32, ptr)*)*)*)* @main.nil, void (i32, void (void (i32, ptr)*)*)* %cb)
+	ret void
+}
+
+define void @main.1(void (i32, void (void (i32, ptr)*)*)* %cb) {
+entry:
+	call void @main.cons(i32 3, void (void (i32, void (void (i32, ptr)*)*)*)* @main.0, void (i32, void (void (i32, ptr)*)*)* %cb)
+	ret void
+}
+
+define void @main.2(void (i32, void (void (i32, ptr)*)*)* %cb) {
+entry:
+	call void @main.cons(i32 2, void (void (i32, void (void (i32, ptr)*)*)*)* @main.1, void (i32, void (void (i32, ptr)*)*)* %cb)
+	ret void
+}
+
+define void @main.mylist(void (i32, void (void (i32, ptr)*)*)* %cb) {
+entry:
+	call void @main.cons(i32 1, void (void (i32, void (void (i32, ptr)*)*)*)* @main.2, void (i32, void (void (i32, ptr)*)*)* %cb)
+	ret void
+}
+
+`
+	require.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(actual), fmt.Sprintf("got: %v", actual))
+}
+
 func Test2IntConstCodegen(t *testing.T) {
 	input := `
 x: 12
@@ -814,9 +1102,8 @@ entry:
 
 func Test5FuncStdCodegen(t *testing.T) {
 	input := `
-@std
-foo: (x:string){
-	ok: (s: string){
+foo: (x: @str){
+	ok: (s: @str){
 		@unsafe.libc.puts(s, (code:@int){})
 	}
 	ok(x)
@@ -834,14 +1121,8 @@ foo("hello world")
 
 define i32 @main() {
 entry:
-	call void @std()
 	call void @main.foo(i8* getelementptr ([12 x i8], [12 x i8]* @2, i32 0, i32 0))
 	ret i32 0
-}
-
-define void @std() {
-entry:
-	ret void
 }
 
 define void @main.foo(i8* %x) {

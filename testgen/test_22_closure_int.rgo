@@ -1,0 +1,7 @@
+baz: (x: @int, y: @int) {
+    ok: @add(3, x)
+    ok((res: @int){
+        @printf("%d %d\n", res, y)
+    })
+}
+baz(5, 1)

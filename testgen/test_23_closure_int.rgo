@@ -1,0 +1,8 @@
+foo: (x:@int){
+	ok: (s: @int){
+		@unsafe.libc.printf("num: %d\n", s, (code:@int){})
+	}
+	ok(x)
+	ok(x)
+}
+foo(5)

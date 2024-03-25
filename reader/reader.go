@@ -89,5 +89,10 @@ func (r *Reader) UnreadRune() {
 
 func (r *Reader) Seek(offset int64, whence int) (int64, error) {
 	r.isEnd = false
-	return r.seeker.Seek(offset, whence)
+	n, err := r.seeker.Seek(offset, whence)
+	if err != nil {
+		return 0, err
+	}
+	r.reader = bufio.NewReader(r.seeker)
+	return n, nil
 }

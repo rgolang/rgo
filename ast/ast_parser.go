@@ -148,9 +148,13 @@ func (p *Parser) handleBody() ([]Node, error) {
 		case lex.TokenLeftBrace, lex.TokenLeftParen:
 			// Handle anon function
 			var stmt Node
-			fn, err := p.handleFunction()
+			fn, _, err := p.handleFunctionOrType()
 			if err != nil {
 				return nil, fmt.Errorf("[%v] failed to handle anonymous function declaration: %w", c, err)
+			}
+			if fn == nil {
+				// if fn is nil and err is nil, must be a type on own line
+				return nil, fmt.Errorf("[%v] type cannot be called\n%v", c, p.DebugPrintTokenLocation(startTok))
 			}
 			stmt = fn
 
@@ -259,11 +263,16 @@ func (p *Parser) handleDeclaration() (Node, error) {
 	var expr Node
 	switch p.lex.Token.Type {
 	case lex.TokenLeftParen, lex.TokenLeftBrace: // TODO: handle function declaration without parameters as `{}`
-		fn, err := p.handleFunction()
+		fn, typ, err := p.handleFunctionOrType()
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse function declaration: %w", err)
+			return nil, fmt.Errorf("failed to parse function declaration: %w\n%v", err, p.DebugPrintTokenLocation(startTok))
 		}
-		expr = fn
+		if fn != nil {
+			expr = fn
+		}
+		if typ != nil {
+			expr = typ
+		}
 	case lex.TokenInt, lex.TokenString:
 		lit, err := p.handleLiteral()
 		if err != nil {
@@ -398,40 +407,47 @@ func (p *Parser) handleLiteral() (x Node, err error) {
 	}
 }
 
-func (p *Parser) handleFunction() (*Function, error) {
+func (p *Parser) handleFunctionOrType() (*Function, *Type, error) { // TODO: could be implement better as split funcs
 	startTok := p.lex.Token
 	fn := Function{}
 
 	var err error
 	if p.lex.Token.Type == lex.TokenLeftParen { // TODO: this loop is to prevent `MyFunc: MyType{}` func declarations, which could be confusing, or not?
-		x, err := p.handleType("")
+		x, err := p.handleType("") // TODO: Use the same approach as elsewhere and don't require name passing
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse function type: %w", err)
+			return nil, nil, fmt.Errorf("failed to parse function type: %w", err)
 		}
+
+		// Expecting '{' for function body
+		if p.lex.Token.Type != lex.TokenLeftBrace {
+			// Not a body, it's actually a type
+			return nil, x, nil
+		}
+
 		fn.Params = x.Values
 	}
 
 	// Expecting '{' for function body
 	if p.lex.Token.Type != lex.TokenLeftBrace {
-		return nil, fmt.Errorf("expected '{', found %q: %+v", p.lex.Token.Value, p.lex.Token.Info())
+		return nil, nil, fmt.Errorf("expected '{', found %q: %+v", p.lex.Token.Value, p.lex.Token.Info())
 	}
 	p.lex.NextToken() // eat '{'
 
 	// Parse function body
 	fn.Body, err = p.handleBody()
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse function body: %w", err)
+		return nil, nil, fmt.Errorf("failed to parse function body: %w", err)
 	}
 
 	// Expecting '}' after function body
 	if p.lex.Token.Type != lex.TokenRightBrace {
-		return nil, fmt.Errorf("expected '}', found %q", p.lex.Token.Value)
+		return nil, nil, fmt.Errorf("expected '}', found %q", p.lex.Token.Value)
 	}
 	p.lex.NextToken() // eat '}'
 
 	fn.Info = NewInfo(p.lex.Reader, startTok, p.lex.Token)
 
-	return &fn, nil
+	return &fn, nil, nil
 }
 
 func (p *Parser) handleType(name string) (*Type, error) {
@@ -501,7 +517,7 @@ func (p *Parser) handleType(name string) (*Type, error) {
 			Values: types,
 		}, nil
 	default:
-		return nil, fmt.Errorf("unexpected token %q while parsing type: %+v", p.lex.Token.Value, p.lex.Token.Info())
+		return nil, fmt.Errorf("unexpected token %q while parsing type\n%s", p.lex.Token.Value, p.DebugPrintTokenLocation(p.lex.Token))
 	}
 }
 
@@ -517,6 +533,12 @@ func expandTabs(s string, tabWidth int) (string, int) {
 		}
 	}
 	return expanded.String(), tabCount
+}
+
+func (p *Parser) DebugPrintTokenLocation(tok *lex.Token) string {
+	// TODO: Streamline this
+	info := NewInfo(p.lex.Reader, tok, tok)
+	return DebugPrintLocation(info)
 }
 
 func DebugPrintLocation(node Node) string {
