@@ -946,6 +946,205 @@ entry:
 	require.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(actual), fmt.Sprintf("got: %v", actual))
 }
 
+func Test27LinkedListEndCodegen(t *testing.T) {
+	input := `
+list: ((@int, list), ()) // recursive type 
+nil: (cb:(@int, list), end:()){end()}
+cons: (h:@int, t:list, cb:(@int, list)){
+    cb(h, t)
+}
+iterate: (head:@int, tail: list){
+    @printf("%d\n", head)
+    tail(iterate, (){
+        @printf("%s\n", "end")
+    }) 
+}
+mylist: cons(1, cons(2, cons(3, cons(4, nil))))
+mylist(iterate)
+
+`
+	actual, err := GenerateIR(strings.NewReader(input))
+	require.NoError(t, err)
+	expected := `
+@0 = private unnamed_addr constant [4 x i8] c"%d\0A\00"
+@1 = global ptr null
+@2 = global ptr null
+@3 = private unnamed_addr constant [4 x i8] c"%s\0A\00"
+@4 = private unnamed_addr constant [4 x i8] c"end\00"
+
+define i32 @main() {
+entry:
+	call void @main.mylist(void (i32, void (void (i32, ptr)*, void ()*)*)* @main.iterate)
+	ret i32 0
+}
+
+define void @main.nil(void (i32, void (void (i32, ptr)*, void ()*)*)* %cb, void ()* %end) {
+entry:
+	call void %end()
+	ret void
+}
+
+define void @main.cons(i32 %h, void (void (i32, ptr)*, void ()*)* %t, void (i32, void (void (i32, ptr)*, void ()*)*)* %cb) {
+entry:
+	call void %cb(i32 %h, void (void (i32, ptr)*, void ()*)* %t)
+	ret void
+}
+
+define void @main.iterate(i32 %head, void (void (i32, ptr)*, void ()*)* %tail) {
+entry:
+	call void @"printf$JWQ="(i8* getelementptr ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i32 %head)
+	store i32 %head, ptr @1
+	store void (void (i32, ptr)*, void ()*)* %tail, ptr @2
+	call void %tail(void (i32, void (void (i32, ptr)*, void ()*)*)* @main.iterate, void ()* @main.iterate.0)
+	ret void
+}
+
+define void @main.iterate.0() {
+entry:
+	%head = load i32, ptr @1
+	%tail = load void (void (i32, ptr)*, void ()*)*, ptr @2
+	call void @"printf$JXM="(i8* getelementptr ([4 x i8], [4 x i8]* @3, i32 0, i32 0), i8* getelementptr ([4 x i8], [4 x i8]* @4, i32 0, i32 0))
+	ret void
+}
+
+define void @main.0(void (i32, void (void (i32, ptr)*, void ()*)*)* %cb) {
+entry:
+	call void @main.cons(i32 4, void (void (i32, void (void (i32, ptr)*, void ()*)*)*, void ()*)* @main.nil, void (i32, void (void (i32, ptr)*, void ()*)*)* %cb)
+	ret void
+}
+
+define void @main.1(void (i32, void (void (i32, ptr)*, void ()*)*)* %cb) {
+entry:
+	call void @main.cons(i32 3, void (void (i32, void (void (i32, ptr)*, void ()*)*)*)* @main.0, void (i32, void (void (i32, ptr)*, void ()*)*)* %cb)
+	ret void
+}
+
+define void @main.2(void (i32, void (void (i32, ptr)*, void ()*)*)* %cb) {
+entry:
+	call void @main.cons(i32 2, void (void (i32, void (void (i32, ptr)*, void ()*)*)*)* @main.1, void (i32, void (void (i32, ptr)*, void ()*)*)* %cb)
+	ret void
+}
+
+define void @main.mylist(void (i32, void (void (i32, ptr)*, void ()*)*)* %cb) {
+entry:
+	call void @main.cons(i32 1, void (void (i32, void (void (i32, ptr)*, void ()*)*)*)* @main.2, void (i32, void (void (i32, ptr)*, void ()*)*)* %cb)
+	ret void
+}
+
+`
+	require.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(actual), fmt.Sprintf("got: %v", actual))
+}
+
+func Test28LinkedListEachCodegen(t *testing.T) {
+	input := `
+list: ((@int, list)) // recursive type 
+nil: (cb:(@int, list)){}
+cons: (h:@int, t:list, cb:(@int, list)){
+    cb(h, t)
+}
+iterate: (ok: (@int), head:@int, tail: list){
+    ok(head)
+    tail(iterate(ok)) // if tail is nil, it does nothing 
+}
+each: (list: list, ok: (@int)){
+    list(iterate(ok))
+}
+mylist: cons(1, cons(2, cons(3, cons(4, nil))))
+each(mylist, (n: @int){
+    @printf("%d\n", n)
+})
+
+`
+	actual, err := GenerateIR(strings.NewReader(input))
+	require.NoError(t, err)
+	expected := `
+@0 = global ptr null
+@1 = global ptr null
+@2 = global ptr null
+@3 = private unnamed_addr constant [4 x i8] c"%d\0A\00"
+
+define i32 @main() {
+entry:
+	call void @main.each(void (void (i32, void (void (i32, ptr)*)*)*)* @main.mylist, void (i32)* @main.3)
+	ret i32 0
+}
+
+define void @main.nil(void (i32, void (void (i32, ptr)*)*)* %cb) {
+entry:
+	ret void
+}
+
+define void @main.cons(i32 %h, void (void (i32, ptr)*)* %t, void (i32, void (void (i32, ptr)*)*)* %cb) {
+entry:
+	call void %cb(i32 %h, void (void (i32, ptr)*)* %t)
+	ret void
+}
+
+define void @main.iterate(void (i32)* %ok, i32 %head, void (void (i32, ptr)*)* %tail) {
+entry:
+	call void %ok(i32 %head)
+	store void (i32)* %ok, ptr @0
+	call void %tail(void (i32, void (void (i32, ptr)*)*)* @main.iterate.0)
+	ret void
+}
+
+define void @main.iterate.0(i32 %head, void (void (i32, ptr)*)* %tail) {
+entry:
+	%ok = load void (i32)*, ptr @0
+	call void @main.iterate(void (i32)* %ok, i32 %head, void (void (i32, ptr)*)* %tail)
+	ret void
+}
+
+define void @main.each(void (void (i32, ptr)*)* %list, void (i32)* %ok) {
+entry:
+	store void (void (i32, ptr)*)* %list, ptr @1
+	store void (i32)* %ok, ptr @2
+	call void %list(void (i32, void (void (i32, ptr)*)*)* @main.each.0)
+	ret void
+}
+
+define void @main.each.0(i32 %head, void (void (i32, ptr)*)* %tail) {
+entry:
+	%list = load void (void (i32, ptr)*)*, ptr @1
+	%ok = load void (i32)*, ptr @2
+	call void @main.iterate(void (i32)* %ok, i32 %head, void (void (i32, ptr)*)* %tail)
+	ret void
+}
+
+define void @main.0(void (i32, void (void (i32, ptr)*)*)* %cb) {
+entry:
+	call void @main.cons(i32 4, void (void (i32, void (void (i32, ptr)*)*)*)* @main.nil, void (i32, void (void (i32, ptr)*)*)* %cb)
+	ret void
+}
+
+define void @main.1(void (i32, void (void (i32, ptr)*)*)* %cb) {
+entry:
+	call void @main.cons(i32 3, void (void (i32, void (void (i32, ptr)*)*)*)* @main.0, void (i32, void (void (i32, ptr)*)*)* %cb)
+	ret void
+}
+
+define void @main.2(void (i32, void (void (i32, ptr)*)*)* %cb) {
+entry:
+	call void @main.cons(i32 2, void (void (i32, void (void (i32, ptr)*)*)*)* @main.1, void (i32, void (void (i32, ptr)*)*)* %cb)
+	ret void
+}
+
+define void @main.mylist(void (i32, void (void (i32, ptr)*)*)* %cb) {
+entry:
+	call void @main.cons(i32 1, void (void (i32, void (void (i32, ptr)*)*)*)* @main.2, void (i32, void (void (i32, ptr)*)*)* %cb)
+	ret void
+}
+
+define void @main.3(i32 %n) {
+entry:
+	call void @"printf$JWQ="(i8* getelementptr ([4 x i8], [4 x i8]* @3, i32 0, i32 0), i32 %n)
+	ret void
+}
+
+`
+	require.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(actual), fmt.Sprintf("got: %v", actual))
+}
+
 func Test2IntConstCodegen(t *testing.T) {
 	input := `
 x: 12

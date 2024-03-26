@@ -1816,6 +1816,607 @@ mylist(iterate)
 	require.JSONEq(t, expected, actual, fmt.Sprintf("got: %v", actual))
 }
 
+func Test27LinkedListEndAst(t *testing.T) {
+	input := `
+list: ((@int, list), ()) // recursive type 
+nil: (cb:(@int, list), end:()){end()}
+cons: (h:@int, t:list, cb:(@int, list)){
+    cb(h, t)
+}
+iterate: (head:@int, tail: list){
+    @printf("%d\n", head)
+    tail(iterate, (){
+        @printf("%s\n", "end")
+    }) 
+}
+mylist: cons(1, cons(2, cons(3, cons(4, nil))))
+mylist(iterate)
+
+`
+	b, err := ToAst(strings.NewReader(input))
+	require.NoError(t, err)
+	actual := string(b)
+
+	expected := `
+[
+     {
+         "_name": "list",
+         "_type": "Type",
+         "values": [
+             {
+                 "_type": "Type",
+                 "values": [
+                     {
+                         "_type": "Type",
+                         "value": "@int"
+                     },
+                     {
+                         "_type": "Type",
+                         "value": "list"
+                     }
+                 ]
+             },
+             {
+                 "_type": "Type"
+             }
+         ]
+     },
+     {
+         "_name": "nil",
+         "_type": "Function",
+         "inner": [
+             {
+                 "_type": "Apply",
+                 "callee": {
+                     "_type": "Label",
+                     "of": "end"
+                 }
+             }
+         ],
+         "params": [
+             {
+                 "_name": "cb",
+                 "_type": "Type",
+                 "values": [
+                     {
+                         "_type": "Type",
+                         "value": "@int"
+                     },
+                     {
+                         "_type": "Type",
+                         "value": "list"
+                     }
+                 ]
+             },
+             {
+                 "_name": "end",
+                 "_type": "Type"
+             }
+         ]
+     },
+     {
+         "_name": "cons",
+         "_type": "Function",
+         "inner": [
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "Label",
+                         "of": "h"
+                     },
+                     {
+                         "_type": "Label",
+                         "of": "t"
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "of": "cb"
+                 }
+             }
+         ],
+         "params": [
+             {
+                 "_name": "h",
+                 "_type": "Type",
+                 "value": "@int"
+             },
+             {
+                 "_name": "t",
+                 "_type": "Type",
+                 "value": "list"
+             },
+             {
+                 "_name": "cb",
+                 "_type": "Type",
+                 "values": [
+                     {
+                         "_type": "Type",
+                         "value": "@int"
+                     },
+                     {
+                         "_type": "Type",
+                         "value": "list"
+                     }
+                 ]
+             }
+         ]
+     },
+     {
+         "_name": "iterate",
+         "_type": "Function",
+         "inner": [
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "StringLiteral",
+                         "value": "%d\n"
+                     },
+                     {
+                         "_type": "Label",
+                         "of": "head"
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "isbuiltin": true,
+                     "of": "@printf"
+                 }
+             },
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "Label",
+                         "of": "iterate"
+                     },
+                     {
+                         "_type": "Function",
+                         "inner": [
+                             {
+                                 "_type": "Apply",
+                                 "arguments": [
+                                     {
+                                         "_type": "StringLiteral",
+                                         "value": "%s\n"
+                                     },
+                                     {
+                                         "_type": "StringLiteral",
+                                         "value": "end"
+                                     }
+                                 ],
+                                 "callee": {
+                                     "_type": "Label",
+                                     "isbuiltin": true,
+                                     "of": "@printf"
+                                 }
+                             }
+                         ]
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "of": "tail"
+                 }
+             }
+         ],
+         "params": [
+             {
+                 "_name": "head",
+                 "_type": "Type",
+                 "value": "@int"
+             },
+             {
+                 "_name": "tail",
+                 "_type": "Type",
+                 "value": "list"
+             }
+         ]
+     },
+     {
+         "_name": "mylist",
+         "_type": "Apply",
+         "arguments": [
+             {
+                 "_type": "IntLiteral",
+                 "value": 1
+             },
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "IntLiteral",
+                         "value": 2
+                     },
+                     {
+                         "_type": "Apply",
+                         "arguments": [
+                             {
+                                 "_type": "IntLiteral",
+                                 "value": 3
+                             },
+                             {
+                                 "_type": "Apply",
+                                 "arguments": [
+                                     {
+                                         "_type": "IntLiteral",
+                                         "value": 4
+                                     },
+                                     {
+                                         "_type": "Label",
+                                         "of": "nil"
+                                     }
+                                 ],
+                                 "callee": {
+                                     "_type": "Label",
+                                     "of": "cons"
+                                 }
+                             }
+                         ],
+                         "callee": {
+                             "_type": "Label",
+                             "of": "cons"
+                         }
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "of": "cons"
+                 }
+             }
+         ],
+         "callee": {
+             "_type": "Label",
+             "of": "cons"
+         }
+     },
+     {
+         "_type": "Apply",
+         "arguments": [
+             {
+                 "_type": "Label",
+                 "of": "iterate"
+             }
+         ],
+         "callee": {
+             "_type": "Label",
+             "of": "mylist"
+         }
+     }
+ ]
+`
+	require.JSONEq(t, expected, actual, fmt.Sprintf("got: %v", actual))
+}
+
+func Test28LinkedListEachAst(t *testing.T) {
+	input := `
+list: ((@int, list)) // recursive type 
+nil: (cb:(@int, list)){}
+cons: (h:@int, t:list, cb:(@int, list)){
+    cb(h, t)
+}
+iterate: (ok: (@int), head:@int, tail: list){
+    ok(head)
+    tail(iterate(ok)) // if tail is nil, it does nothing 
+}
+each: (list: list, ok: (@int)){
+    list(iterate(ok))
+}
+mylist: cons(1, cons(2, cons(3, cons(4, nil))))
+each(mylist, (n: @int){
+    @printf("%d\n", n)
+})
+
+`
+	b, err := ToAst(strings.NewReader(input))
+	require.NoError(t, err)
+	actual := string(b)
+
+	expected := `
+[
+     {
+         "_name": "list",
+         "_type": "Type",
+         "values": [
+             {
+                 "_type": "Type",
+                 "values": [
+                     {
+                         "_type": "Type",
+                         "value": "@int"
+                     },
+                     {
+                         "_type": "Type",
+                         "value": "list"
+                     }
+                 ]
+             }
+         ]
+     },
+     {
+         "_name": "nil",
+         "_type": "Function",
+         "params": [
+             {
+                 "_name": "cb",
+                 "_type": "Type",
+                 "values": [
+                     {
+                         "_type": "Type",
+                         "value": "@int"
+                     },
+                     {
+                         "_type": "Type",
+                         "value": "list"
+                     }
+                 ]
+             }
+         ]
+     },
+     {
+         "_name": "cons",
+         "_type": "Function",
+         "inner": [
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "Label",
+                         "of": "h"
+                     },
+                     {
+                         "_type": "Label",
+                         "of": "t"
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "of": "cb"
+                 }
+             }
+         ],
+         "params": [
+             {
+                 "_name": "h",
+                 "_type": "Type",
+                 "value": "@int"
+             },
+             {
+                 "_name": "t",
+                 "_type": "Type",
+                 "value": "list"
+             },
+             {
+                 "_name": "cb",
+                 "_type": "Type",
+                 "values": [
+                     {
+                         "_type": "Type",
+                         "value": "@int"
+                     },
+                     {
+                         "_type": "Type",
+                         "value": "list"
+                     }
+                 ]
+             }
+         ]
+     },
+     {
+         "_name": "iterate",
+         "_type": "Function",
+         "inner": [
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "Label",
+                         "of": "head"
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "of": "ok"
+                 }
+             },
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "Apply",
+                         "arguments": [
+                             {
+                                 "_type": "Label",
+                                 "of": "ok"
+                             }
+                         ],
+                         "callee": {
+                             "_type": "Label",
+                             "of": "iterate"
+                         }
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "of": "tail"
+                 }
+             }
+         ],
+         "params": [
+             {
+                 "_name": "ok",
+                 "_type": "Type",
+                 "values": [
+                     {
+                         "_type": "Type",
+                         "value": "@int"
+                     }
+                 ]
+             },
+             {
+                 "_name": "head",
+                 "_type": "Type",
+                 "value": "@int"
+             },
+             {
+                 "_name": "tail",
+                 "_type": "Type",
+                 "value": "list"
+             }
+         ]
+     },
+     {
+         "_name": "each",
+         "_type": "Function",
+         "inner": [
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "Apply",
+                         "arguments": [
+                             {
+                                 "_type": "Label",
+                                 "of": "ok"
+                             }
+                         ],
+                         "callee": {
+                             "_type": "Label",
+                             "of": "iterate"
+                         }
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "of": "list"
+                 }
+             }
+         ],
+         "params": [
+             {
+                 "_name": "list",
+                 "_type": "Type",
+                 "value": "list"
+             },
+             {
+                 "_name": "ok",
+                 "_type": "Type",
+                 "values": [
+                     {
+                         "_type": "Type",
+                         "value": "@int"
+                     }
+                 ]
+             }
+         ]
+     },
+     {
+         "_name": "mylist",
+         "_type": "Apply",
+         "arguments": [
+             {
+                 "_type": "IntLiteral",
+                 "value": 1
+             },
+             {
+                 "_type": "Apply",
+                 "arguments": [
+                     {
+                         "_type": "IntLiteral",
+                         "value": 2
+                     },
+                     {
+                         "_type": "Apply",
+                         "arguments": [
+                             {
+                                 "_type": "IntLiteral",
+                                 "value": 3
+                             },
+                             {
+                                 "_type": "Apply",
+                                 "arguments": [
+                                     {
+                                         "_type": "IntLiteral",
+                                         "value": 4
+                                     },
+                                     {
+                                         "_type": "Label",
+                                         "of": "nil"
+                                     }
+                                 ],
+                                 "callee": {
+                                     "_type": "Label",
+                                     "of": "cons"
+                                 }
+                             }
+                         ],
+                         "callee": {
+                             "_type": "Label",
+                             "of": "cons"
+                         }
+                     }
+                 ],
+                 "callee": {
+                     "_type": "Label",
+                     "of": "cons"
+                 }
+             }
+         ],
+         "callee": {
+             "_type": "Label",
+             "of": "cons"
+         }
+     },
+     {
+         "_type": "Apply",
+         "arguments": [
+             {
+                 "_type": "Label",
+                 "of": "mylist"
+             },
+             {
+                 "_type": "Function",
+                 "inner": [
+                     {
+                         "_type": "Apply",
+                         "arguments": [
+                             {
+                                 "_type": "StringLiteral",
+                                 "value": "%d\n"
+                             },
+                             {
+                                 "_type": "Label",
+                                 "of": "n"
+                             }
+                         ],
+                         "callee": {
+                             "_type": "Label",
+                             "isbuiltin": true,
+                             "of": "@printf"
+                         }
+                     }
+                 ],
+                 "params": [
+                     {
+                         "_name": "n",
+                         "_type": "Type",
+                         "value": "@int"
+                     }
+                 ]
+             }
+         ],
+         "callee": {
+             "_type": "Label",
+             "of": "each"
+         }
+     }
+ ]
+`
+	require.JSONEq(t, expected, actual, fmt.Sprintf("got: %v", actual))
+}
+
 func Test2IntConstAst(t *testing.T) {
 	input := `
 x: 12
