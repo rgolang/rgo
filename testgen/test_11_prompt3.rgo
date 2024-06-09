@@ -2,6 +2,6 @@
 @prompt(50, (name: @str){
     @printf("What is your age?\n")
     @prompt(3, (age: @str){
-        @printf("Hello, %s!\n", name)
+        @printf("Hello, %s %s!\n", name, age)
     })
 })
