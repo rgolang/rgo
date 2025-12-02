@@ -1,14 +1,11 @@
 ## TODO:
 - Helpful compile time errors
-- Loops
-- 64 bit integer support
+- Arrays
 - Structures
-- Heap access
 - Refinement types
-- File support
+- File I/O support
 - External imports
 - Unicode strings
-- Turn private functions into blocks to maximize efficiency and get rid of closures workaround
 - Hashmap
-- Generator
-- Concurrency
+- Threads/coroutines
+- Benchmarks

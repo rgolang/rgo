@@ -1,0 +1,47 @@
+nil: (next:(int, list), end:()){
+    munmap(next)
+    end()
+}
+
+cons: (head: int, tail: list, next:(int, list), end:()){
+    munmap(end)
+    next(head, tail)
+}
+
+iterate: (handler:(int, __type_1), arr: list, end:()){
+    __temp_0: __lambda_0(handler, end)
+    arr(__temp_0, end)
+}
+
+__lambda_0: (handler:(int, __type_1), end:(), head: int, tail: list){
+    __temp_1: iterate(handler, tail, end)
+    handler(head, __temp_1)
+}
+
+handler: (n: int, ok:()){
+    __temp_3: "%d, "
+    printf(__temp_3, n, ok)
+}
+
+end: (){
+    __temp_4: "end\n"
+    __temp_5: __lambda_1()
+    printf(__temp_4, __temp_5)
+}
+
+__lambda_1: (){
+    __temp_6: 0
+    exit(__temp_6)
+}
+
+_start: (){
+    __temp_7: 1
+    __temp_8: 2
+    __temp_9: 3
+    __temp_10: 4
+    __temp_11: cons(__temp_10, nil)
+    __temp_12: cons(__temp_9, __temp_11)
+    __temp_13: cons(__temp_8, __temp_12)
+    mylist: cons(__temp_7, __temp_13)
+    iterate(handler, mylist, end)
+}

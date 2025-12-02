@@ -1,0 +1,139 @@
+[
+    Import {
+        name: "str",
+        span: Span {
+            line: 1,
+            column: 1,
+            offset: 0,
+        },
+    },
+    Import {
+        name: "int",
+        span: Span {
+            line: 2,
+            column: 1,
+            offset: 5,
+        },
+    },
+    Import {
+        name: "write",
+        span: Span {
+            line: 3,
+            column: 1,
+            offset: 10,
+        },
+    },
+    Import {
+        name: "exit",
+        span: Span {
+            line: 4,
+            column: 1,
+            offset: 17,
+        },
+    },
+    StrDef {
+        name: "x",
+        literal: StrLiteral {
+            value: "Hello world!\n",
+            span: Span {
+                line: 6,
+                column: 4,
+                offset: 27,
+            },
+        },
+        span: Span {
+            line: 6,
+            column: 1,
+            offset: 24,
+        },
+    },
+    FunctionDef {
+        name: "foo",
+        lambda: Lambda {
+            params: Params {
+                items: [],
+                span: Span {
+                    line: 7,
+                    column: 6,
+                    offset: 49,
+                },
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "write",
+                            args: [
+                                Ident(
+                                    Ident {
+                                        name: "x",
+                                        args: [],
+                                        span: Span {
+                                            line: 8,
+                                            column: 8,
+                                            offset: 60,
+                                        },
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "exit",
+                                        args: [
+                                            Int(
+                                                IntLiteral {
+                                                    value: 0,
+                                                    span: Span {
+                                                        line: 8,
+                                                        column: 16,
+                                                        offset: 68,
+                                                    },
+                                                },
+                                            ),
+                                        ],
+                                        span: Span {
+                                            line: 8,
+                                            column: 11,
+                                            offset: 63,
+                                        },
+                                    },
+                                ),
+                            ],
+                            span: Span {
+                                line: 8,
+                                column: 2,
+                                offset: 54,
+                            },
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 7,
+                    column: 8,
+                    offset: 51,
+                },
+            },
+            args: [],
+            span: Span {
+                line: 7,
+                column: 1,
+                offset: 44,
+            },
+        },
+        span: Span {
+            line: 7,
+            column: 1,
+            offset: 44,
+        },
+    },
+    Ident(
+        Ident {
+            name: "foo",
+            args: [],
+            span: Span {
+                line: 10,
+                column: 1,
+                offset: 74,
+            },
+        },
+    ),
+]

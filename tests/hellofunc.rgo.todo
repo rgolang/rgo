@@ -1,0 +1,12 @@
+@str
+@int
+@write
+@exit
+
+foo: (x:str, ok:()){
+	w: (s: str){
+		write(s, ok)
+	}
+	w(x)
+}
+foo("hello world", exit(0))

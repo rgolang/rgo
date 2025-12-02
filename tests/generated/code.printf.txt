@@ -1,0 +1,72 @@
+[
+    Import {
+        name: "printf",
+        span: Span {
+            line: 1,
+            column: 1,
+            offset: 0,
+        },
+    },
+    Import {
+        name: "exit",
+        span: Span {
+            line: 2,
+            column: 1,
+            offset: 8,
+        },
+    },
+    Ident(
+        Ident {
+            name: "printf",
+            args: [
+                String(
+                    StrLiteral {
+                        value: "hello %s\n",
+                        span: Span {
+                            line: 4,
+                            column: 8,
+                            offset: 22,
+                        },
+                    },
+                ),
+                String(
+                    StrLiteral {
+                        value: "world",
+                        span: Span {
+                            line: 4,
+                            column: 22,
+                            offset: 36,
+                        },
+                    },
+                ),
+                Ident(
+                    Ident {
+                        name: "exit",
+                        args: [
+                            Int(
+                                IntLiteral {
+                                    value: 0,
+                                    span: Span {
+                                        line: 4,
+                                        column: 36,
+                                        offset: 50,
+                                    },
+                                },
+                            ),
+                        ],
+                        span: Span {
+                            line: 4,
+                            column: 31,
+                            offset: 45,
+                        },
+                    },
+                ),
+            ],
+            span: Span {
+                line: 4,
+                column: 1,
+                offset: 15,
+            },
+        },
+    ),
+]

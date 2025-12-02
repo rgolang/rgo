@@ -1,0 +1,110 @@
+[
+    Import {
+        name: "add",
+        span: Span {
+            line: 1,
+            column: 1,
+            offset: 0,
+        },
+    },
+    Import {
+        name: "exit",
+        span: Span {
+            line: 2,
+            column: 1,
+            offset: 5,
+        },
+    },
+    Ident(
+        Ident {
+            name: "add",
+            args: [
+                Int(
+                    IntLiteral {
+                        value: 1,
+                        span: Span {
+                            line: 4,
+                            column: 5,
+                            offset: 16,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 2,
+                        span: Span {
+                            line: 4,
+                            column: 8,
+                            offset: 19,
+                        },
+                    },
+                ),
+                Lambda(
+                    Lambda {
+                        params: Params {
+                            items: [
+                                NameAndType {
+                                    name: "n",
+                                    ty: Int,
+                                    span: Span {
+                                        line: 4,
+                                        column: 12,
+                                        offset: 23,
+                                    },
+                                    is_variadic: false,
+                                },
+                            ],
+                            span: Span {
+                                line: 4,
+                                column: 11,
+                                offset: 22,
+                            },
+                        },
+                        body: Block {
+                            items: [
+                                Ident(
+                                    Ident {
+                                        name: "exit",
+                                        args: [
+                                            Int(
+                                                IntLiteral {
+                                                    value: 0,
+                                                    span: Span {
+                                                        line: 4,
+                                                        column: 26,
+                                                        offset: 37,
+                                                    },
+                                                },
+                                            ),
+                                        ],
+                                        span: Span {
+                                            line: 4,
+                                            column: 21,
+                                            offset: 32,
+                                        },
+                                    },
+                                ),
+                            ],
+                            span: Span {
+                                line: 4,
+                                column: 19,
+                                offset: 30,
+                            },
+                        },
+                        args: [],
+                        span: Span {
+                            line: 4,
+                            column: 11,
+                            offset: 22,
+                        },
+                    },
+                ),
+            ],
+            span: Span {
+                line: 4,
+                column: 1,
+                offset: 12,
+            },
+        },
+    ),
+]

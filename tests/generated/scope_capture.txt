@@ -1,0 +1,183 @@
+[
+    Import {
+        name: "printf",
+        span: Span {
+            line: 1,
+            column: 1,
+            offset: 0,
+        },
+    },
+    Import {
+        name: "add",
+        span: Span {
+            line: 2,
+            column: 1,
+            offset: 8,
+        },
+    },
+    Import {
+        name: "exit",
+        span: Span {
+            line: 3,
+            column: 1,
+            offset: 13,
+        },
+    },
+    FunctionDef {
+        name: "print_sum",
+        lambda: Lambda {
+            params: Params {
+                items: [],
+                span: Span {
+                    line: 5,
+                    column: 12,
+                    offset: 31,
+                },
+            },
+            body: Block {
+                items: [
+                    ScopeCapture {
+                        params: Params {
+                            items: [
+                                NameAndType {
+                                    name: "total",
+                                    ty: Int,
+                                    span: Span {
+                                        line: 6,
+                                        column: 6,
+                                        offset: 40,
+                                    },
+                                    is_variadic: false,
+                                },
+                            ],
+                            span: Span {
+                                line: 6,
+                                column: 5,
+                                offset: 39,
+                            },
+                        },
+                        term: Ident(
+                            Ident {
+                                name: "add",
+                                args: [
+                                    Int(
+                                        IntLiteral {
+                                            value: 3,
+                                            span: Span {
+                                                line: 6,
+                                                column: 23,
+                                                offset: 57,
+                                            },
+                                        },
+                                    ),
+                                    Int(
+                                        IntLiteral {
+                                            value: 4,
+                                            span: Span {
+                                                line: 6,
+                                                column: 26,
+                                                offset: 60,
+                                            },
+                                        },
+                                    ),
+                                ],
+                                span: Span {
+                                    line: 6,
+                                    column: 19,
+                                    offset: 53,
+                                },
+                            },
+                        ),
+                        span: Span {
+                            line: 6,
+                            column: 5,
+                            offset: 39,
+                        },
+                    },
+                    Ident(
+                        Ident {
+                            name: "printf",
+                            args: [
+                                String(
+                                    StrLiteral {
+                                        value: "sum is %d\n",
+                                        span: Span {
+                                            line: 7,
+                                            column: 12,
+                                            offset: 74,
+                                        },
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "total",
+                                        args: [],
+                                        span: Span {
+                                            line: 7,
+                                            column: 27,
+                                            offset: 89,
+                                        },
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "exit",
+                                        args: [
+                                            Int(
+                                                IntLiteral {
+                                                    value: 0,
+                                                    span: Span {
+                                                        line: 7,
+                                                        column: 39,
+                                                        offset: 101,
+                                                    },
+                                                },
+                                            ),
+                                        ],
+                                        span: Span {
+                                            line: 7,
+                                            column: 34,
+                                            offset: 96,
+                                        },
+                                    },
+                                ),
+                            ],
+                            span: Span {
+                                line: 7,
+                                column: 5,
+                                offset: 67,
+                            },
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 5,
+                    column: 14,
+                    offset: 33,
+                },
+            },
+            args: [],
+            span: Span {
+                line: 5,
+                column: 1,
+                offset: 20,
+            },
+        },
+        span: Span {
+            line: 5,
+            column: 1,
+            offset: 20,
+        },
+    },
+    Ident(
+        Ident {
+            name: "print_sum",
+            args: [],
+            span: Span {
+                line: 10,
+                column: 1,
+                offset: 108,
+            },
+        },
+    ),
+]

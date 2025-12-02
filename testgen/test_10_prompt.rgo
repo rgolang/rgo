@@ -1,4 +1,0 @@
-@printf("What is your name?\n")
-@prompt(10, (name: @str){
-    @printf("Hello, %s!\n", name)
-})

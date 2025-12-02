@@ -1,0 +1,62 @@
+[
+    Import {
+        name: "printf",
+        span: Span {
+            line: 1,
+            column: 1,
+            offset: 0,
+        },
+    },
+    Import {
+        name: "exit",
+        span: Span {
+            line: 2,
+            column: 1,
+            offset: 8,
+        },
+    },
+    Ident(
+        Ident {
+            name: "printf",
+            args: [
+                String(
+                    StrLiteral {
+                        value: "hello\n",
+                        span: Span {
+                            line: 4,
+                            column: 8,
+                            offset: 22,
+                        },
+                    },
+                ),
+                Ident(
+                    Ident {
+                        name: "exit",
+                        args: [
+                            Int(
+                                IntLiteral {
+                                    value: 0,
+                                    span: Span {
+                                        line: 4,
+                                        column: 24,
+                                        offset: 38,
+                                    },
+                                },
+                            ),
+                        ],
+                        span: Span {
+                            line: 4,
+                            column: 19,
+                            offset: 33,
+                        },
+                    },
+                ),
+            ],
+            span: Span {
+                line: 4,
+                column: 1,
+                offset: 15,
+            },
+        },
+    ),
+]

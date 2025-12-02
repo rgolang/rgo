@@ -120,21 +120,43 @@ calculate: (f: (@int), v: @int){
 calculate(printdouble, 0)
 ```
 
+**Import builtins**: Explicitly import `add` and `mul`
+```js
+@int
+@add
+@mul
+
+printdouble: (z: int){
+    mul(2, z, @printint)
+}
+calculate: (f: (int), v: int){
+    add(2, 3, (a: int){
+        add(a, 3, f)
+    })
+}
+calculate(printdouble, 0)
+```
+
 **Function type**: 
-`(@int)` is a function signature for a function that accepts an `@int`     
-`((@int))` is a function signature for a function that accepts a function that accepts an `@int`  
+`(int)` is a function signature for a function that accepts an `int`     
+`((int))` is a function signature for a function that accepts a function that accepts an `int`  
 `()` is a function signature for a function that has no params.  
 `(())` is a function signature for a function that accepts a function that has no params.
 
 
 **Currying**: Can curry functions to create new functions.
 ```c
-printdouble: (z: @int){
-    @mul(2, z, @printint)
+@int
+@mul
+@add
+@printint
+
+printdouble: (z: int){
+    mul(2, z, printint)
 }
-calculate: (f: (@int), v: @int){
-    @add(2, 3, (a: @int){
-        add3: @add(a, 3)
+calculate: (f: (int), v: int){
+    add(2, 3, (a: int){
+        add3: add(a, 3)
         add3(f)
     })
 }

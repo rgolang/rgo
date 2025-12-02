@@ -1,0 +1,24 @@
+foo(input: str, ok: ()) {
+    write(input, ok)
+}
+
+
+bar(msg: str, cb: (str, __type_0), ok: ()) {
+    cb(msg, ok)
+}
+
+
+__lambda_0() {
+    __temp_1 = 0
+    exit(__temp_1)
+}
+
+
+_start() {
+    msg = "hello world"
+    heap_alloc mmap(size=16, prot=3, flags=34, fd=-1, offset=0)
+    __temp_0 = __lambda_0()
+    heap_alloc mmap(size=40, prot=3, flags=34, fd=-1, offset=0)
+    bar(msg, foo, __temp_0)
+}
+

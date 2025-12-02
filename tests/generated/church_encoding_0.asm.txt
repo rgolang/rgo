@@ -1,0 +1,34 @@
+zero(f: (int, __type_0), x: int, ok: (int)) {
+    ok(x)
+}
+
+
+__lambda_0(x: int, ok: (int)) {
+    __temp_1 = 10
+    add(x, __temp_1, ok)
+}
+
+
+__lambda_1(x: int) {
+    __temp_4 = "result: %d"
+    heap_alloc mmap(size=16, prot=3, flags=34, fd=-1, offset=0)
+    __temp_5 = __lambda_2()
+    printf(__temp_4, x, __temp_5)
+}
+
+
+__lambda_2() {
+    __temp_6 = 0
+    exit(__temp_6)
+}
+
+
+_start() {
+    heap_alloc mmap(size=40, prot=3, flags=34, fd=-1, offset=0)
+    __temp_0 = __lambda_0()
+    __temp_2 = 0
+    heap_alloc mmap(size=24, prot=3, flags=34, fd=-1, offset=0)
+    __temp_3 = __lambda_1()
+    zero(__temp_0, __temp_2, __temp_3)
+}
+

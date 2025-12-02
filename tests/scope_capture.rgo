@@ -1,0 +1,10 @@
+@printf
+@add
+@exit
+
+print_sum: (){
+    (total:int) = add(3, 4)
+    printf("sum is %d\n", total, exit(0))
+}
+
+print_sum

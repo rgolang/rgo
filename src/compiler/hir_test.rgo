@@ -1,0 +1,33 @@
+// Double curried continuation
+@str
+@printf
+
+pair: (x: str, y: str)
+
+foo: (ok:(str)){
+    greeting: "charlie"
+    ok(greeting)
+}
+baz: (ok:pair){
+    foo(ok("bob"))
+}
+bar: (name0: str, name1: str, name2: str){
+    printf("hello %s, %s and %s\n", name0, name1, name2)
+}
+currying_multi: (ok:((str))){
+    a: "alice"
+    bar_partial: bar(a)
+    b: "bob"
+    baz: bar_partial(b)
+    ok(baz)
+}
+
+currying_invoke: (c: str){
+    a: "alice"
+    bar_partial: bar(a)
+    b: "bob"
+    baz: bar_partial(b)
+    baz(c)
+}
+
+baz(bar("alice"))

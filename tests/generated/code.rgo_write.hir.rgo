@@ -1,0 +1,10 @@
+_start: (){
+    __temp_0: "builtin\n"
+    __temp_1: __lambda_0()
+    rgo_write(__temp_0, __temp_1)
+}
+
+__lambda_0: (){
+    __temp_2: 0
+    exit(__temp_2)
+}

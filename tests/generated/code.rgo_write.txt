@@ -1,0 +1,62 @@
+[
+    Import {
+        name: "rgo_write",
+        span: Span {
+            line: 1,
+            column: 1,
+            offset: 0,
+        },
+    },
+    Import {
+        name: "exit",
+        span: Span {
+            line: 2,
+            column: 1,
+            offset: 11,
+        },
+    },
+    Ident(
+        Ident {
+            name: "rgo_write",
+            args: [
+                String(
+                    StrLiteral {
+                        value: "builtin\n",
+                        span: Span {
+                            line: 4,
+                            column: 11,
+                            offset: 28,
+                        },
+                    },
+                ),
+                Ident(
+                    Ident {
+                        name: "exit",
+                        args: [
+                            Int(
+                                IntLiteral {
+                                    value: 0,
+                                    span: Span {
+                                        line: 4,
+                                        column: 29,
+                                        offset: 46,
+                                    },
+                                },
+                            ),
+                        ],
+                        span: Span {
+                            line: 4,
+                            column: 24,
+                            offset: 41,
+                        },
+                    },
+                ),
+            ],
+            span: Span {
+                line: 4,
+                column: 1,
+                offset: 18,
+            },
+        },
+    ),
+]

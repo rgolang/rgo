@@ -1,0 +1,19 @@
+foo: (f:(str, __type_0), ok:()){
+    __temp_0: "42"
+    f(__temp_0, ok)
+}
+
+print: (n: str, ok:()){
+    __temp_1: "The winning number is %s\n"
+    printf(__temp_1, n, ok)
+}
+
+_start: (){
+    __temp_2: __lambda_0()
+    foo(print, __temp_2)
+}
+
+__lambda_0: (){
+    __temp_3: 0
+    exit(__temp_3)
+}

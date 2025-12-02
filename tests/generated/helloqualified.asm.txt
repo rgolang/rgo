@@ -1,0 +1,13 @@
+foo(x: str, ok: ()) {
+    write(x, ok)
+}
+
+
+_start() {
+    x = "Hello world!\n"
+    __temp_0 = 0
+    heap_alloc mmap(size=24, prot=3, flags=34, fd=-1, offset=0)
+    __temp_1 = exit(__temp_0)
+    foo(x, __temp_1)
+}
+

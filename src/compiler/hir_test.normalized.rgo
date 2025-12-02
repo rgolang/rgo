@@ -1,0 +1,34 @@
+foo: (ok:(str)){
+    greeting: "charlie"
+    ok(greeting)
+}
+
+baz: (ok:(str, str)){
+    __temp_0: "bob"
+    __temp_1: ok(__temp_0)
+    foo(__temp_1)
+}
+
+bar: (name0: str, name1: str, name2: str){
+    __temp_2: "hello %s, %s and %s\n"
+    printf(__temp_2, name0, name1, name2)
+}
+
+currying_multi: (ok:((str))){
+    a: "alice"
+    b: "bob"
+    baz: bar(a, b)
+    ok(baz)
+}
+
+currying_invoke: (c: str){
+    a: "alice"
+    b: "bob"
+    bar(a, b, c)
+}
+
+_start: (){
+    __temp_3: "alice"
+    __temp_4: bar(__temp_3)
+    baz(__temp_4)
+}

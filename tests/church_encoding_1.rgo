@@ -1,0 +1,14 @@
+@str
+@int
+@add
+@printf
+@exit
+
+one: (f: (int, (int)), x: int, ok: (int)){
+    f(x, ok)
+}
+one((x: int, ok:(int)){
+    add(x, 10, ok)
+}, 0, (x: int){
+    printf("result: %d", x, exit(0))
+})

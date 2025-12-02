@@ -1,5 +1,0 @@
-msg: "hello world"
-foo: (){
-    @unsafe.libc.puts(msg, (code:@int){})
-}
-foo()

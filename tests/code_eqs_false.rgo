@@ -1,0 +1,9 @@
+@eqs
+@write
+@exit
+
+eqs("aaa", "aab", {
+    write("true", exit(0))
+}, {
+    write("false", exit(0))
+})

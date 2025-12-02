@@ -1,0 +1,20 @@
+bar: (ok:()){
+    __temp_0: "bar,"
+    write(__temp_0, ok)
+}
+
+baz: (ok:()){
+    __temp_1: "baz,"
+    write(__temp_1, ok)
+}
+
+foo: (){
+    __temp_2: "foo,"
+    __temp_3: baz(foo)
+    __temp_4: bar(__temp_3)
+    write(__temp_2, __temp_4)
+}
+
+_start: (){
+    foo()
+}

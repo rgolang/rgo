@@ -1,0 +1,346 @@
+@str
+@int
+@printf
+@exit
+
+// #### print
+// printf("hello world %d\n", 42, exit(0))
+
+// #### func call
+// foo: (a:str, b:str){
+//     printf("hello %s and %s\n", a, b, exit(0))
+// }
+// foo("alice", "bob") // assuming "alice" and "bob" are runtime, means if bar is passed as an argument, has to be runtime too
+
+// #### full currying
+// foo: (a:str, b:str){
+//     printf("hello %s and %s\n", a, b, exit(0))
+// }
+// bar: foo("alice", "bob") // assuming "alice" and "bob" are runtime, means if bar is passed as an argument, has to be runtime too
+// bar()
+
+// #### partial currying
+// foo: (a:str, b:str){
+//     printf("hello %s and %s\n", a, b, exit(0))
+// }
+// bar: foo("alice") // assuming "alice" and "bob" are runtime, means if bar is passed as an argument, has to be runtime too
+// bar("bob")
+
+// #### Continuation simple
+// foo: (ok:()){
+//     ok()
+// }
+// bar: (){
+//     printf("hello world\n", exit(0))
+// }
+// foo(bar())
+
+// #### Callback simple alternative
+// foo: (ok:()){
+//     ok()
+// }
+// bar: (){
+//     printf("hello world\n", exit(0))
+// }
+// foo(bar)
+
+// #### Curried callback
+// foo: (ok:(str)){
+//     ok("bob")
+// }
+// bar: (name0: str, name1: str){
+//     printf("hello %s and %s\n", name0, name1, exit(0))
+// }
+// foo(bar("alice"))
+
+// #### Double curried callback
+// foo: (ok:(str)){
+//     ok("charlie")
+// }
+// baz: (ok:(str, str)){
+//     foo(ok("bob"))
+// }
+// bar: (name0: str, name1: str, name2: str){
+//     printf("hello %s, %s and %s\n", name0, name1, name2, exit(0))
+// }
+// baz(bar("alice"))
+
+// #### If/True/False
+// true: (x: (), y: ()){
+//     x()
+// }
+// false: (x: (), y: ()){
+//     y()
+// }
+// if: (cond: ((),()), ok:()){
+//     cond((){printf("does not work\n", exit(0))}, ok)
+// }
+// callback: (n:int){printf("works %d\n", n, exit(0))}
+// if(true, callback(1))
+
+// #### Direct apply arg
+true: (x: (), y: ()){
+    x()
+}
+false: (x: (), y: ()){
+    y()
+}
+if: (cond: ((),()), ok:()){
+    cond(printf("does not work\n", exit(0)), ok)
+}
+next: {printf("works\n", exit(0))}
+if(true, next)
+
+// #### linked list
+// list: ((int, list), ())
+// nil: (cb:(v:int, l:list), end: ()){
+//     end()
+// }
+// cons: (h:int, t:list, cb:(v:int, l:list), end: ()){
+//     cb(h, t)
+// }
+// iterate: (ok: (int, ()), end: (), arr: list){
+//     arr((head:int, tail:list){
+//         ok(head, iterate(ok, end, tail))
+//     }, end)
+// }
+// mylist: cons(1, cons(2, cons(3, cons(4, nil))))
+// ok: (n: int, ok: ()){
+//     printf("%d, ", n, ok)
+// }
+// end: (){
+//     printf("%s\n", "end", exit(0))
+// }
+// iterate(ok, end, mylist)
+
+// #### Linked list each
+// list: ((int, list), ()) // recursive type 
+// nil: (nilcb:(p_nilcbv: int, p_nilcblist: list), nilend:()){
+//     nilend()
+// }
+// cons: (h:int, t:list, cb:(int, list)){
+//     cb(h, t)
+// }
+// iterate: (ok: (int), end: (), head:int, tail: ((int, list), ())){
+//     ok(head)
+//     tail(iterate(ok, end), end) // if tail is nil, it does nothing 
+// }
+// each: (arr: (p_arrcb:(int, list), p_arrend:()), ok: (p_okv: int), end: ()){
+//     arr(iterate(ok, end), end)
+// }
+// mylist: cons(1, cons(2, cons(3, cons(4, nil))))
+// each(mylist, (n: int){
+//     printf("%d\n", n)
+// }, {
+//     printf("%s\n", "end")
+// })
+
+
+// zero: (f: (int, (int)), x: int, ok: (int)){
+//     ok(x)
+// }
+// one: (f: (int, (int)), x: int, ok: (int)){
+//     f(x, ok)
+// }
+// two: (f: (int, (int)), x: int, ok: (int)){
+//     f(x, (y: int){
+//         f(y, ok)
+//     })
+// }
+// three: (f: (int, (int)), x: int, ok: (int)){
+//     f(x, (y: int){
+//         f(y, (z: int){
+//             f(z, ok)
+//         })
+//     })
+// }
+
+// printf("zero:\n")
+// zero((x: int, ok:(int)){
+//     printf("adding 10\n", x)
+//     @add(x, 10, ok)
+// }, 0, (x: int){
+//     printf("result: %d\n", x)
+// })
+
+// printf("one:\n")
+// one((x: int, ok:(int)){
+//     printf("adding 10\n", x)
+//     @add(x, 10, ok)
+// }, 0, (x: int){
+//     printf("result: %d\n", x)
+// })
+
+// printf("two:\n")
+// two((x: int, ok:(int)){
+//     printf("adding 10\n", x)
+//     @add(x, 10, ok)
+// }, 0, (x: int){
+//     printf("result: %d\n", x)
+// })
+
+// printf("three:\n")
+// three((x: int, ok:(int)){
+//     printf("adding 10\n", x)
+//     @add(x, 10, ok)
+// }, 0, (x: int){
+//     printf("result: %d\n", x)
+// })
+
+
+// printf("testing:\n")
+// two(three((x: int, next:(int)){
+//     printf("in three: %d\n", x)
+//     @add(x,1,next)
+// }), 0, (x: int){
+//     printf("end of two: %d\n", x)
+// })
+
+// // This interceptor can never go out of bounds
+// printf("testing2:\n")
+// interceptor: (f: (int, (int)), x: int, ok: (int)){
+//     f(x, (y: int){
+//         if(@igt(3, y), {
+//             f(y, ok)
+//         })
+//     })
+// }
+// two(interceptor(three((x: int, next:(int)){
+//     printf("in three: %d\n", x)
+//     @add(x,1,next)
+// }), 0, (x: int){
+//     printf("end of two: %d\n", x)
+// }))
+
+// // This interceptor can also never go out of bounds
+// printf("testing3:\n")
+// interceptor2: (f: (int, (int)), x: int, ok: (int)){
+//     f(x, (y: int){
+//         if(@igt(3, y), {
+//             f(y, ok)
+//         })
+//     })
+// }
+// two(interceptor2((x: int, next:(int)){
+//     printf("in two: %d\n", x)
+//     @add(x,1,next)
+// }), 0, (x: int){
+//     printf("end of two: %d\n", x)
+// })
+
+// printf("recursive lists that transform:\n")
+// {
+//     list: ((int, list), ()) // recursive type 
+//     nil: (cb:(int, list), end:()){end()}
+//     cons: (h:int, t:list, cb:(int, list)){
+//         cb(h, t)
+//     }
+//     fold: (items: list, f: (int, int, (int)), init: int, ok: (int)){
+//         items((head:int, tail:list){
+//             f(head, init, (n:int){
+//                 fold(tail, f, n, ok)
+//             })
+//         }, {
+//             ok(init)
+//         })
+//     }
+//     mylist: cons(1, cons(2, cons(3, nil)))
+//     fold(mylist, (a:int, acc:int, ok:(int)){
+//         @add(a, acc, ok)
+//     }, 0, (result: int){
+//         printf("result should be 6: %d\n", result)
+//     })
+//     fold(mylist, (a:int, acc:int, ok:(int)){
+//         @mul(a, 10, (n:int){
+//             printf("%d * %d = %d\n", a, 10, n)
+//             @add(n, acc, (y:int){
+//                 printf("%d + %d = %d\n", n, acc, y)
+//                 ok(y)
+//             })
+//         })
+//     }, 0, (result: int){
+//         printf("result should be 60: %d\n", result)
+//     })
+// }
+
+// // TODO:
+// // printf("test weirdness\n")
+// // {
+// //     foo: (a:int, b:int, ok1:(a:int,b:int), ok2:(a:int,b:int)){
+// //         ok1(a,b)
+// //         ok2(b,a)
+// //     }
+// //     data: foo(1,2)
+// //     data2: data((a:int,b:int){
+// //         data2((a2:int,b2:int){ // TODO: Add an error test case, should always fail with `data2` not found yet
+// //             add(a, b2, (res:int){
+// //                 printf("res1: %d\n", res) // prints 2
+// //             })
+// //         })
+// //     })
+// //     data2((a2:int,b2:int)exit(0)) // why is this here? What does the body do? just to trigger execution?
+// // }
+
+// printf("test dynamic size arrays\n")
+// {
+//     range: (from: int, to: int, ok: (int)) { 
+//         wrap: (n: int) {
+//             @igt(n, to, exit(0), {
+//                 ok(n)
+//                 @add(n, 1, (next: int) {
+//                     wrap(next)
+//                 })
+//             })
+//         }
+//         wrap(from)
+//     }
+//     myarr: range(1, 4)
+//     myarr((n: int){
+//         // can't accumulate because it doesn't output a value, but do I need to? If arrays are repetitions?
+//         printf("myarr: %d\n", n)
+//     })
+// }
+
+// printf("test dynamic size arrays with an index\n")
+// {
+//     range: (from: int, to: int, ok: (int, int)) { 
+//         wrap: (i: int, n: int) {
+//             @igt(n, to, exit(0), {
+//                 ok(i, n)
+//                 @add(n, 1, (next: int) {
+//                     @add(i, 1, (i: int){
+//                         wrap(i, next)
+//                     })
+//                 })
+//             })
+//         }
+//         wrap(0, from)
+//     }
+//     myarr: range(2, 5)
+//     myarr((i: int, n: int){
+//         // can transform value via index and output
+//         printf("myarr: %d: %d\n", i, n)
+//     })
+// }
+
+// TODO:
+// printf("Church encoded range\n")
+// {
+//     num: (f: (int, (int)), x: int, ok: (int))
+//     range: (from: num, length: num, ok: (num)) {
+//         // length is church encoded, numeral generated arrays are heap allocated
+//         length((n: num, next:(num)){
+//             ok(n)
+//             @add(1, n, (res: num){
+//                 next(res)
+//             })
+//         }, from, (num)exit(0))
+//     }
+//     myarr: range(1, 4)
+//     myarr((n: num){
+//         num(add(1), 0, (n: num){
+//             printf("myarr: %d\n", n)
+//         })
+//     })
+// }
+

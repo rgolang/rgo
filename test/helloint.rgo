@@ -1,2 +1,0 @@
-x: 42
-@unsafe.libc.printf("Hello %d!", 42)

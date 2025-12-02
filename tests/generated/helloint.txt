@@ -1,0 +1,88 @@
+[
+    Import {
+        name: "printf",
+        span: Span {
+            line: 1,
+            column: 1,
+            offset: 0,
+        },
+    },
+    Import {
+        name: "exit",
+        span: Span {
+            line: 2,
+            column: 1,
+            offset: 8,
+        },
+    },
+    IntDef {
+        name: "x",
+        literal: IntLiteral {
+            value: 42,
+            span: Span {
+                line: 4,
+                column: 4,
+                offset: 18,
+            },
+        },
+        span: Span {
+            line: 4,
+            column: 1,
+            offset: 15,
+        },
+    },
+    Ident(
+        Ident {
+            name: "printf",
+            args: [
+                String(
+                    StrLiteral {
+                        value: "Hello %d!",
+                        span: Span {
+                            line: 5,
+                            column: 8,
+                            offset: 28,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 42,
+                        span: Span {
+                            line: 5,
+                            column: 21,
+                            offset: 41,
+                        },
+                    },
+                ),
+                Ident(
+                    Ident {
+                        name: "exit",
+                        args: [
+                            Int(
+                                IntLiteral {
+                                    value: 0,
+                                    span: Span {
+                                        line: 5,
+                                        column: 30,
+                                        offset: 50,
+                                    },
+                                },
+                            ),
+                        ],
+                        span: Span {
+                            line: 5,
+                            column: 25,
+                            offset: 45,
+                        },
+                    },
+                ),
+            ],
+            span: Span {
+                line: 5,
+                column: 1,
+                offset: 21,
+            },
+        },
+    ),
+]

@@ -1,0 +1,18 @@
+@str
+@int
+@add
+@printf
+@exit
+
+three: (f: (int, (int)), x: int, ok: (int)){
+    f(x, (y: int){
+        f(y, (z: int){
+            f(z, ok)
+        })
+    })
+}
+three((x: int, ok:(int)){
+    add(x, 10, ok)
+}, 0, (x: int){
+    printf("result: %d", x, exit(0))
+})

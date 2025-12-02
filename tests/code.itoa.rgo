@@ -1,0 +1,4 @@
+@itoa
+@exit
+
+itoa(1, (s: str){ exit(0) })

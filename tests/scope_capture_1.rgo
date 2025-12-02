@@ -1,0 +1,7 @@
+@str
+@int
+@printf
+@add
+
+(x: int) = add(1,2)
+() = printf("result: %d", x)

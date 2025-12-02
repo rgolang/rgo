@@ -1,3 +1,0 @@
-@unsafe.libc.atoi("123", (x: @int){
-    @printf("result: %d\n", x)
-})

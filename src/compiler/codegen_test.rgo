@@ -1,0 +1,14 @@
+@int
+@add
+@write
+@itoa
+@exit
+
+foo: (a: int, b: int) {
+    add(a, b, (n: int){
+        itoa(n, (s: str){
+            write(s, exit(0))
+        })
+    })
+}
+foo(1, 2)

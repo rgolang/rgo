@@ -1,0 +1,15 @@
+_start: (){
+    __temp_0: 1
+    __temp_1: 2
+    __temp_2: __lambda_0()
+    add(__temp_0, __temp_1, __temp_2)
+}
+
+__lambda_0: (x: int){
+    __temp_3: "result: %d"
+    __temp_4: __lambda_1()
+    printf(__temp_3, x, __temp_4)
+}
+
+__lambda_1: (){
+}

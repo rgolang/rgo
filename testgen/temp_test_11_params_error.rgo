@@ -1,9 +1,0 @@
-// TODO: this should not work but it does
-bar: (a:@str, b:@str, c:@str) {
-    @printf("a: %s, b: %s, c: %s\n", a, b, c)
-}
-foo: (cb:()){
-    cb("b", "c")
-}
-qux: bar("a")
-foo(qux)

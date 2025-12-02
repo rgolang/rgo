@@ -1,0 +1,11 @@
+@str
+@int
+@printf
+@add
+@exit
+
+foo: (){
+    (x: int) = (ok:(int)){ add(1, 2, ok) }
+    printf("result: %d", x, exit(0))
+}
+foo()

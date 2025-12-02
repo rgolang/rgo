@@ -1,0 +1,9 @@
+@write
+@exit
+
+foo: () {
+    (){
+        write("foo,", exit(0))
+    }
+}
+foo

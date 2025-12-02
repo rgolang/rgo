@@ -1,0 +1,15 @@
+@str
+@int
+@add
+@printf
+@exit
+two: (f: (int, (int)), x: int, ok: (int)){
+    f(x, (y: int){
+        f(y, ok)
+    })
+}
+two((x: int, ok:(int)){
+    add(x, 10, ok)
+}, 0, (x: int){
+    printf("result: %d", x, exit(0))
+})

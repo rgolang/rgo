@@ -1,0 +1,181 @@
+[
+    Function {
+        name: "nil",
+        params: [
+            Param {
+                name: "cb",
+                ty: Type(
+                    [
+                        Int,
+                        Alias(
+                            "list",
+                        ),
+                    ],
+                ),
+                span: Span {
+                    line: 5,
+                    column: 7,
+                    offset: 48,
+                },
+                is_variadic: false,
+            },
+            Param {
+                name: "end",
+                ty: Type(
+                    [],
+                ),
+                span: Span {
+                    line: 5,
+                    column: 27,
+                    offset: 68,
+                },
+                is_variadic: false,
+            },
+        ],
+        body: Block {
+            items: [
+                ReleaseEnv(
+                    ReleaseEnv {
+                        name: "cb",
+                        span: Span {
+                            line: 6,
+                            column: 5,
+                            offset: 82,
+                        },
+                    },
+                ),
+                Invocation(
+                    Invocation {
+                        of: "end",
+                        args: [],
+                        span: Span {
+                            line: 6,
+                            column: 5,
+                            offset: 82,
+                        },
+                        result: None,
+                    },
+                ),
+            ],
+            span: Span {
+                line: 5,
+                column: 35,
+                offset: 76,
+            },
+        },
+        span: Span {
+            line: 5,
+            column: 1,
+            offset: 42,
+        },
+    },
+    Function {
+        name: "cons",
+        params: [
+            Param {
+                name: "h",
+                ty: Int,
+                span: Span {
+                    line: 8,
+                    column: 8,
+                    offset: 97,
+                },
+                is_variadic: false,
+            },
+            Param {
+                name: "t",
+                ty: Alias(
+                    "list",
+                ),
+                span: Span {
+                    line: 8,
+                    column: 15,
+                    offset: 104,
+                },
+                is_variadic: false,
+            },
+            Param {
+                name: "cb",
+                ty: Type(
+                    [
+                        Int,
+                        Alias(
+                            "list",
+                        ),
+                    ],
+                ),
+                span: Span {
+                    line: 8,
+                    column: 23,
+                    offset: 112,
+                },
+                is_variadic: false,
+            },
+            Param {
+                name: "end",
+                ty: Type(
+                    [],
+                ),
+                span: Span {
+                    line: 8,
+                    column: 43,
+                    offset: 132,
+                },
+                is_variadic: false,
+            },
+        ],
+        body: Block {
+            items: [
+                ReleaseEnv(
+                    ReleaseEnv {
+                        name: "end",
+                        span: Span {
+                            line: 9,
+                            column: 5,
+                            offset: 146,
+                        },
+                    },
+                ),
+                Invocation(
+                    Invocation {
+                        of: "cb",
+                        args: [
+                            Arg {
+                                name: "h",
+                                span: Span {
+                                    line: 9,
+                                    column: 8,
+                                    offset: 149,
+                                },
+                            },
+                            Arg {
+                                name: "t",
+                                span: Span {
+                                    line: 9,
+                                    column: 11,
+                                    offset: 152,
+                                },
+                            },
+                        ],
+                        span: Span {
+                            line: 9,
+                            column: 5,
+                            offset: 146,
+                        },
+                        result: None,
+                    },
+                ),
+            ],
+            span: Span {
+                line: 8,
+                column: 51,
+                offset: 140,
+            },
+        },
+        span: Span {
+            line: 8,
+            column: 1,
+            offset: 90,
+        },
+    },
+]

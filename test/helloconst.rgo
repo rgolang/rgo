@@ -1,2 +1,0 @@
-x: "Hello world!\n"
-@unsafe.libc.puts(x, (code:@int){}) // This will print

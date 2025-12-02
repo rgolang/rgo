@@ -1,0 +1,154 @@
+[
+    Function {
+        name: "_start",
+        params: [],
+        body: Block {
+            items: [
+                IntDef(
+                    IntLiteral {
+                        name: "__temp_0",
+                        value: 1,
+                        span: Span {
+                            line: 4,
+                            column: 5,
+                            offset: 16,
+                        },
+                    },
+                ),
+                IntDef(
+                    IntLiteral {
+                        name: "__temp_1",
+                        value: 2,
+                        span: Span {
+                            line: 4,
+                            column: 8,
+                            offset: 19,
+                        },
+                    },
+                ),
+                Invocation(
+                    Invocation {
+                        of: "__lambda_0",
+                        args: [],
+                        span: Span {
+                            line: 4,
+                            column: 11,
+                            offset: 22,
+                        },
+                        result: Some(
+                            "__temp_2",
+                        ),
+                    },
+                ),
+                Invocation(
+                    Invocation {
+                        of: "add",
+                        args: [
+                            Arg {
+                                name: "__temp_0",
+                                span: Span {
+                                    line: 4,
+                                    column: 5,
+                                    offset: 16,
+                                },
+                            },
+                            Arg {
+                                name: "__temp_1",
+                                span: Span {
+                                    line: 4,
+                                    column: 8,
+                                    offset: 19,
+                                },
+                            },
+                            Arg {
+                                name: "__temp_2",
+                                span: Span {
+                                    line: 4,
+                                    column: 11,
+                                    offset: 22,
+                                },
+                            },
+                        ],
+                        span: Span {
+                            line: 4,
+                            column: 1,
+                            offset: 12,
+                        },
+                        result: None,
+                    },
+                ),
+            ],
+            span: Span {
+                line: 4,
+                column: 1,
+                offset: 12,
+            },
+        },
+        span: Span {
+            line: 4,
+            column: 1,
+            offset: 12,
+        },
+    },
+    Function {
+        name: "__lambda_0",
+        params: [
+            Param {
+                name: "n",
+                ty: Int,
+                span: Span {
+                    line: 4,
+                    column: 12,
+                    offset: 23,
+                },
+                is_variadic: false,
+            },
+        ],
+        body: Block {
+            items: [
+                IntDef(
+                    IntLiteral {
+                        name: "__temp_3",
+                        value: 0,
+                        span: Span {
+                            line: 4,
+                            column: 26,
+                            offset: 37,
+                        },
+                    },
+                ),
+                Invocation(
+                    Invocation {
+                        of: "exit",
+                        args: [
+                            Arg {
+                                name: "__temp_3",
+                                span: Span {
+                                    line: 4,
+                                    column: 26,
+                                    offset: 37,
+                                },
+                            },
+                        ],
+                        span: Span {
+                            line: 4,
+                            column: 21,
+                            offset: 32,
+                        },
+                        result: None,
+                    },
+                ),
+            ],
+            span: Span {
+                line: 4,
+                column: 19,
+                offset: 30,
+            },
+        },
+        span: Span {
+            line: 4,
+            column: 11,
+            offset: 22,
+        },
+    },
+]

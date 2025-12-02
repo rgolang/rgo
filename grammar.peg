@@ -1,0 +1,108 @@
+# --- Structure ---
+Program <- _ Imports? _ BlockItems? _ EOF
+
+Imports <- Import (_ Import)*
+
+Import
+    <- "@" Identifier
+
+Block
+    <- "{" _ BlockItems? _ "}"
+
+BlockItems
+    <- BlockItem (_ BlockItem)*
+
+# --- Logic ---
+BlockItem
+    <- (   &SignatureAndEquals  ScopeCapture     # 1. Lookahead: `(a:t) = b` (rest of body is the last closure arg jump)
+         / &Label               Declaration      # 2. Lookahead: `x: value` or `x: type`
+         / &ApplyHead           Apply            # 3. Lookahead: `x(...)` (0 or more arg jump)
+         / Reference                             # 4. Fallback: `x` (The 0-arg jump)
+       )
+
+SignatureAndEquals      # Lookahead helper (No semantic effect)
+    <- "(" _ SigItems? _ ")" _ "="
+
+ApplyHead               # Lookahead helper (No semantic effect)
+    <- Identifier _ "("
+
+# --- Declarations & Types ---
+Declaration
+    <- Label _ Target
+
+Target
+    <- Signature !(_ Value)      # Structure Check: "(...)"
+     / Value                     # Everything else
+
+Signature
+    <- "(" _ SigItems? _ ")" _
+
+SigItems
+    <- SigItem ("," _ SigItem)* 
+
+SigItem
+    <- Label _ TypeRef  # Matches `n: int`
+     / TypeRef          # Matches `int`
+
+TypeRef
+    <- Signature        # Nested: "(int, int)" or "(a: int)"
+     / Identifier       # Basic type: "int", "str"
+
+# --- Values ---
+
+Value
+    <- Lambda
+     / Apply
+     / Literal
+     / Identifier       # e.g., "x" bound to a value
+
+# --- Application ---
+
+Apply
+    <- Head "(" _ ArgumentItems? _ ")"
+
+Head
+    <- Lambda
+     / Identifier
+
+ArgumentItems
+    <- Value ("," _ Value)*
+
+# --- Scope & Lambda ---
+
+ScopeCapture
+    <- Signature _ "=" _ Value
+
+Lambda
+    <- Signature _ Block      # Signature used as Parameters
+     / Block
+
+# --- Primitives ---
+
+Label
+    <- Identifier ":"
+
+Reference
+    <- Identifier _
+
+Identifier
+    <- [a-zA-Z_][a-zA-Z0-9_]*
+
+Literal
+    <- IntegerLiteral / StringLiteral
+
+IntegerLiteral
+    <- [0-9]+
+
+StringLiteral
+    <- '"' [^"]* '"'
+
+# --- Whitespace ---
+_
+    <- ( [ \t\n\r] / Comment )*
+
+Comment
+    <- "//" [^\n]*       # "//..."
+
+EOF
+    <- !.

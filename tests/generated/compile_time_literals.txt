@@ -1,0 +1,264 @@
+[
+    Import {
+        name: "str",
+        span: Span {
+            line: 1,
+            column: 1,
+            offset: 0,
+        },
+    },
+    Import {
+        name: "int",
+        span: Span {
+            line: 2,
+            column: 1,
+            offset: 5,
+        },
+    },
+    Import {
+        name: "printf",
+        span: Span {
+            line: 3,
+            column: 1,
+            offset: 10,
+        },
+    },
+    Import {
+        name: "exit",
+        span: Span {
+            line: 4,
+            column: 1,
+            offset: 18,
+        },
+    },
+    FunctionDef {
+        name: "not_const_msg",
+        lambda: Lambda {
+            params: Params {
+                items: [
+                    NameAndType {
+                        name: "fmt",
+                        ty: Str,
+                        span: Span {
+                            line: 6,
+                            column: 17,
+                            offset: 41,
+                        },
+                        is_variadic: false,
+                    },
+                    NameAndType {
+                        name: "value",
+                        ty: CompileTimeInt,
+                        span: Span {
+                            line: 6,
+                            column: 27,
+                            offset: 51,
+                        },
+                        is_variadic: false,
+                    },
+                ],
+                span: Span {
+                    line: 6,
+                    column: 16,
+                    offset: 40,
+                },
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "printf",
+                            args: [
+                                Ident(
+                                    Ident {
+                                        name: "fmt",
+                                        args: [],
+                                        span: Span {
+                                            line: 7,
+                                            column: 12,
+                                            offset: 77,
+                                        },
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "value",
+                                        args: [],
+                                        span: Span {
+                                            line: 7,
+                                            column: 17,
+                                            offset: 82,
+                                        },
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "exit",
+                                        args: [
+                                            Int(
+                                                IntLiteral {
+                                                    value: 0,
+                                                    span: Span {
+                                                        line: 7,
+                                                        column: 29,
+                                                        offset: 94,
+                                                    },
+                                                },
+                                            ),
+                                        ],
+                                        span: Span {
+                                            line: 7,
+                                            column: 24,
+                                            offset: 89,
+                                        },
+                                    },
+                                ),
+                            ],
+                            span: Span {
+                                line: 7,
+                                column: 5,
+                                offset: 70,
+                            },
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 6,
+                    column: 40,
+                    offset: 64,
+                },
+            },
+            args: [],
+            span: Span {
+                line: 6,
+                column: 1,
+                offset: 25,
+            },
+        },
+        span: Span {
+            line: 6,
+            column: 1,
+            offset: 25,
+        },
+    },
+    FunctionDef {
+        name: "const_msg",
+        lambda: Lambda {
+            params: Params {
+                items: [
+                    NameAndType {
+                        name: "fmt",
+                        ty: CompileTimeStr,
+                        span: Span {
+                            line: 9,
+                            column: 13,
+                            offset: 112,
+                        },
+                        is_variadic: false,
+                    },
+                    NameAndType {
+                        name: "value",
+                        ty: CompileTimeInt,
+                        span: Span {
+                            line: 9,
+                            column: 24,
+                            offset: 123,
+                        },
+                        is_variadic: false,
+                    },
+                ],
+                span: Span {
+                    line: 9,
+                    column: 12,
+                    offset: 111,
+                },
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "not_const_msg",
+                            args: [
+                                Ident(
+                                    Ident {
+                                        name: "fmt",
+                                        args: [],
+                                        span: Span {
+                                            line: 10,
+                                            column: 19,
+                                            offset: 156,
+                                        },
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "value",
+                                        args: [],
+                                        span: Span {
+                                            line: 10,
+                                            column: 24,
+                                            offset: 161,
+                                        },
+                                    },
+                                ),
+                            ],
+                            span: Span {
+                                line: 10,
+                                column: 5,
+                                offset: 142,
+                            },
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 9,
+                    column: 37,
+                    offset: 136,
+                },
+            },
+            args: [],
+            span: Span {
+                line: 9,
+                column: 1,
+                offset: 100,
+            },
+        },
+        span: Span {
+            line: 9,
+            column: 1,
+            offset: 100,
+        },
+    },
+    Ident(
+        Ident {
+            name: "const_msg",
+            args: [
+                String(
+                    StrLiteral {
+                        value: "compile-time value %d\n",
+                        span: Span {
+                            line: 12,
+                            column: 11,
+                            offset: 180,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 7,
+                        span: Span {
+                            line: 12,
+                            column: 38,
+                            offset: 207,
+                        },
+                    },
+                ),
+            ],
+            span: Span {
+                line: 12,
+                column: 1,
+                offset: 170,
+            },
+        },
+    ),
+]

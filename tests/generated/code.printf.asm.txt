@@ -1,0 +1,14 @@
+__lambda_0() {
+    __temp_3 = 0
+    exit(__temp_3)
+}
+
+
+_start() {
+    __temp_0 = "hello %s\n"
+    __temp_1 = "world"
+    heap_alloc mmap(size=16, prot=3, flags=34, fd=-1, offset=0)
+    __temp_2 = __lambda_0()
+    printf(__temp_0, __temp_1, __temp_2)
+}
+

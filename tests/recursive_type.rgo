@@ -1,0 +1,15 @@
+@printf
+@str
+@exit
+
+tail: (x: int, rest: tail)
+
+identity: (node: tail) {
+    printf("unused\n", exit(0))
+}
+
+hello: () {
+    printf("hi\n", exit(0))
+}
+
+hello()

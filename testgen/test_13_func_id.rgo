@@ -1,4 +1,0 @@
-puts: (s: @str){
-    @unsafe.libc.puts(s, (code:@int){})
-}
-puts("hello world!")

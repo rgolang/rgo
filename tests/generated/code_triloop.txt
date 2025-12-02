@@ -1,0 +1,269 @@
+[
+    Import {
+        name: "write",
+        span: Span {
+            line: 1,
+            column: 1,
+            offset: 0,
+        },
+    },
+    FunctionDef {
+        name: "bar",
+        lambda: Lambda {
+            params: Params {
+                items: [
+                    NameAndType {
+                        name: "ok",
+                        ty: Type(
+                            [],
+                        ),
+                        span: Span {
+                            line: 3,
+                            column: 7,
+                            offset: 14,
+                        },
+                        is_variadic: false,
+                    },
+                ],
+                span: Span {
+                    line: 3,
+                    column: 6,
+                    offset: 13,
+                },
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "write",
+                            args: [
+                                String(
+                                    StrLiteral {
+                                        value: "bar,",
+                                        span: Span {
+                                            line: 4,
+                                            column: 11,
+                                            offset: 33,
+                                        },
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "ok",
+                                        args: [],
+                                        span: Span {
+                                            line: 4,
+                                            column: 19,
+                                            offset: 41,
+                                        },
+                                    },
+                                ),
+                            ],
+                            span: Span {
+                                line: 4,
+                                column: 5,
+                                offset: 27,
+                            },
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 3,
+                    column: 14,
+                    offset: 21,
+                },
+            },
+            args: [],
+            span: Span {
+                line: 3,
+                column: 1,
+                offset: 8,
+            },
+        },
+        span: Span {
+            line: 3,
+            column: 1,
+            offset: 8,
+        },
+    },
+    FunctionDef {
+        name: "baz",
+        lambda: Lambda {
+            params: Params {
+                items: [
+                    NameAndType {
+                        name: "ok",
+                        ty: Type(
+                            [],
+                        ),
+                        span: Span {
+                            line: 6,
+                            column: 7,
+                            offset: 53,
+                        },
+                        is_variadic: false,
+                    },
+                ],
+                span: Span {
+                    line: 6,
+                    column: 6,
+                    offset: 52,
+                },
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "write",
+                            args: [
+                                String(
+                                    StrLiteral {
+                                        value: "baz,",
+                                        span: Span {
+                                            line: 7,
+                                            column: 11,
+                                            offset: 72,
+                                        },
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "ok",
+                                        args: [],
+                                        span: Span {
+                                            line: 7,
+                                            column: 19,
+                                            offset: 80,
+                                        },
+                                    },
+                                ),
+                            ],
+                            span: Span {
+                                line: 7,
+                                column: 5,
+                                offset: 66,
+                            },
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 6,
+                    column: 14,
+                    offset: 60,
+                },
+            },
+            args: [],
+            span: Span {
+                line: 6,
+                column: 1,
+                offset: 47,
+            },
+        },
+        span: Span {
+            line: 6,
+            column: 1,
+            offset: 47,
+        },
+    },
+    FunctionDef {
+        name: "foo",
+        lambda: Lambda {
+            params: Params {
+                items: [],
+                span: Span {
+                    line: 9,
+                    column: 6,
+                    offset: 91,
+                },
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "write",
+                            args: [
+                                String(
+                                    StrLiteral {
+                                        value: "foo,",
+                                        span: Span {
+                                            line: 10,
+                                            column: 11,
+                                            offset: 106,
+                                        },
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "bar",
+                                        args: [
+                                            Ident(
+                                                Ident {
+                                                    name: "baz",
+                                                    args: [
+                                                        Ident(
+                                                            Ident {
+                                                                name: "foo",
+                                                                args: [],
+                                                                span: Span {
+                                                                    line: 10,
+                                                                    column: 27,
+                                                                    offset: 122,
+                                                                },
+                                                            },
+                                                        ),
+                                                    ],
+                                                    span: Span {
+                                                        line: 10,
+                                                        column: 23,
+                                                        offset: 118,
+                                                    },
+                                                },
+                                            ),
+                                        ],
+                                        span: Span {
+                                            line: 10,
+                                            column: 19,
+                                            offset: 114,
+                                        },
+                                    },
+                                ),
+                            ],
+                            span: Span {
+                                line: 10,
+                                column: 5,
+                                offset: 100,
+                            },
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 9,
+                    column: 9,
+                    offset: 94,
+                },
+            },
+            args: [],
+            span: Span {
+                line: 9,
+                column: 1,
+                offset: 86,
+            },
+        },
+        span: Span {
+            line: 9,
+            column: 1,
+            offset: 86,
+        },
+    },
+    Ident(
+        Ident {
+            name: "foo",
+            args: [],
+            span: Span {
+                line: 12,
+                column: 1,
+                offset: 131,
+            },
+        },
+    ),
+]

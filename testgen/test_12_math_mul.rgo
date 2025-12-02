@@ -1,4 +1,0 @@
-mymul: @mul(3, 3)
-mymul((x: @int){
-    @printf("x: %d\n", x)   
-})

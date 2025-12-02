@@ -1,0 +1,9 @@
+nil: (cb:(int, list), end:()){
+    munmap(cb)
+    end()
+}
+
+cons: (h: int, t: list, cb:(int, list), end:()){
+    munmap(end)
+    cb(h, t)
+}

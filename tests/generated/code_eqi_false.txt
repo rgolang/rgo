@@ -1,0 +1,200 @@
+[
+    Import {
+        name: "eqi",
+        span: Span {
+            line: 1,
+            column: 1,
+            offset: 0,
+        },
+    },
+    Import {
+        name: "write",
+        span: Span {
+            line: 2,
+            column: 1,
+            offset: 5,
+        },
+    },
+    Import {
+        name: "exit",
+        span: Span {
+            line: 3,
+            column: 1,
+            offset: 12,
+        },
+    },
+    Ident(
+        Ident {
+            name: "eqi",
+            args: [
+                Int(
+                    IntLiteral {
+                        value: 1,
+                        span: Span {
+                            line: 5,
+                            column: 5,
+                            offset: 23,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 0,
+                        span: Span {
+                            line: 5,
+                            column: 8,
+                            offset: 26,
+                        },
+                    },
+                ),
+                Lambda(
+                    Lambda {
+                        params: Params {
+                            items: [],
+                            span: Span {
+                                line: 5,
+                                column: 11,
+                                offset: 29,
+                            },
+                        },
+                        body: Block {
+                            items: [
+                                Ident(
+                                    Ident {
+                                        name: "write",
+                                        args: [
+                                            String(
+                                                StrLiteral {
+                                                    value: "true",
+                                                    span: Span {
+                                                        line: 6,
+                                                        column: 11,
+                                                        offset: 43,
+                                                    },
+                                                },
+                                            ),
+                                            Ident(
+                                                Ident {
+                                                    name: "exit",
+                                                    args: [
+                                                        Int(
+                                                            IntLiteral {
+                                                                value: 0,
+                                                                span: Span {
+                                                                    line: 6,
+                                                                    column: 24,
+                                                                    offset: 56,
+                                                                },
+                                                            },
+                                                        ),
+                                                    ],
+                                                    span: Span {
+                                                        line: 6,
+                                                        column: 19,
+                                                        offset: 51,
+                                                    },
+                                                },
+                                            ),
+                                        ],
+                                        span: Span {
+                                            line: 6,
+                                            column: 5,
+                                            offset: 37,
+                                        },
+                                    },
+                                ),
+                            ],
+                            span: Span {
+                                line: 5,
+                                column: 13,
+                                offset: 31,
+                            },
+                        },
+                        args: [],
+                        span: Span {
+                            line: 5,
+                            column: 11,
+                            offset: 29,
+                        },
+                    },
+                ),
+                Lambda(
+                    Lambda {
+                        params: Params {
+                            items: [],
+                            span: Span {
+                                line: 7,
+                                column: 4,
+                                offset: 63,
+                            },
+                        },
+                        body: Block {
+                            items: [
+                                Ident(
+                                    Ident {
+                                        name: "write",
+                                        args: [
+                                            String(
+                                                StrLiteral {
+                                                    value: "false",
+                                                    span: Span {
+                                                        line: 8,
+                                                        column: 11,
+                                                        offset: 77,
+                                                    },
+                                                },
+                                            ),
+                                            Ident(
+                                                Ident {
+                                                    name: "exit",
+                                                    args: [
+                                                        Int(
+                                                            IntLiteral {
+                                                                value: 0,
+                                                                span: Span {
+                                                                    line: 8,
+                                                                    column: 25,
+                                                                    offset: 91,
+                                                                },
+                                                            },
+                                                        ),
+                                                    ],
+                                                    span: Span {
+                                                        line: 8,
+                                                        column: 20,
+                                                        offset: 86,
+                                                    },
+                                                },
+                                            ),
+                                        ],
+                                        span: Span {
+                                            line: 8,
+                                            column: 5,
+                                            offset: 71,
+                                        },
+                                    },
+                                ),
+                            ],
+                            span: Span {
+                                line: 7,
+                                column: 6,
+                                offset: 65,
+                            },
+                        },
+                        args: [],
+                        span: Span {
+                            line: 7,
+                            column: 4,
+                            offset: 63,
+                        },
+                    },
+                ),
+            ],
+            span: Span {
+                line: 5,
+                column: 1,
+                offset: 19,
+            },
+        },
+    ),
+]

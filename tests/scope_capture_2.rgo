@@ -1,0 +1,5 @@
+@str
+@int
+@printf
+@add
+() = printf("hello world")

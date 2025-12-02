@@ -1,0 +1,14 @@
+// Double curried continuation
+@str
+@printf
+
+foo: (ok:(str)){
+    ok("charlie")
+}
+baz: (ok:(str, str)){
+    foo(ok("bob"))
+}
+bar: (name0: str, name1: str, name2: str){
+    printf("hello %s, %s and %s\n", name0, name1, name2)
+}
+baz(bar("alice"))

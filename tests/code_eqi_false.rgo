@@ -1,0 +1,9 @@
+@eqi
+@write
+@exit
+
+eqi(1, 0, (){
+    write("true", exit(0))
+}, (){
+    write("false", exit(0))
+})

@@ -1,0 +1,10 @@
+@str
+@int
+@write
+@exit
+
+x: "Hello world!\n"
+foo: (ok:()){
+	write(x, ok)
+}
+foo(exit(0))

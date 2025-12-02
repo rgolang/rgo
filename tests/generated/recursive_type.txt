@@ -1,0 +1,220 @@
+[
+    Import {
+        name: "printf",
+        span: Span {
+            line: 1,
+            column: 1,
+            offset: 0,
+        },
+    },
+    Import {
+        name: "str",
+        span: Span {
+            line: 2,
+            column: 1,
+            offset: 8,
+        },
+    },
+    Import {
+        name: "exit",
+        span: Span {
+            line: 3,
+            column: 1,
+            offset: 13,
+        },
+    },
+    TypeDef {
+        name: "tail",
+        term: Type(
+            [
+                Int,
+                Alias(
+                    "tail",
+                ),
+            ],
+        ),
+        span: Span {
+            line: 5,
+            column: 1,
+            offset: 20,
+        },
+    },
+    FunctionDef {
+        name: "identity",
+        lambda: Lambda {
+            params: Params {
+                items: [
+                    NameAndType {
+                        name: "node",
+                        ty: Alias(
+                            "tail",
+                        ),
+                        span: Span {
+                            line: 7,
+                            column: 12,
+                            offset: 59,
+                        },
+                        is_variadic: false,
+                    },
+                ],
+                span: Span {
+                    line: 7,
+                    column: 11,
+                    offset: 58,
+                },
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "printf",
+                            args: [
+                                String(
+                                    StrLiteral {
+                                        value: "unused\n",
+                                        span: Span {
+                                            line: 8,
+                                            column: 12,
+                                            offset: 84,
+                                        },
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "exit",
+                                        args: [
+                                            Int(
+                                                IntLiteral {
+                                                    value: 0,
+                                                    span: Span {
+                                                        line: 8,
+                                                        column: 29,
+                                                        offset: 101,
+                                                    },
+                                                },
+                                            ),
+                                        ],
+                                        span: Span {
+                                            line: 8,
+                                            column: 24,
+                                            offset: 96,
+                                        },
+                                    },
+                                ),
+                            ],
+                            span: Span {
+                                line: 8,
+                                column: 5,
+                                offset: 77,
+                            },
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 7,
+                    column: 24,
+                    offset: 71,
+                },
+            },
+            args: [],
+            span: Span {
+                line: 7,
+                column: 1,
+                offset: 48,
+            },
+        },
+        span: Span {
+            line: 7,
+            column: 1,
+            offset: 48,
+        },
+    },
+    FunctionDef {
+        name: "hello",
+        lambda: Lambda {
+            params: Params {
+                items: [],
+                span: Span {
+                    line: 11,
+                    column: 8,
+                    offset: 115,
+                },
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "printf",
+                            args: [
+                                String(
+                                    StrLiteral {
+                                        value: "hi\n",
+                                        span: Span {
+                                            line: 12,
+                                            column: 12,
+                                            offset: 131,
+                                        },
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "exit",
+                                        args: [
+                                            Int(
+                                                IntLiteral {
+                                                    value: 0,
+                                                    span: Span {
+                                                        line: 12,
+                                                        column: 25,
+                                                        offset: 144,
+                                                    },
+                                                },
+                                            ),
+                                        ],
+                                        span: Span {
+                                            line: 12,
+                                            column: 20,
+                                            offset: 139,
+                                        },
+                                    },
+                                ),
+                            ],
+                            span: Span {
+                                line: 12,
+                                column: 5,
+                                offset: 124,
+                            },
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 11,
+                    column: 11,
+                    offset: 118,
+                },
+            },
+            args: [],
+            span: Span {
+                line: 11,
+                column: 1,
+                offset: 108,
+            },
+        },
+        span: Span {
+            line: 11,
+            column: 1,
+            offset: 108,
+        },
+    },
+    Ident(
+        Ident {
+            name: "hello",
+            args: [],
+            span: Span {
+                line: 15,
+                column: 1,
+                offset: 151,
+            },
+        },
+    ),
+]

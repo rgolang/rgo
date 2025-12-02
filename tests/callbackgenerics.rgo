@@ -1,0 +1,18 @@
+@str
+@printf
+@exit
+
+foo: (p:(()), ok:()){
+	p(ok)
+}
+print1: (n:str, ok:()){
+	printf("The losing number is %s\n", n, ok)
+}
+print2: (n:str, ok:()){
+	printf("The winning number is %s\n", n, ok)
+}
+p1: (ok:()){print1("41", ok)}
+p2: (ok:()){print2("42", ok)}
+foo(p1, (){
+	foo(p2, exit(0))
+})

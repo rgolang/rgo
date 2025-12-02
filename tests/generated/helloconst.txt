@@ -1,0 +1,79 @@
+[
+    Import {
+        name: "write",
+        span: Span {
+            line: 1,
+            column: 1,
+            offset: 0,
+        },
+    },
+    Import {
+        name: "exit",
+        span: Span {
+            line: 2,
+            column: 1,
+            offset: 7,
+        },
+    },
+    StrDef {
+        name: "x",
+        literal: StrLiteral {
+            value: "Hello world!\n",
+            span: Span {
+                line: 4,
+                column: 4,
+                offset: 17,
+            },
+        },
+        span: Span {
+            line: 4,
+            column: 1,
+            offset: 14,
+        },
+    },
+    Ident(
+        Ident {
+            name: "write",
+            args: [
+                Ident(
+                    Ident {
+                        name: "x",
+                        args: [],
+                        span: Span {
+                            line: 5,
+                            column: 7,
+                            offset: 40,
+                        },
+                    },
+                ),
+                Ident(
+                    Ident {
+                        name: "exit",
+                        args: [
+                            Int(
+                                IntLiteral {
+                                    value: 0,
+                                    span: Span {
+                                        line: 5,
+                                        column: 15,
+                                        offset: 48,
+                                    },
+                                },
+                            ),
+                        ],
+                        span: Span {
+                            line: 5,
+                            column: 10,
+                            offset: 43,
+                        },
+                    },
+                ),
+            ],
+            span: Span {
+                line: 5,
+                column: 1,
+                offset: 34,
+            },
+        },
+    ),
+]

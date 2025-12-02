@@ -1,0 +1,5 @@
+@printf
+@exit
+
+x: 42
+printf("Hello %d!", 42, exit(0))

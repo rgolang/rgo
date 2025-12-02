@@ -1,0 +1,164 @@
+[
+    Function {
+        name: "foo",
+        params: [
+            Param {
+                name: "x",
+                ty: Str,
+                span: Span {
+                    line: 6,
+                    column: 1,
+                    offset: 24,
+                },
+                is_variadic: false,
+            },
+            Param {
+                name: "ok",
+                ty: Type(
+                    [],
+                ),
+                span: Span {
+                    line: 7,
+                    column: 7,
+                    offset: 50,
+                },
+                is_variadic: false,
+            },
+        ],
+        body: Block {
+            items: [
+                Invocation(
+                    Invocation {
+                        of: "write",
+                        args: [
+                            Arg {
+                                name: "x",
+                                span: Span {
+                                    line: 8,
+                                    column: 8,
+                                    offset: 65,
+                                },
+                            },
+                            Arg {
+                                name: "ok",
+                                span: Span {
+                                    line: 8,
+                                    column: 11,
+                                    offset: 68,
+                                },
+                            },
+                        ],
+                        span: Span {
+                            line: 8,
+                            column: 2,
+                            offset: 59,
+                        },
+                        result: None,
+                    },
+                ),
+            ],
+            span: Span {
+                line: 7,
+                column: 13,
+                offset: 56,
+            },
+        },
+        span: Span {
+            line: 7,
+            column: 1,
+            offset: 44,
+        },
+    },
+    Function {
+        name: "_start",
+        params: [],
+        body: Block {
+            items: [
+                StrDef(
+                    StrLiteral {
+                        name: "x",
+                        value: "Hello world!\n",
+                        span: Span {
+                            line: 6,
+                            column: 1,
+                            offset: 24,
+                        },
+                    },
+                ),
+                IntDef(
+                    IntLiteral {
+                        name: "__temp_0",
+                        value: 0,
+                        span: Span {
+                            line: 10,
+                            column: 10,
+                            offset: 83,
+                        },
+                    },
+                ),
+                Invocation(
+                    Invocation {
+                        of: "exit",
+                        args: [
+                            Arg {
+                                name: "__temp_0",
+                                span: Span {
+                                    line: 10,
+                                    column: 10,
+                                    offset: 83,
+                                },
+                            },
+                        ],
+                        span: Span {
+                            line: 10,
+                            column: 5,
+                            offset: 78,
+                        },
+                        result: Some(
+                            "__temp_1",
+                        ),
+                    },
+                ),
+                Invocation(
+                    Invocation {
+                        of: "foo",
+                        args: [
+                            Arg {
+                                name: "x",
+                                span: Span {
+                                    line: 6,
+                                    column: 1,
+                                    offset: 24,
+                                },
+                            },
+                            Arg {
+                                name: "__temp_1",
+                                span: Span {
+                                    line: 10,
+                                    column: 5,
+                                    offset: 78,
+                                },
+                            },
+                        ],
+                        span: Span {
+                            line: 10,
+                            column: 1,
+                            offset: 74,
+                        },
+                        result: None,
+                    },
+                ),
+            ],
+            span: Span {
+                line: 10,
+                column: 1,
+                offset: 74,
+            },
+        },
+        span: Span {
+            line: 10,
+            column: 1,
+            offset: 74,
+        },
+    },
+]

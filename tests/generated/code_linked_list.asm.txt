@@ -1,0 +1,63 @@
+nil(next: (int, list), end: ()) {
+    end()
+}
+
+
+cons(head: int, tail: list, next: (int, list), end: ()) {
+    next(head, tail)
+}
+
+
+__lambda_0(handler: (int, __type_1), end: (), head: int, tail: list) {
+    heap_alloc mmap(size=64, prot=3, flags=34, fd=-1, offset=0)
+    __temp_1 = iterate(handler, tail, end)
+    handler(head, __temp_1)
+}
+
+
+iterate(handler: (int, __type_1), arr: list, end: ()) {
+    heap_alloc mmap(size=72, prot=3, flags=34, fd=-1, offset=0)
+    __temp_0 = __lambda_0(handler, end)
+    arr(__temp_0, end)
+}
+
+
+handler(n: int, ok: ()) {
+    __temp_3 = "%d, "
+    printf(__temp_3, n, ok)
+}
+
+
+__lambda_1() {
+    __temp_6 = 0
+    exit(__temp_6)
+}
+
+
+end() {
+    __temp_4 = "end\n"
+    heap_alloc mmap(size=16, prot=3, flags=34, fd=-1, offset=0)
+    __temp_5 = __lambda_1()
+    printf(__temp_4, __temp_5)
+}
+
+
+_start() {
+    __temp_7 = 1
+    __temp_8 = 2
+    __temp_9 = 3
+    __temp_10 = 4
+    heap_alloc mmap(size=72, prot=3, flags=34, fd=-1, offset=0)
+    heap_alloc mmap(size=48, prot=3, flags=34, fd=-1, offset=0)
+    __temp_11 = cons(__temp_10, nil)
+    heap_alloc mmap(size=72, prot=3, flags=34, fd=-1, offset=0)
+    __temp_12 = cons(__temp_9, __temp_11)
+    heap_alloc mmap(size=72, prot=3, flags=34, fd=-1, offset=0)
+    __temp_13 = cons(__temp_8, __temp_12)
+    heap_alloc mmap(size=72, prot=3, flags=34, fd=-1, offset=0)
+    mylist = cons(__temp_7, __temp_13)
+    heap_alloc mmap(size=16, prot=3, flags=34, fd=-1, offset=0)
+    heap_alloc mmap(size=40, prot=3, flags=34, fd=-1, offset=0)
+    iterate(handler, mylist, end)
+}
+

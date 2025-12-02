@@ -1,0 +1,13 @@
+@str
+@int
+@printf
+@exit
+
+foo: (n:str, s:str, ok:()){
+	printf("The winning number for %s is %s\n", s, n, ok)
+}
+bar: foo("42")
+baz: foo("43", "Bob")
+bar("Alice", {
+	baz(exit(0))
+})

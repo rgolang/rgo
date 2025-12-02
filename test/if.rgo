@@ -1,9 +1,0 @@
-true: (a:(), _:()){a()}
-false: (_:(), b:()){b()}
-if: (condition:(yes:(), no:()), trueCase:(), falseCase:()){
-    condition(trueCase, falseCase)
-}
-log: (callback:(result:int)){
-    @unsafe.libc.puts(s, (code:@int){})
-}
-if (true, log("true"), log("false"))

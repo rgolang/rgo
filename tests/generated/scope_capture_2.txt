@@ -1,0 +1,71 @@
+[
+    Import {
+        name: "str",
+        span: Span {
+            line: 1,
+            column: 1,
+            offset: 0,
+        },
+    },
+    Import {
+        name: "int",
+        span: Span {
+            line: 2,
+            column: 1,
+            offset: 5,
+        },
+    },
+    Import {
+        name: "printf",
+        span: Span {
+            line: 3,
+            column: 1,
+            offset: 10,
+        },
+    },
+    Import {
+        name: "add",
+        span: Span {
+            line: 4,
+            column: 1,
+            offset: 18,
+        },
+    },
+    ScopeCapture {
+        params: Params {
+            items: [],
+            span: Span {
+                line: 5,
+                column: 1,
+                offset: 23,
+            },
+        },
+        term: Ident(
+            Ident {
+                name: "printf",
+                args: [
+                    String(
+                        StrLiteral {
+                            value: "hello world",
+                            span: Span {
+                                line: 5,
+                                column: 13,
+                                offset: 35,
+                            },
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 5,
+                    column: 6,
+                    offset: 28,
+                },
+            },
+        ),
+        span: Span {
+            line: 5,
+            column: 1,
+            offset: 23,
+        },
+    },
+]

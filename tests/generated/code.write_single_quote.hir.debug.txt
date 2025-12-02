@@ -1,0 +1,124 @@
+[
+    Function {
+        name: "_start",
+        params: [],
+        body: Block {
+            items: [
+                StrDef(
+                    StrLiteral {
+                        name: "__temp_0",
+                        value: "hello\\n",
+                        span: Span {
+                            line: 4,
+                            column: 7,
+                            offset: 20,
+                        },
+                    },
+                ),
+                Invocation(
+                    Invocation {
+                        of: "__lambda_0",
+                        args: [],
+                        span: Span {
+                            line: 4,
+                            column: 18,
+                            offset: 31,
+                        },
+                        result: Some(
+                            "__temp_1",
+                        ),
+                    },
+                ),
+                Invocation(
+                    Invocation {
+                        of: "write",
+                        args: [
+                            Arg {
+                                name: "__temp_0",
+                                span: Span {
+                                    line: 4,
+                                    column: 7,
+                                    offset: 20,
+                                },
+                            },
+                            Arg {
+                                name: "__temp_1",
+                                span: Span {
+                                    line: 4,
+                                    column: 18,
+                                    offset: 31,
+                                },
+                            },
+                        ],
+                        span: Span {
+                            line: 4,
+                            column: 1,
+                            offset: 14,
+                        },
+                        result: None,
+                    },
+                ),
+            ],
+            span: Span {
+                line: 4,
+                column: 1,
+                offset: 14,
+            },
+        },
+        span: Span {
+            line: 4,
+            column: 1,
+            offset: 14,
+        },
+    },
+    Function {
+        name: "__lambda_0",
+        params: [],
+        body: Block {
+            items: [
+                IntDef(
+                    IntLiteral {
+                        name: "__temp_2",
+                        value: 0,
+                        span: Span {
+                            line: 4,
+                            column: 23,
+                            offset: 36,
+                        },
+                    },
+                ),
+                Invocation(
+                    Invocation {
+                        of: "exit",
+                        args: [
+                            Arg {
+                                name: "__temp_2",
+                                span: Span {
+                                    line: 4,
+                                    column: 23,
+                                    offset: 36,
+                                },
+                            },
+                        ],
+                        span: Span {
+                            line: 4,
+                            column: 18,
+                            offset: 31,
+                        },
+                        result: None,
+                    },
+                ),
+            ],
+            span: Span {
+                line: 4,
+                column: 18,
+                offset: 31,
+            },
+        },
+        span: Span {
+            line: 4,
+            column: 18,
+            offset: 31,
+        },
+    },
+]

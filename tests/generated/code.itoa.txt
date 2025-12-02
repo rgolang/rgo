@@ -1,0 +1,100 @@
+[
+    Import {
+        name: "itoa",
+        span: Span {
+            line: 1,
+            column: 1,
+            offset: 0,
+        },
+    },
+    Import {
+        name: "exit",
+        span: Span {
+            line: 2,
+            column: 1,
+            offset: 6,
+        },
+    },
+    Ident(
+        Ident {
+            name: "itoa",
+            args: [
+                Int(
+                    IntLiteral {
+                        value: 1,
+                        span: Span {
+                            line: 4,
+                            column: 6,
+                            offset: 18,
+                        },
+                    },
+                ),
+                Lambda(
+                    Lambda {
+                        params: Params {
+                            items: [
+                                NameAndType {
+                                    name: "s",
+                                    ty: Str,
+                                    span: Span {
+                                        line: 4,
+                                        column: 10,
+                                        offset: 22,
+                                    },
+                                    is_variadic: false,
+                                },
+                            ],
+                            span: Span {
+                                line: 4,
+                                column: 9,
+                                offset: 21,
+                            },
+                        },
+                        body: Block {
+                            items: [
+                                Ident(
+                                    Ident {
+                                        name: "exit",
+                                        args: [
+                                            Int(
+                                                IntLiteral {
+                                                    value: 0,
+                                                    span: Span {
+                                                        line: 4,
+                                                        column: 24,
+                                                        offset: 36,
+                                                    },
+                                                },
+                                            ),
+                                        ],
+                                        span: Span {
+                                            line: 4,
+                                            column: 19,
+                                            offset: 31,
+                                        },
+                                    },
+                                ),
+                            ],
+                            span: Span {
+                                line: 4,
+                                column: 17,
+                                offset: 29,
+                            },
+                        },
+                        args: [],
+                        span: Span {
+                            line: 4,
+                            column: 9,
+                            offset: 21,
+                        },
+                    },
+                ),
+            ],
+            span: Span {
+                line: 4,
+                column: 1,
+                offset: 13,
+            },
+        },
+    ),
+]

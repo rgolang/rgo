@@ -1,0 +1,26 @@
+one: (f:(int, __type_0), x: int, ok:(int)){
+    f(x, ok)
+}
+
+_start: (){
+    __temp_0: __lambda_0()
+    __temp_2: 0
+    __temp_3: __lambda_1()
+    one(__temp_0, __temp_2, __temp_3)
+}
+
+__lambda_0: (x: int, ok:(int)){
+    __temp_1: 10
+    add(x, __temp_1, ok)
+}
+
+__lambda_1: (x: int){
+    __temp_4: "result: %d"
+    __temp_5: __lambda_2()
+    printf(__temp_4, x, __temp_5)
+}
+
+__lambda_2: (){
+    __temp_6: 0
+    exit(__temp_6)
+}

@@ -1,0 +1,5 @@
+@write
+@exit
+
+x: "Hello world!\n"
+write(x, exit(0)) // This will print

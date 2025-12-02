@@ -1,0 +1,4 @@
+@printf
+@exit
+
+printf("hello\n", exit(0))
