@@ -144,8 +144,8 @@ The resulting executable appears in your local bin/ directory on your host machi
 This is what happens inside the container (or on your linux machine)
 ```sh
 apt-get install -y nasm gcc make
-cargo run -- code/hello.rgo hello.asm
-nasm -felf64 hello.asm -o bin/hello.o
+cargo run -- code/hello.rgo code/hello.asm
+nasm -felf64 code/hello.asm -o bin/hello.o
 ld -dynamic-linker /lib64/ld-linux-x86-64.so.2 -lc bin/hello.o -o bin/hello
 ./bin/hello
 ```
