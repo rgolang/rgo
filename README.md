@@ -1,6 +1,6 @@
 # Compiler
 
-This is a small experimental programming language focused on simplicity, predictability, and explicit semantics. The compiler is written in Rust and lowers Rgo programs directly to NASM AMD64 assembly, producing ELF binaries that run on any AMD64 Linux system with standard libc—no LLVM, no JIT, and no garbage collector.
+This is a small experimental programming language focused on simplicity, predictability, and explicit semantics. The compiler is written in Rust and lowers Rgo programs directly to NASM AMD64 assembly, producing ELF binaries that run on any AMD64 Linux system with hooks to standard libc (no LLVM, no JIT, and no garbage collector).
 
 The grammar file lives in: [grammar.peg](./grammar.peg)
 

@@ -443,7 +443,7 @@ impl<R: BufRead> Parser<R> {
             }
         }
 
-        // CASE 2 — alias or literal (no params or body block)
+        // Case alias or literal (no params or body block)
         let term = {
             let prev = self.allow_partial_application;
             self.allow_partial_application = true;
