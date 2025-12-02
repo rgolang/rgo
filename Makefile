@@ -1,7 +1,7 @@
 .PHONY: compile
 compile:
-	@cargo run -- hello.rgo hello.asm
-	@nasm -felf64 hello.asm -o bin/hello.o
+	@cargo run -- code/hello.rgo code/hello.asm
+	@nasm -felf64 code/hello.asm -o bin/hello.o
 	@ld -dynamic-linker /lib64/ld-linux-x86-64.so.2 -lc bin/hello.o -o bin/hello
 
 .PHONY: run
@@ -12,7 +12,7 @@ run: compile
 .PHONY: asm
 asm:
 	@mkdir -p bin
-	@nasm -felf64 hello.asm -o bin/hello.o
+	@nasm -felf64 code/hello.asm -o bin/hello.o
 	@ld -dynamic-linker /lib64/ld-linux-x86-64.so.2 -lc bin/hello.o -o bin/hello
 	@./bin/hello
 
