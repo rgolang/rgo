@@ -1,0 +1,27 @@
+{
+  "editor.formatOnSave": true,
+  "[asm]": {
+    "editor.defaultFormatter": "ipid.asm-comment-aligner"
+  },
+  "[go]": {
+    "editor.defaultFormatter": "golang.go"
+  },
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer"
+  },
+  "rust-analyzer.diagnostics.disabled": [
+    "non_snake_case"
+  ],
+  "editor.fontSize": 14,
+  "files.associations": {
+    "*.proto": "proto3",
+    "*.rgo": "c",
+    "*.example": "c"
+  },
+  // NASM extension settings
+  // keep validation on
+  "nasm.validate": true,
+  "nasm.outputFormat": "elf64", // match your command: nasm -felf64
+  "nasm.checkOnType": true,
+  "nasm.reportWarnings": true
+}
