@@ -1,22 +1,26 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
-file="$1"
-
-if [ -z "$file" ]; then
-    echo "Usage: compile.sh <file.rgo>"
-    exit 1
+# If no args or "-" → read RGO source from stdin
+if [ -z "$1" ] || [ "$1" = "-" ]; then
+    file="stdin_input.rgo"
+    cat > "$file"
+else
+    file="$1"
 fi
 
 base="${file%.rgo}"
 
-# Source -> assembly
-/rgo/target/release/rgo "$file" "$base.asm"
+# Compile source → assembly
+/usr/local/cargo/bin/compiler "$file" "$base.asm"
 
-# NASM: assembly -> object file
+# Assemble
 nasm -felf64 "$base.asm" -o "$base.o"
 
-# Object -> native binary
+# Link
 ld -dynamic-linker /lib64/ld-linux-x86-64.so.2 -lc "$base.o" -o "$base"
 
-echo "Built $base"
+chmod +x "$base"
+./"$base"
+
+exit $?

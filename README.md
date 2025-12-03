@@ -128,17 +128,11 @@ Programs are then lowered directly into tail-jump CPS and compiled straight to a
 
 ```sh
 git clone https://github.com/rgolang/rgo.git
-
-# Build the image
+cd rgo
 docker build -t rgo-compiler .
-
-# Compile a program (Replace $PWD with your code directory)
-docker run --rm \
-    -v "$PWD":/work \
-    -w /work \
-    --platform=linux/amd64 \
-    rgo-compiler "path-to-your-program.rgo"
+docker run --rm -i rgo-compiler < code/hello.rgo
 ```
+
 The resulting executable appears in your local bin/ directory on your host machine.
 
 This is what happens inside the container (or on your linux machine)
