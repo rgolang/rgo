@@ -133,7 +133,7 @@ docker build -t rgo-compiler .
 docker run --rm -i rgo-compiler < code/hello.rgo
 ```
 
-The resulting executable appears in your local bin/ directory on your host machine.
+This compiles and runs `code/hello.rgo`
 
 This is what happens inside the container (or on your linux machine)
 ```sh
