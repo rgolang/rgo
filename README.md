@@ -180,6 +180,8 @@ Functions such as sin, cos, sqrt, and friends are not yet exposed. Interfacing t
 Aggregate data structures are not yet supported. There is no syntax or type-level encoding for contiguous memory layouts, indexing, or bounds semantics.
 - Minimal runtime surface  
 At present, the only “standard library” consists of printf, sprintf, and arbitrary native NASM instructions. Everything else must be built manually.
+- Loops leak memory  
+Loops are implemented using recursion, and recursion currently doesn't detect closure release logic and runs out of memory
 
 Despite that, functionality is slowly expanding, and the compiler architecture is structured so these features can be added piece by piece while keeping the language’s core goals (simplicity, explicitness, and predictability) intact.
 
