@@ -6,10 +6,10 @@
 @/add
 @/exit
 
-foo: (){
+foo: (ok:()){
     (x: int) = add(1, 2)
-    sprintf("result: %d\n", x, (s:str){
-        write(s, exit(0))
-    })
+    (s:str) = sprintf("result: %d\n", x)
+    write(s, ok)
 }
-foo()
+() = foo()
+exit(0)
