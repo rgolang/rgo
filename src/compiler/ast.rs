@@ -8,6 +8,7 @@ pub enum Item {
     Import {
         name: String,
         span: Span,
+        is_libc: bool,
     },
     TypeDef {
         name: String,
@@ -51,6 +52,8 @@ pub enum TypeRef {
     CompileTimeStr,
     Type(Vec<TypeRef>),
     Alias(String),
+    AliasInstance { name: String, args: Vec<TypeRef> },
+    Generic(String),
 }
 
 #[derive(Debug, Clone)]

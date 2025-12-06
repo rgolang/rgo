@@ -1,0 +1,18 @@
+@/str
+@/int
+@/exit
+@/printf
+@/add
+
+foo: (x:int, y:int, ok:(int)){
+    add(x, y, ok)
+}
+run: (ok:()){
+    f: foo(1)
+    a: f(2)
+    k: (x:int){
+        printf("number: %d", x, ok) 
+    }
+    a(k)
+}
+run(exit(0))

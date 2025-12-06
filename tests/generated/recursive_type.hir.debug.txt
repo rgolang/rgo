@@ -4,13 +4,18 @@
         params: [
             Param {
                 name: "node",
-                ty: Alias(
-                    "tail",
+                ty: Type(
+                    [
+                        Int,
+                        Alias(
+                            "tail",
+                        ),
+                    ],
                 ),
                 span: Span {
                     line: 7,
                     column: 12,
-                    offset: 59,
+                    offset: 62,
                 },
                 is_variadic: false,
             },
@@ -24,7 +29,7 @@
                         span: Span {
                             line: 8,
                             column: 12,
-                            offset: 84,
+                            offset: 87,
                         },
                     },
                 ),
@@ -35,21 +40,11 @@
                         span: Span {
                             line: 8,
                             column: 24,
-                            offset: 96,
+                            offset: 99,
                         },
                         result: Some(
                             "__temp_1",
                         ),
-                    },
-                ),
-                ReleaseEnv(
-                    ReleaseEnv {
-                        name: "node",
-                        span: Span {
-                            line: 8,
-                            column: 5,
-                            offset: 77,
-                        },
                     },
                 ),
                 Invocation(
@@ -61,7 +56,7 @@
                                 span: Span {
                                     line: 8,
                                     column: 12,
-                                    offset: 84,
+                                    offset: 87,
                                 },
                             },
                             Arg {
@@ -69,14 +64,14 @@
                                 span: Span {
                                     line: 8,
                                     column: 24,
-                                    offset: 96,
+                                    offset: 99,
                                 },
                             },
                         ],
                         span: Span {
                             line: 8,
                             column: 5,
-                            offset: 77,
+                            offset: 80,
                         },
                         result: None,
                     },
@@ -85,13 +80,13 @@
             span: Span {
                 line: 7,
                 column: 24,
-                offset: 71,
+                offset: 74,
             },
         },
         span: Span {
             line: 7,
             column: 1,
-            offset: 48,
+            offset: 51,
         },
     },
     Function {
@@ -106,7 +101,7 @@
                         span: Span {
                             line: 8,
                             column: 29,
-                            offset: 101,
+                            offset: 104,
                         },
                     },
                 ),
@@ -119,14 +114,14 @@
                                 span: Span {
                                     line: 8,
                                     column: 29,
-                                    offset: 101,
+                                    offset: 104,
                                 },
                             },
                         ],
                         span: Span {
                             line: 8,
                             column: 24,
-                            offset: 96,
+                            offset: 99,
                         },
                         result: None,
                     },
@@ -135,13 +130,13 @@
             span: Span {
                 line: 8,
                 column: 24,
-                offset: 96,
+                offset: 99,
             },
         },
         span: Span {
             line: 8,
             column: 24,
-            offset: 96,
+            offset: 99,
         },
     },
     Function {
@@ -156,7 +151,7 @@
                         span: Span {
                             line: 12,
                             column: 12,
-                            offset: 131,
+                            offset: 134,
                         },
                     },
                 ),
@@ -167,7 +162,7 @@
                         span: Span {
                             line: 12,
                             column: 20,
-                            offset: 139,
+                            offset: 142,
                         },
                         result: Some(
                             "__temp_4",
@@ -183,7 +178,7 @@
                                 span: Span {
                                     line: 12,
                                     column: 12,
-                                    offset: 131,
+                                    offset: 134,
                                 },
                             },
                             Arg {
@@ -191,14 +186,14 @@
                                 span: Span {
                                     line: 12,
                                     column: 20,
-                                    offset: 139,
+                                    offset: 142,
                                 },
                             },
                         ],
                         span: Span {
                             line: 12,
                             column: 5,
-                            offset: 124,
+                            offset: 127,
                         },
                         result: None,
                     },
@@ -207,13 +202,13 @@
             span: Span {
                 line: 11,
                 column: 11,
-                offset: 118,
+                offset: 121,
             },
         },
         span: Span {
             line: 11,
             column: 1,
-            offset: 108,
+            offset: 111,
         },
     },
     Function {
@@ -228,7 +223,7 @@
                         span: Span {
                             line: 12,
                             column: 25,
-                            offset: 144,
+                            offset: 147,
                         },
                     },
                 ),
@@ -241,14 +236,14 @@
                                 span: Span {
                                     line: 12,
                                     column: 25,
-                                    offset: 144,
+                                    offset: 147,
                                 },
                             },
                         ],
                         span: Span {
                             line: 12,
                             column: 20,
-                            offset: 139,
+                            offset: 142,
                         },
                         result: None,
                     },
@@ -257,13 +252,13 @@
             span: Span {
                 line: 12,
                 column: 20,
-                offset: 139,
+                offset: 142,
             },
         },
         span: Span {
             line: 12,
             column: 20,
-            offset: 139,
+            offset: 142,
         },
     },
     Function {
@@ -278,7 +273,7 @@
                         span: Span {
                             line: 15,
                             column: 1,
-                            offset: 151,
+                            offset: 154,
                         },
                         result: None,
                     },
@@ -287,13 +282,13 @@
             span: Span {
                 line: 15,
                 column: 1,
-                offset: 151,
+                offset: 154,
             },
         },
         span: Span {
             line: 15,
             column: 1,
-            offset: 151,
+            offset: 154,
         },
     },
 ]

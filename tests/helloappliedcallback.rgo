@@ -1,6 +1,6 @@
-@str
-@printf
-@exit
+@/str
+@/printf
+@/exit
 
 bar: (m1:str, m2:str, ok:()) {
     printf("msg1: %s, msg2: %s\n", m1, m2, ok)

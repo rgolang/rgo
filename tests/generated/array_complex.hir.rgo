@@ -1,0 +1,39 @@
+err: (){
+    __temp_0: "none"
+    __temp_1: __lambda_0()
+    write(__temp_0, __temp_1)
+}
+
+__lambda_0: (){
+    __temp_2: 0
+    exit(__temp_2)
+}
+
+array: (...items:((int, (int, (), (str)))), ok:(int, (int, (), (str)))){
+    items(ok)
+}
+
+_start: (){
+    __temp_3: "a"
+    __temp_4: "b"
+    __temp_5: "c"
+    __temp_6: __lambda_1()
+    array(__temp_3, __temp_4, __temp_5, __temp_6)
+}
+
+__lambda_1: (len: int, nth:(int, (), (str))){
+    i: 1
+    __temp_7: __lambda_2(i)
+    nth(i, err, __temp_7)
+}
+
+__lambda_2: (i: int, v: str){
+    __temp_8: "item at %d: %s"
+    __temp_9: __lambda_3()
+    printf(__temp_8, i, v, __temp_9)
+}
+
+__lambda_3: (){
+    __temp_10: 0
+    exit(__temp_10)
+}

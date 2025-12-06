@@ -1,19 +1,17 @@
-nil: (next:(int, list), end:()){
-    munmap(next)
+nil: (next:(int, ((int, list), ())), end:()){
     end()
 }
 
-cons: (head: int, tail: list, next:(int, list), end:()){
-    munmap(end)
+cons: (head: int, tail:((int, list), ()), next:(int, ((int, list), ())), end:()){
     next(head, tail)
 }
 
-iterate: (handler:(int, __type_1), arr: list, end:()){
+iterate: (handler:(int, ()), arr:((int, list), ()), end:()){
     __temp_0: __lambda_0(handler, end)
     arr(__temp_0, end)
 }
 
-__lambda_0: (handler:(int, __type_1), end:(), head: int, tail: list){
+__lambda_0: (handler:(int, ()), end:(), head: int, tail:((int, list), ())){
     __temp_1: iterate(handler, tail, end)
     handler(head, __temp_1)
 }

@@ -1,7 +1,6 @@
-identity: (node: tail){
+identity: (node:(int, tail)){
     __temp_0: "unused\n"
     __temp_1: __lambda_0()
-    munmap(node)
     printf(__temp_0, __temp_1)
 }
 

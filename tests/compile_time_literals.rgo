@@ -1,7 +1,7 @@
-@str
-@int
-@printf
-@exit
+@/str
+@/int
+@/printf
+@/exit
 
 not_const_msg: (fmt: str, value: int!) {
     printf(fmt, value, exit(0))

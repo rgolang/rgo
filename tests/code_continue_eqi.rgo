@@ -1,0 +1,23 @@
+@/str
+@/int
+@/exit
+@/printf
+@/add
+@/eqi
+
+foo: (x:int, y:int, ok:(int)){
+    add(x, y, ok)
+}
+run: (ok:()){
+    f: foo(1) // `f` is now `(y:int, ok:(int))`
+    a: f(2) // `a` is now `(ok:(int))`
+    k: (x:int){
+        printf("number: %d", x, ok) 
+    }
+    eqi(1, 1, {
+        a(k)
+    }, {
+        a(k)
+    })
+}
+run(exit(0))

@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::compiler::error::ResolveError;
-use crate::compiler::hir::{Arg, Block, BlockItem, Function, ReleaseEnv};
+use crate::compiler::hir::{Arg, Block, BlockItem, Function};
 use crate::compiler::span::Span;
 use crate::compiler::symbol::SymbolRegistry;
 
@@ -46,9 +46,6 @@ fn resolve_block(
                 if let Some(result) = &invocation.result {
                     scope.define(result);
                 }
-            }
-            BlockItem::ReleaseEnv(ReleaseEnv { name, span }) => {
-                resolve_target(name, scope, symbols, *span)?;
             }
         }
     }

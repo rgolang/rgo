@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashSet, VecDeque};
 use std::io::BufRead;
 
 use crate::compiler::ast::{
@@ -15,8 +15,7 @@ pub struct Parser<R: BufRead> {
     lexer: Lexer<R>,
     peeked: VecDeque<Token>,
     allow_top_imports: bool,
-    allow_partial_application: bool, //  TODO: what's this?
-    token_recordings: Vec<Vec<Token>>,
+    generic_param_stack: Vec<Vec<String>>,
 }
 
 #[derive(Copy, Clone)]
@@ -31,13 +30,13 @@ impl<R: BufRead> Parser<R> {
             lexer,
             peeked: VecDeque::new(),
             allow_top_imports: true,
-            allow_partial_application: false,
-            token_recordings: Vec::new(),
+            generic_param_stack: Vec::new(),
         }
     }
 
     pub fn next(&mut self, symbols: &mut SymbolRegistry) -> Result<Option<Item>, CompileError> {
         loop {
+            self.skip_newlines()?;
             let token = self.peek_token()?.clone();
             let span: Span = token.span;
             match token.kind {
@@ -52,19 +51,33 @@ impl<R: BufRead> Parser<R> {
                     }
                     self.bump()?; // consume import token
                     builtins::register_import(&name, span, symbols)?;
-                    return Ok(Some(Item::Import { name, span }));
+                    let is_libc = builtins::is_libc_import(&name);
+                    return Ok(Some(Item::Import {
+                        name,
+                        span,
+                        is_libc,
+                    }));
                 }
                 _ => {
                     self.allow_top_imports = false;
                     let item = self.parse_block_item(symbols)?;
-                    self.consume_optional_semicolons()?;
+                    self.consume_block_item_separators()?;
                     return Ok(Some(item));
                 }
             }
         }
     }
 
+    fn skip_newlines(&mut self) -> Result<(), CompileError> {
+        while self
+            .consume_if(|k| matches!(k, TokenKind::Newline))?
+            .is_some()
+        {}
+        Ok(())
+    }
+
     fn parse_block_item(&mut self, symbols: &mut SymbolRegistry) -> Result<Item, CompileError> {
+        self.skip_newlines()?;
         let token = self.peek_token()?.clone();
         let span: Span = token.span;
         match token.kind {
@@ -80,17 +93,14 @@ impl<R: BufRead> Parser<R> {
                 self.peeked.push_front(ident); // restore token to attempt invocation parse
             }
             TokenKind::LParen => {
-                if let Some(scope_capture) = self.try_parse_scope_capture(symbols)? {
-                    return Ok(scope_capture);
-                }
+                return self.parse_lambda_or_scope_capture(symbols);
             }
-            TokenKind::LBrace => {
-                // allow lambda invocation (possibly without args)
-            }
+            TokenKind::LBrace => {} // allow lambda invocation (possibly without args)
+            TokenKind::Newline => {}
             _ => return Err(ParseError::new("expected a top-level item", span).into()),
         }
 
-        let term = self.parse_invocation_term(symbols)?;
+        let term = self.parse_term(symbols)?;
         match term {
             Term::String(literal) => {
                 return Err(
@@ -107,90 +117,170 @@ impl<R: BufRead> Parser<R> {
         }
     }
 
-    fn try_parse_scope_capture(
+    fn parse_bind(
         &mut self,
+        name: String,
+        name_span: Span,
         symbols: &mut SymbolRegistry,
-    ) -> Result<Option<Item>, CompileError> {
-        let (params, recorded_tokens) =
-            self.with_token_recording(|parser| parser.parse_params(symbols, ParamContext::Lambda))?;
-        if matches!(self.peek_token()?.kind, TokenKind::Equals) {
-            self.bump()?; // consume '='
-            let prev = self.allow_partial_application;
-            self.allow_partial_application = true;
-            let (term, term_tokens) =
-                self.with_token_recording(|parser| parser.parse_term(symbols))?;
-            self.allow_partial_application = prev;
-            if matches!(self.peek_token()?.kind, TokenKind::Equals) {
-                self.reinsert_trailing_empty_parens(&term_tokens)?;
-            }
-            let capture_span = params.span;
-            return Ok(Some(Item::ScopeCapture {
-                params,
-                term,
-                span: capture_span,
-            }));
+    ) -> Result<Item, CompileError> {
+        let generics = self.parse_generic_params()?;
+        let next_token = self.peek_token()?.clone();
+        let params_span = next_token.span;
+        let has_head = matches!(next_token.kind, TokenKind::LParen);
+        let has_brace = matches!(next_token.kind, TokenKind::LBrace);
+
+        if has_brace && !generics.is_empty() {
+            return Err(ParseError::new(
+                "generics are only supported on type aliases",
+                next_token.span,
+            )
+            .into());
         }
 
-        for token in recorded_tokens.into_iter().rev() {
-            self.peeked.push_front(token);
-        }
-        Ok(None)
-    }
-
-    fn reinsert_trailing_empty_parens(&mut self, tokens: &[Token]) -> Result<(), CompileError> {
-        let mut len = tokens.len();
-        while len >= 2 {
-            if matches!(tokens[len - 2].kind, TokenKind::LParen)
-                && matches!(tokens[len - 1].kind, TokenKind::RParen)
-            {
-                self.peeked.push_front(tokens[len - 1].clone());
-                self.peeked.push_front(tokens[len - 2].clone());
-                len -= 2;
+        if has_head || has_brace {
+            symbols.install_type(
+                name.clone(),
+                TypeRef::Alias(name.clone()),
+                name_span,
+                Vec::new(),
+                generics.clone(),
+            )?;
+            let params = if has_head {
+                self.with_generic_scope(&generics, |parser| {
+                    parser.parse_params(symbols, ParamContext::Params)
+                })?
             } else {
-                break;
+                Params {
+                    items: Vec::new(),
+                    span: params_span,
+                }
+            };
+            let param_variadic = params
+                .items
+                .iter()
+                .map(|param| param.is_variadic())
+                .collect::<Vec<bool>>();
+
+            if matches!(self.peek_token()?.kind, TokenKind::LBrace) {
+                // FUNCTION CASE
+                symbols.remove_type(&name);
+                let param_types = Self::collect_param_types(&params.items)?;
+                let sig = FunctionSig {
+                    name: name.clone(),
+                    params: param_types.clone(),
+                    is_variadic: param_variadic.clone(),
+                    span: name_span,
+                };
+                symbols.declare_function(sig)?;
+
+                let brace = self.expect_token("{", |k| matches!(k, TokenKind::LBrace))?;
+                let body = self.parse_body(symbols, brace.span)?;
+
+                let lambda = Lambda {
+                    params,
+                    body,
+                    args: Vec::new(),
+                    span: name_span,
+                };
+
+                return Ok(Item::FunctionDef {
+                    name,
+                    lambda,
+                    span: name_span,
+                });
+            }
+
+            if has_head {
+                let param_types = Self::collect_param_types(&params.items)?;
+                let target = TypeRef::Type(param_types);
+                symbols.update_type(&name, target.clone(), param_variadic.clone())?;
+                return Ok(Item::TypeDef {
+                    name,
+                    term: target,
+                    span: name_span,
+                });
             }
         }
-        Ok(())
+
+        // Case 2: alias or literal (no params or body block)
+        let term = self.parse_term(symbols)?;
+        let term_span = term.span();
+        return match term {
+            Term::String(literal) => Ok(Item::StrDef {
+                name,
+                literal,
+                span: name_span,
+            }),
+            Term::Int(literal) => Ok(Item::IntDef {
+                name,
+                literal,
+                span: name_span,
+            }),
+            Term::Ident(ident) => Ok(Item::IdentDef {
+                name,
+                ident,
+                span: name_span,
+            }),
+            _ => Err(ParseError::new(
+                "expected a literal or identifier alias on the right-hand side",
+                term_span,
+            )
+            .into()),
+        };
     }
 
-    fn parse_invocation_term(
+    fn parse_lambda_or_scope_capture(
         &mut self,
         symbols: &mut SymbolRegistry,
-    ) -> Result<Term, CompileError> {
-        let prev = self.allow_partial_application;
-        self.allow_partial_application = true;
-        let result = self.parse_term(symbols);
-        self.allow_partial_application = prev;
-        result
+    ) -> Result<Item, CompileError> {
+        // 1. Parse params ALWAYS
+        let params = self.parse_params(symbols, ParamContext::Lambda)?;
+
+        // 2. Decide based on the next token
+        match self.peek_token()?.kind {
+            TokenKind::Equals => {
+                self.bump()?; // consume '='
+                let term = self.parse_term(symbols)?;
+                Ok(Item::ScopeCapture {
+                    params: params.clone(),
+                    term,
+                    span: params.span,
+                })
+            }
+            TokenKind::LBrace => {
+                // Parse lambda body as a term
+                let mut term = self.parse_term(symbols)?;
+
+                match &mut term {
+                    Term::Lambda(lambda) => {
+                        // attach params parsed earlier
+                        lambda.params = params;
+
+                        Ok(Item::Lambda(lambda.clone()))
+                    }
+                    _ => Err(ParseError::new(
+                        "expected lambda body after parameter list",
+                        params.span,
+                    )
+                    .into()),
+                }
+            }
+
+            _ => {
+                Err(ParseError::new("expected '=' or '{' after parameter list", params.span).into())
+            }
+        }
     }
 
     fn parse_term(&mut self, symbols: &mut SymbolRegistry) -> Result<Term, CompileError> {
         let mut term = self.parse_head(symbols)?;
 
         while matches!(self.peek_token()?.kind, TokenKind::LParen) {
-            if self.next_tokens_indicate_scope_capture()? {
-                break;
-            }
-            let lparen = self.bump()?;
+            let lparen = self.bump()?; // consume '('
             let args = self.parse_argument_list(symbols)?;
 
             match &mut term {
                 Term::Ident(ident) => {
-                    if let Some(sig) = symbols.get_function(&ident.name) {
-                        let expected = sig.params.len();
-                        let got = ident.args.len() + args.len();
-
-                        if !self.allow_partial_application && expected != got {
-                            return Err(ParseError::new(
-                                format!(
-                                    "function '{}' expects {} arguments but got {}",
-                                    ident.name, expected, got
-                                ),
-                                lparen.span,
-                            )
-                            .into());
-                        }
-                    }
                     ident.args.extend(args);
                 }
                 Term::Lambda(lambda) => {
@@ -209,28 +299,9 @@ impl<R: BufRead> Parser<R> {
         Ok(term)
     }
 
-    fn next_tokens_indicate_scope_capture(&mut self) -> Result<bool, CompileError> {
-        if !matches!(self.peek_token()?.kind, TokenKind::LParen) {
-            return Ok(false);
-        }
-        if let TokenKind::Ident(_) = &self.peek_nth_token(1)?.kind {
-            if matches!(self.peek_nth_token(2)?.kind, TokenKind::Colon) {
-                return Ok(true);
-            }
-        }
-        Ok(false)
-    }
-
-    fn peek_nth_token(&mut self, index: usize) -> Result<&Token, CompileError> {
-        while self.peeked.len() <= index {
-            let token = self.lexer.next_token().map_err(CompileError::from)?;
-            self.peeked.push_back(token);
-        }
-        Ok(&self.peeked[index])
-    }
-
     // parse_head parses primary terms: literals, variables, and lambdas before any curried args.
     fn parse_head(&mut self, symbols: &mut SymbolRegistry) -> Result<Term, CompileError> {
+        self.skip_newlines()?;
         let token = self.bump()?;
         match token.kind {
             TokenKind::IntLiteral(value) => Ok(Term::Int(IntLiteral {
@@ -273,7 +344,9 @@ impl<R: BufRead> Parser<R> {
                     span: token.span,
                 }))
             }
-            _ => Err(ParseError::new("unexpected token", token.span).into()),
+            _ => Err(
+                ParseError::new(&format!("unexpected token: {:?}", token.kind), token.span).into(),
+            ),
         }
     }
 
@@ -350,6 +423,54 @@ impl<R: BufRead> Parser<R> {
         })
     }
 
+    fn parse_generic_params(&mut self) -> Result<Vec<String>, CompileError> {
+        if !matches!(self.peek_token()?.kind, TokenKind::AngleOpen) {
+            return Ok(Vec::new());
+        }
+        let lt = self.expect_token("<", |kind| matches!(kind, TokenKind::AngleOpen))?;
+        let mut params = Vec::new();
+        let mut seen = HashSet::new();
+        loop {
+            let (name, span) = self.parse_identifier("generic parameter name")?;
+            if !seen.insert(name.clone()) {
+                return Err(ParseError::new(
+                    format!("generic parameter '{}' already declared", name),
+                    span,
+                )
+                .into());
+            }
+            params.push(name);
+            if self
+                .consume_if(|kind| matches!(kind, TokenKind::Comma))?
+                .is_none()
+            {
+                break;
+            }
+        }
+        self.expect_token(">", |kind| matches!(kind, TokenKind::AngleClose))?;
+        if params.is_empty() {
+            return Err(ParseError::new("expected at least one generic parameter", lt.span).into());
+        }
+        Ok(params)
+    }
+
+    fn with_generic_scope<F, Res>(&mut self, params: &[String], f: F) -> Result<Res, CompileError>
+    where
+        F: FnOnce(&mut Self) -> Result<Res, CompileError>,
+    {
+        self.generic_param_stack.push(params.to_vec());
+        let result = f(self);
+        self.generic_param_stack.pop();
+        result
+    }
+
+    fn is_generic_param(&self, name: &str) -> bool {
+        self.generic_param_stack
+            .iter()
+            .rev()
+            .any(|scope| scope.iter().any(|param| param == name))
+    }
+
     fn consume_variadic_marker(&mut self) -> Result<bool, CompileError> {
         if matches!(self.peek_token()?.kind, TokenKind::Ellipsis) {
             self.bump()?;
@@ -370,110 +491,23 @@ impl<R: BufRead> Parser<R> {
             .collect()
     }
 
-    fn parse_bind(
+    fn parse_type_arguments(
         &mut self,
-        name: String,
-        name_span: Span,
         symbols: &mut SymbolRegistry,
-    ) -> Result<Item, CompileError> {
-        let next_token = self.peek_token()?.clone();
-        let params_span = next_token.span;
-        let has_head = matches!(next_token.kind, TokenKind::LParen);
-        let has_brace = matches!(next_token.kind, TokenKind::LBrace);
-
-        if has_head || has_brace {
-            symbols.install_type(
-                name.clone(),
-                TypeRef::Alias(name.clone()),
-                name_span,
-                Vec::new(),
-            )?;
-            let params = if has_head {
-                self.parse_params(symbols, ParamContext::Params)?
-            } else {
-                Params {
-                    items: Vec::new(),
-                    span: params_span,
-                }
-            };
-            let param_variadic = params
-                .items
-                .iter()
-                .map(|param| param.is_variadic())
-                .collect::<Vec<bool>>();
-
-            if matches!(self.peek_token()?.kind, TokenKind::LBrace) {
-                // FUNCTION CASE
-                symbols.remove_type(&name);
-                let param_types = Self::collect_param_types(&params.items)?;
-                let sig = FunctionSig {
-                    name: name.clone(),
-                    params: param_types.clone(),
-                    is_variadic: param_variadic.clone(),
-                    span: name_span,
-                };
-                symbols.declare_function(sig)?;
-
-                let brace = self.expect_token("{", |k| matches!(k, TokenKind::LBrace))?;
-                let body = self.parse_body(symbols, brace.span)?;
-
-                let lambda = Lambda {
-                    params,
-                    body,
-                    args: Vec::new(),
-                    span: name_span,
-                };
-
-                return Ok(Item::FunctionDef {
-                    name,
-                    lambda,
-                    span: name_span,
-                });
-            }
-
-            if has_head {
-                let param_types = Self::collect_param_types(&params.items)?;
-                let target = TypeRef::Type(param_types);
-                symbols.update_type(&name, target.clone(), param_variadic.clone())?;
-                return Ok(Item::TypeDef {
-                    name,
-                    term: target,
-                    span: name_span,
-                });
+    ) -> Result<Vec<TypeRef>, CompileError> {
+        self.expect_token("<", |kind| matches!(kind, TokenKind::AngleOpen))?;
+        let mut args = Vec::new();
+        loop {
+            args.push(self.parse_type_ref(symbols)?);
+            if self
+                .consume_if(|kind| matches!(kind, TokenKind::Comma))?
+                .is_none()
+            {
+                break;
             }
         }
-
-        // Case alias or literal (no params or body block)
-        let term = {
-            let prev = self.allow_partial_application;
-            self.allow_partial_application = true;
-            let result = self.parse_term(symbols);
-            self.allow_partial_application = prev;
-            result
-        }?;
-        let term_span = term.span();
-        return match term {
-            Term::String(literal) => Ok(Item::StrDef {
-                name,
-                literal,
-                span: name_span,
-            }),
-            Term::Int(literal) => Ok(Item::IntDef {
-                name,
-                literal,
-                span: name_span,
-            }),
-            Term::Ident(ident) => Ok(Item::IdentDef {
-                name,
-                ident,
-                span: name_span,
-            }),
-            _ => Err(ParseError::new(
-                "expected a literal or identifier alias on the right-hand side",
-                term_span,
-            )
-            .into()),
-        };
+        self.expect_token(">", |kind| matches!(kind, TokenKind::AngleClose))?;
+        Ok(args)
     }
 
     fn parse_type_ref(&mut self, symbols: &mut SymbolRegistry) -> Result<TypeRef, CompileError> {
@@ -516,11 +550,14 @@ impl<R: BufRead> Parser<R> {
                 Ok(ty)
             }
             TokenKind::Ident(name) => {
+                if self.is_generic_param(&name) {
+                    return Ok(TypeRef::Generic(name));
+                }
                 if matches!(self.peek_token()?.kind, TokenKind::Bang) {
                     if name == "str" {
                         if !symbols.builtin_imports().contains("str") {
                             return Err(ParseError::new(
-                                "type 'str!' requires @str import",
+                                "type 'str!' requires @/str import",
                                 token.span,
                             )
                             .into());
@@ -531,7 +568,7 @@ impl<R: BufRead> Parser<R> {
                     if name == "int" {
                         if !symbols.builtin_imports().contains("int") {
                             return Err(ParseError::new(
-                                "type 'int!' requires @int import",
+                                "type 'int!' requires @/int import",
                                 token.span,
                             )
                             .into());
@@ -541,7 +578,49 @@ impl<R: BufRead> Parser<R> {
                     }
                     return Err(ParseError::new("unexpected '!'", token.span).into());
                 }
-                if let Some(ty) = symbols.resolve_type(&name) {
+                let resolved_type = symbols.resolve_type(&name);
+                if matches!(self.peek_token()?.kind, TokenKind::AngleOpen) {
+                    let args = self.parse_type_arguments(symbols)?;
+                    if let Some(info) = symbols.get_type_info(&name) {
+                        if info.generics.len() != args.len() {
+                            return Err(ParseError::new(
+                                format!(
+                                    "type '{}' expects {} generic arguments but got {}",
+                                    name,
+                                    info.generics.len(),
+                                    args.len()
+                                ),
+                                token.span,
+                            )
+                            .into());
+                        }
+                    } else if resolved_type.is_some() {
+                        return Err(ParseError::new(
+                            format!("type '{}' is not generic", name),
+                            token.span,
+                        )
+                        .into());
+                    } else {
+                        return Err(ParseError::new(
+                            format!("unknown type '{}'", name),
+                            token.span,
+                        )
+                        .into());
+                    }
+                    return Ok(TypeRef::AliasInstance { name, args });
+                }
+                if let Some(ty) = resolved_type {
+                    if let TypeRef::Alias(alias_name) = &ty {
+                        if let Some(info) = symbols.get_type_info(alias_name) {
+                            if !info.generics.is_empty() {
+                                return Err(ParseError::new(
+                                    format!("generic type '{}' must be specialized", alias_name),
+                                    token.span,
+                                )
+                                .into());
+                            }
+                        }
+                    }
                     Ok(ty)
                 } else {
                     Err(ParseError::new(format!("unknown type '{}'", name), token.span).into())
@@ -613,28 +692,10 @@ impl<R: BufRead> Parser<R> {
     }
 
     fn bump(&mut self) -> Result<Token, CompileError> {
-        let token = if let Some(token) = self.peeked.pop_front() {
-            token
-        } else {
-            self.lexer.next_token().map_err(CompileError::from)?
-        };
-        if let Some(recordings) = self.token_recordings.last_mut() {
-            recordings.push(token.clone());
+        if let Some(token) = self.peeked.pop_front() {
+            return Ok(token);
         }
-        Ok(token)
-    }
-
-    fn with_token_recording<F, Res>(&mut self, f: F) -> Result<(Res, Vec<Token>), CompileError>
-    where
-        F: FnOnce(&mut Self) -> Result<Res, CompileError>,
-    {
-        self.token_recordings.push(Vec::new());
-        let result = f(self);
-        let recorded = self
-            .token_recordings
-            .pop()
-            .expect("recording stack should not be empty");
-        result.map(|value| (value, recorded))
+        self.lexer.next_token().map_err(CompileError::from)
     }
 
     fn peek_token(&mut self) -> Result<&Token, CompileError> {
@@ -656,6 +717,13 @@ impl<R: BufRead> Parser<R> {
                 let token = self.peek_token()?;
                 match token.kind {
                     TokenKind::RBrace => {
+                        if items.is_empty() {
+                            return Err(ParseError::new(
+                                "block must contain at least one item",
+                                token.span,
+                            )
+                            .into());
+                        }
                         self.bump()?;
                         return Ok(Block {
                             items,
@@ -667,11 +735,11 @@ impl<R: BufRead> Parser<R> {
                             "unexpected EOF inside continuation body",
                             token.span,
                         )
-                        .into())
+                        .into());
                     }
                     _ => {
                         let item = self.parse_block_item(symbols)?;
-                        self.consume_optional_semicolons()?;
+                        self.consume_block_item_separators()?;
                         items.push(item);
                     }
                 }
@@ -679,11 +747,36 @@ impl<R: BufRead> Parser<R> {
         })()
     }
 
-    fn consume_optional_semicolons(&mut self) -> Result<(), CompileError> {
+    fn consume_block_item_separators(&mut self) -> Result<(), CompileError> {
         while self
-            .consume_if(|kind| matches!(kind, TokenKind::Semicolon))?
+            .consume_if(|kind| matches!(kind, TokenKind::Semicolon | TokenKind::Newline))?
             .is_some()
         {}
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::compiler::lexer::Lexer;
+    use crate::compiler::symbol::SymbolRegistry;
+    use std::io::Cursor;
+
+    #[test]
+    fn parse_body_rejects_empty_block() {
+        let mut parser = Parser::new(Lexer::new(Cursor::new("{}")));
+        let mut symbols = SymbolRegistry::new();
+        let brace = parser
+            .expect_token("{", |kind| matches!(kind, TokenKind::LBrace))
+            .expect("expected opening brace");
+        let err = parser
+            .parse_body(&mut symbols, brace.span)
+            .expect_err("empty block must fail");
+        assert!(
+            err.to_string()
+                .contains("block must contain at least one item"),
+            "unexpected error: {err}"
+        );
     }
 }

@@ -1,4 +1,4 @@
-one: (f:(int, __type_0), x: int, ok:(int)){
+one: (f:(int, (int)), x: int, ok:(int)){
     f(x, ok)
 }
 

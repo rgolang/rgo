@@ -3,15 +3,17 @@ use std::io::{BufRead, Write};
 pub mod ast;
 pub mod builtins;
 pub mod codegen;
-pub mod codegen_model;
 pub mod error;
 pub mod hir;
 pub mod lexer;
+pub mod mir;
 pub mod parser;
 pub mod resolver;
+pub mod runtime;
 pub mod span;
 pub mod symbol;
 pub mod token;
+pub mod type_utils;
 
 #[cfg(test)]
 mod codegen_test;
@@ -23,8 +25,8 @@ mod lexer_test;
 mod parser_test;
 pub mod test_utils;
 
-use crate::compiler::codegen_model::AsmModule;
 use crate::compiler::hir::{normalize_type_alias, ConstantValue, Env, EnvEntry, Function};
+use crate::compiler::mir::MirModule;
 use ast::{Item, TypeRef};
 use error::{CompileError, ParseError};
 use lexer::Lexer;
@@ -33,7 +35,7 @@ use span::Span;
 use symbol::SymbolRegistry;
 
 pub struct CompileMetadata {
-    pub asm_model: AsmModule,
+    pub mir_module: MirModule,
 }
 
 pub fn compile<R: BufRead, W: Write>(
@@ -163,7 +165,7 @@ pub fn compile<R: BufRead, W: Write>(
     ctx.emit_data(out)?;
 
     let metadata = CompileMetadata {
-        asm_model: ctx.take_asm_module(),
+        mir_module: ctx.take_mir_module(),
     };
     Ok(metadata)
 }
@@ -175,7 +177,9 @@ fn emit_function<W: Write>(
     out: &mut W,
 ) -> Result<(), CompileError> {
     resolver::resolve_function(&func, symbols)?;
-    codegen::function(func, symbols, ctx, out)?;
+    // Convert HIR to MIR before passing to codegen
+    let mir = mir::MirFunction::lower(&func, symbols)?;
+    codegen::function(mir, symbols, ctx, out)?;
     Ok(())
 }
 

@@ -12,9 +12,9 @@ mod tests {
     #[test]
     fn compile_simple_program() {
         let source = r#"
-            @int
-            @add
-            @fmt
+            @/int
+            @/add
+            @/fmt
 
             print_int: (value: int) {
                 fmt("%d", value, write)

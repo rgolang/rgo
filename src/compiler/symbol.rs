@@ -25,6 +25,7 @@ pub struct TypeInfo {
     pub target: TypeRef,
     pub span: Span,
     pub variadic: Vec<bool>,
+    pub generics: Vec<String>,
 }
 
 #[derive(Debug, Default)]
@@ -118,6 +119,7 @@ impl SymbolRegistry {
         term: TypeRef,
         span: Span,
         variadic: Vec<bool>,
+        generics: Vec<String>,
     ) -> Result<(), ParseError> {
         if self.types.contains_key(&name) {
             return Err(ParseError::new(
@@ -132,6 +134,7 @@ impl SymbolRegistry {
                 target: term.clone(),
                 span: span,
                 variadic: variadic.clone(),
+                generics: generics.clone(),
             },
         );
         self.record_type_variadic(term.clone(), variadic.clone());
@@ -184,6 +187,9 @@ impl SymbolRegistry {
                     .map(|param| self.normalize_nested_type(param))
                     .collect::<Vec<_>>();
                 let normalized = TypeRef::Type(normalized_params);
+                if self.type_contains_generic(&normalized, &mut HashSet::new()) {
+                    return normalized;
+                }
                 if let Some(name) = self.named_types.get(&normalized) {
                     return TypeRef::Alias(name.clone());
                 }
@@ -199,11 +205,37 @@ impl SymbolRegistry {
                     normalized.clone(),
                     Span::unknown(),
                     variadic,
+                    Vec::new(),
                 )
                 .expect("failed to register normalized type");
                 TypeRef::Alias(alias_name)
             }
             other => other,
+        }
+    }
+
+    fn type_contains_generic(&self, ty: &TypeRef, visited: &mut HashSet<String>) -> bool {
+        match ty {
+            TypeRef::Generic(_) => true,
+            TypeRef::Type(params) => params
+                .iter()
+                .any(|param| self.type_contains_generic(param, visited)),
+            TypeRef::AliasInstance { args, .. } => args
+                .iter()
+                .any(|arg| self.type_contains_generic(arg, visited)),
+            TypeRef::Alias(name) => {
+                if visited.contains(name) {
+                    return false;
+                }
+                if let Some(info) = self.types.get(name) {
+                    visited.insert(name.clone());
+                    let result = self.type_contains_generic(&info.target, visited);
+                    visited.remove(name);
+                    return result;
+                }
+                false
+            }
+            _ => false,
         }
     }
 
@@ -273,6 +305,17 @@ impl SymbolRegistry {
                 let result = self.get_type_variadic_inner(&info.target, visited);
                 visited.remove(name);
                 return result;
+            }
+        } else if let TypeRef::AliasInstance { name, .. } = ty {
+            if visited.contains(name) {
+                return None;
+            }
+            if let Some(info) = self.types.get(name) {
+                return if !info.variadic.is_empty() {
+                    Some(&info.variadic)
+                } else {
+                    None
+                };
             }
         }
         None

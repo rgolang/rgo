@@ -1,8 +1,8 @@
-@int
-@add
-@write
-@itoa
-@exit
+@/int
+@/add
+@/write
+@/itoa
+@/exit
 
 foo: (a: int, b: int) {
     add(a, b, (n: int){

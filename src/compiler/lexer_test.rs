@@ -13,8 +13,8 @@ fn lexer_test() {
     let str_lit = |value: &str| TokenKind::StringLiteral(value.to_string());
 
     let expected_tokens = vec![
-        import("str"),
-        import("printf"),
+        import("/str"),
+        import("/printf"),
         ident("foo"),
         TokenKind::Colon,
         TokenKind::LParen,

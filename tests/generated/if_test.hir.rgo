@@ -1,0 +1,39 @@
+true: (x:(), y:()){
+    x()
+}
+
+false: (x:(), y:()){
+    y()
+}
+
+if: (cond:((), ()), yes:(), no:()){
+    cond(yes, no)
+}
+
+_start: (){
+    __temp_0: __lambda_0()
+    __temp_4: __lambda_2()
+    if(true, __temp_0, __temp_4)
+}
+
+__lambda_0: (){
+    __temp_1: "works"
+    __temp_2: __lambda_1()
+    printf(__temp_1, __temp_2)
+}
+
+__lambda_1: (){
+    __temp_3: 0
+    exit(__temp_3)
+}
+
+__lambda_2: (){
+    __temp_5: "doesn't work"
+    __temp_6: __lambda_3()
+    printf(__temp_5, __temp_6)
+}
+
+__lambda_3: (){
+    __temp_7: 0
+    exit(__temp_7)
+}

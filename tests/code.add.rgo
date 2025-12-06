@@ -1,4 +1,4 @@
-@add
-@exit
+@/add
+@/exit
 
 add(1, 2, (n: int){ exit(0) })

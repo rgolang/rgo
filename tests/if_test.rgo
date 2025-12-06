@@ -1,0 +1,18 @@
+@/eqi
+@/write
+@/printf
+@/exit
+
+true: (x: (), y: ()){
+    x()
+}
+false: (x: (), y: ()){
+    y()
+}
+if: (cond: ((),()), yes:(), no:()){
+    cond(yes, no)
+}
+() = if(true, {
+    printf("works", exit(0))
+})
+printf("doesn't work", exit(0))

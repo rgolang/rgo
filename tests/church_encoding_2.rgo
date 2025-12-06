@@ -1,8 +1,8 @@
-@str
-@int
-@add
-@printf
-@exit
+@/str
+@/int
+@/add
+@/printf
+@/exit
 two: (f: (int, (int)), x: int, ok: (int)){
     f(x, (y: int){
         f(y, ok)

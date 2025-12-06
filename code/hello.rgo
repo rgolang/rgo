@@ -1,14 +1,14 @@
-@str
-@int
-@printf
-@sprintf
-@write
-@add
-@exit
+@/str
+@/int
+@/printf
+@/sprintf
+@/write
+@/add
+@/exit
 
 foo: (){
     (x: int) = add(1, 2)
-    sprintf("result: %d", x, (s:str){
+    sprintf("result: %d\n", x, (s:str){
         write(s, exit(0))
     })
 }

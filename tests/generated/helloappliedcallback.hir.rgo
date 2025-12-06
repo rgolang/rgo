@@ -3,7 +3,7 @@ bar: (m1: str, m2: str, ok:()){
     printf(__temp_0, m1, m2, ok)
 }
 
-foo: (cb:(str, __type_0), ok:()){
+foo: (cb:(str, ()), ok:()){
     __temp_1: "bye"
     cb(__temp_1, ok)
 }

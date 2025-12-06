@@ -1,0 +1,36 @@
+__lambda_0(f: (int, (int)), ok: (int), y: int) {
+    __temp_1 = __lambda_1(f, ok)
+    f(y, __temp_1)
+}
+
+__lambda_1(f: (int, (int)), ok: (int), z: int) {
+    f(z, ok)
+}
+
+three(f: (int, (int)), x: int, ok: (int)) {
+    __temp_0 = __lambda_0(f, ok)
+    f(x, __temp_0)
+}
+
+__lambda_2(x: int, ok: (int)) {
+    __temp_5 = 10
+    add(x, __temp_5, ok)
+}
+
+__lambda_3(x: int) {
+    __temp_8 = "result: %d"
+    __temp_9 = __lambda_4()
+    printf(__temp_8, x, __temp_9)
+}
+
+__lambda_4() {
+    __temp_10 = 0
+    exit(__temp_10)
+}
+
+_start() {
+    __temp_4 = __lambda_2()
+    __temp_6 = 0
+    __temp_7 = __lambda_3()
+    three(__temp_4, __temp_6, __temp_7)
+}

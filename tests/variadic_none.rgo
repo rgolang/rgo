@@ -1,0 +1,10 @@
+@/str
+@/exit
+@/write
+
+foo: (... items: ((len: int, nth:(idx:int, none:(), one:(str))))) {
+    items((len: int, nth:(idx:int, none:(), one:(str))){
+        nth(3, {write("none", exit(0))}, (v:str){write(v, exit(0))})
+    })
+}
+foo("a", "b", "c")

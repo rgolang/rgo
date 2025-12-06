@@ -1,0 +1,43 @@
+foo: (x: int, y: int, ok:(int)){
+    add(x, y, ok)
+}
+
+run: (ok:()){
+    __temp_0: 1
+    f: foo(__temp_0)
+    __temp_1: 2
+    a: f(__temp_1)
+    __temp_2: 3
+    b: f(__temp_2)
+    k: k
+    __temp_4: 1
+    __temp_5: 1
+    __temp_6: __lambda_0(ok, a)
+    __temp_8: __lambda_1(ok, b)
+    eqi(__temp_4, __temp_5, __temp_6, __temp_8)
+}
+
+k: (ok:(), x: int){
+    __temp_3: "number: %d"
+    printf(__temp_3, x, ok)
+}
+
+__lambda_0: (ok:(), a:((int))){
+    __temp_7: k(ok)
+    a(__temp_7)
+}
+
+__lambda_1: (ok:(), b:((int))){
+    __temp_9: k(ok)
+    b(__temp_9)
+}
+
+_start: (){
+    __temp_12: __lambda_2()
+    run(__temp_12)
+}
+
+__lambda_2: (){
+    __temp_13: 0
+    exit(__temp_13)
+}

@@ -1,0 +1,6 @@
+@/printf
+@/exit
+
+x: 41
+() = printf("the answer is: %d", 42)
+exit(0)

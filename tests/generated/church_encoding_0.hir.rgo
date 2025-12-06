@@ -1,5 +1,4 @@
-zero: (f:(int, __type_0), x: int, ok:(int)){
-    munmap(f)
+zero: (f:(int, (int)), x: int, ok:(int)){
     ok(x)
 }
 

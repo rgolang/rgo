@@ -1,0 +1,28 @@
+bar(a: int, b: int, ok: (int)) {
+    add(a, b, ok)
+}
+
+__lambda_0(ok: (), x: int) {
+    __temp_4 = "got: %d"
+    printf(__temp_4, x, ok)
+}
+
+foo(ok: ()) {
+    __temp_0 = 1
+    b = bar(__temp_0)
+    __temp_1 = 2
+    __temp_2 = 3
+    c2 = b(__temp_2)
+    __temp_3 = __lambda_0(ok)
+    b(__temp_1, __temp_3)
+}
+
+__lambda_1() {
+    __temp_7 = 0
+    exit(__temp_7)
+}
+
+_start() {
+    __temp_6 = __lambda_1()
+    foo(__temp_6)
+}

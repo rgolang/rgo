@@ -1,4 +1,4 @@
-foo: (f:(str, __type_0), ok:()){
+foo: (f:(str, ()), ok:()){
     __temp_0: "42"
     f(__temp_0, ok)
 }

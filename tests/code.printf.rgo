@@ -1,4 +1,4 @@
-@printf
-@exit
+@/printf
+@/exit
 
 printf("hello %s\n", "world", exit(0))

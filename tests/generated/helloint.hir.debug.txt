@@ -11,7 +11,7 @@
                         span: Span {
                             line: 4,
                             column: 1,
-                            offset: 15,
+                            offset: 17,
                         },
                     },
                 ),
@@ -22,7 +22,7 @@
                         span: Span {
                             line: 5,
                             column: 8,
-                            offset: 28,
+                            offset: 30,
                         },
                     },
                 ),
@@ -33,7 +33,7 @@
                         span: Span {
                             line: 5,
                             column: 21,
-                            offset: 41,
+                            offset: 43,
                         },
                     },
                 ),
@@ -44,7 +44,7 @@
                         span: Span {
                             line: 5,
                             column: 25,
-                            offset: 45,
+                            offset: 47,
                         },
                         result: Some(
                             "__temp_2",
@@ -60,7 +60,7 @@
                                 span: Span {
                                     line: 5,
                                     column: 8,
-                                    offset: 28,
+                                    offset: 30,
                                 },
                             },
                             Arg {
@@ -68,7 +68,7 @@
                                 span: Span {
                                     line: 5,
                                     column: 21,
-                                    offset: 41,
+                                    offset: 43,
                                 },
                             },
                             Arg {
@@ -76,14 +76,14 @@
                                 span: Span {
                                     line: 5,
                                     column: 25,
-                                    offset: 45,
+                                    offset: 47,
                                 },
                             },
                         ],
                         span: Span {
                             line: 5,
                             column: 1,
-                            offset: 21,
+                            offset: 23,
                         },
                         result: None,
                     },
@@ -92,13 +92,13 @@
             span: Span {
                 line: 5,
                 column: 1,
-                offset: 21,
+                offset: 23,
             },
         },
         span: Span {
             line: 5,
             column: 1,
-            offset: 21,
+            offset: 23,
         },
     },
     Function {
@@ -113,7 +113,7 @@
                         span: Span {
                             line: 5,
                             column: 30,
-                            offset: 50,
+                            offset: 52,
                         },
                     },
                 ),
@@ -126,14 +126,14 @@
                                 span: Span {
                                     line: 5,
                                     column: 30,
-                                    offset: 50,
+                                    offset: 52,
                                 },
                             },
                         ],
                         span: Span {
                             line: 5,
                             column: 25,
-                            offset: 45,
+                            offset: 47,
                         },
                         result: None,
                     },
@@ -142,13 +142,13 @@
             span: Span {
                 line: 5,
                 column: 25,
-                offset: 45,
+                offset: 47,
             },
         },
         span: Span {
             line: 5,
             column: 25,
-            offset: 45,
+            offset: 47,
         },
     },
 ]

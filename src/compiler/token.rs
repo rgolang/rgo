@@ -38,5 +38,8 @@ pub enum TokenKind {
     Star,
     Slash,
     Bang,
+    Newline,
     Question,
+    AngleOpen,
+    AngleClose,
 }

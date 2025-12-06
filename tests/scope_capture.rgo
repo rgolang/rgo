@@ -1,10 +1,11 @@
-@printf
-@add
-@exit
+@/printf
+@/add
+@/exit
 
-print_sum: (){
+print_sum: (ok:()){
     (total:int) = add(3, 4)
-    printf("sum is %d\n", total, exit(0))
+    printf("sum is %d\n", total, ok)
 }
 
-print_sum
+() = print_sum
+exit(0)

@@ -1,6 +1,6 @@
-@str
-@printf
-@exit
+@/str
+@/printf
+@/exit
 foo: (ok:(str)){
     ok("bob")
 }

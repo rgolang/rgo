@@ -3,12 +3,47 @@ use crate::compiler::error::ParseError;
 use crate::compiler::span::Span;
 use crate::compiler::symbol::{FunctionSig, SymbolRegistry};
 
+/// Determines if an import path depends on libc.
+/// Root imports like /printf, /sprintf, /exit, /puts, /write depend on libc.
+pub fn is_libc_import(import_path: &str) -> bool {
+    // Extract the name from the import path
+    // Format: "/name" for builtins or "owner/name" for user-defined
+    let name = if let Some(slash_pos) = import_path.rfind('/') {
+        &import_path[slash_pos + 1..]
+    } else {
+        import_path
+    };
+
+    matches!(
+        name,
+        "printf"
+            | "sprintf"
+            | "exit"
+            | "puts"
+            | "write"
+            | "write_single_quote"
+            | "write_double_quote"
+    )
+}
+
 pub fn register_import(
-    name: &str,
+    import_path: &str,
     span: Span,
     symbols: &mut SymbolRegistry,
 ) -> Result<(), ParseError> {
+    // Extract the name from the import path
+    // Format: "/name" for builtins or "owner/name" for user-defined
+    let name = if let Some(slash_pos) = import_path.rfind('/') {
+        &import_path[slash_pos + 1..]
+    } else {
+        import_path
+    };
+
+    // ensure both the source name and the emitted wrapper name are recorded
     symbols.record_builtin_import(name);
+    if name == "puts" {
+        symbols.record_builtin_import("rgo_puts");
+    }
     match name {
         "add" => register_function(
             "add",
@@ -136,12 +171,22 @@ pub fn register_import(
             vec![TypeRef::Str, TypeRef::Type(vec![])],
             symbols,
         ),
+        "puts" => {
+            // map source-level `@/puts` to the `rgo_puts` wrapper we emit
+            register_function(
+                "rgo_puts",
+                span,
+                vec![TypeRef::Str, TypeRef::Type(vec![])],
+                symbols,
+            )
+        }
         "rgo_write" => register_function(
             "rgo_write",
             span,
             vec![TypeRef::Str, TypeRef::Type(vec![])],
             symbols,
         ),
+
         "exit" => register_function("exit", span, vec![TypeRef::Int], symbols),
         "printf" => Ok(()),
         "sprintf" => Ok(()),

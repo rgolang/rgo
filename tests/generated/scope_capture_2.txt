@@ -1,35 +1,39 @@
 [
     Import {
-        name: "str",
+        name: "/str",
         span: Span {
             line: 1,
             column: 1,
             offset: 0,
         },
+        is_libc: false,
     },
     Import {
-        name: "int",
+        name: "/int",
         span: Span {
             line: 2,
             column: 1,
-            offset: 5,
+            offset: 6,
         },
+        is_libc: false,
     },
     Import {
-        name: "printf",
+        name: "/printf",
         span: Span {
             line: 3,
             column: 1,
-            offset: 10,
+            offset: 12,
         },
+        is_libc: true,
     },
     Import {
-        name: "add",
+        name: "/add",
         span: Span {
             line: 4,
             column: 1,
-            offset: 18,
+            offset: 21,
         },
+        is_libc: false,
     },
     ScopeCapture {
         params: Params {
@@ -37,7 +41,7 @@
             span: Span {
                 line: 5,
                 column: 1,
-                offset: 23,
+                offset: 27,
             },
         },
         term: Ident(
@@ -50,7 +54,7 @@
                             span: Span {
                                 line: 5,
                                 column: 13,
-                                offset: 35,
+                                offset: 39,
                             },
                         },
                     ),
@@ -58,14 +62,14 @@
                 span: Span {
                     line: 5,
                     column: 6,
-                    offset: 28,
+                    offset: 32,
                 },
             },
         ),
         span: Span {
             line: 5,
             column: 1,
-            offset: 23,
+            offset: 27,
         },
     },
 ]

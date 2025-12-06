@@ -1,0 +1,19 @@
+foo(input: str, ok: ()) {
+    write(input, ok)
+}
+
+bar(msg: str, cb: (str, ()), ok: ()) {
+    cb(msg, ok)
+}
+
+__lambda_0() {
+    __temp_1 = 0
+    exit(__temp_1)
+}
+
+_start() {
+    msg = "hello world"
+    __temp_0 = __lambda_0()
+    __mir_fn_0 = <function foo>; mmap env_size=24 heap_size=56
+    bar(msg, __mir_fn_0, __temp_0)
+}

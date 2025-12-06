@@ -1,0 +1,21 @@
+__lambda_0(ok: (), total: int) {
+    __temp_3 = "sum is %d\n"
+    printf(__temp_3, total, ok)
+}
+
+print_sum(ok: ()) {
+    __temp_0 = 3
+    __temp_1 = 4
+    __temp_2 = __lambda_0(ok)
+    add(__temp_0, __temp_1, __temp_2)
+}
+
+__lambda_1() {
+    __temp_6 = 0
+    exit(__temp_6)
+}
+
+_start() {
+    __temp_5 = __lambda_1()
+    print_sum(__temp_5)
+}

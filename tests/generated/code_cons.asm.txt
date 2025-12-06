@@ -1,9 +1,0 @@
-nil(cb: (int, list), end: ()) {
-    end()
-}
-
-
-cons(h: int, t: list, cb: (int, list), end: ()) {
-    cb(h, t)
-}
-

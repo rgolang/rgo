@@ -1,0 +1,7 @@
+@/str
+@/exit
+
+foo: (... items: ((len: int, nth:(idx:int, none:(), one:(str))))) {
+    exit(0)
+}
+foo("a", "b", "c")

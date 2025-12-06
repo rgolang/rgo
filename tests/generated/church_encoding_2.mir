@@ -1,0 +1,31 @@
+__lambda_0(f: (int, (int)), ok: (int), y: int) {
+    f(y, ok)
+}
+
+two(f: (int, (int)), x: int, ok: (int)) {
+    __temp_0 = __lambda_0(f, ok)
+    f(x, __temp_0)
+}
+
+__lambda_1(x: int, ok: (int)) {
+    __temp_3 = 10
+    add(x, __temp_3, ok)
+}
+
+__lambda_2(x: int) {
+    __temp_6 = "result: %d"
+    __temp_7 = __lambda_3()
+    printf(__temp_6, x, __temp_7)
+}
+
+__lambda_3() {
+    __temp_8 = 0
+    exit(__temp_8)
+}
+
+_start() {
+    __temp_2 = __lambda_1()
+    __temp_4 = 0
+    __temp_5 = __lambda_2()
+    two(__temp_2, __temp_4, __temp_5)
+}

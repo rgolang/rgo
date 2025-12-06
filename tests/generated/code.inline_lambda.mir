@@ -1,0 +1,15 @@
+__lambda_0(x: int) {
+    __temp_0 = "the answer is: %d"
+    __temp_1 = __lambda_1()
+    printf(__temp_0, x, __temp_1)
+}
+
+__lambda_1() {
+    __temp_2 = 0
+    exit(__temp_2)
+}
+
+_start() {
+    __temp_3 = 42
+    __lambda_0(__temp_3)
+}

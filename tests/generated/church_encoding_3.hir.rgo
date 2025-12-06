@@ -1,14 +1,14 @@
-three: (f:(int, __type_0), x: int, ok:(int)){
+three: (f:(int, (int)), x: int, ok:(int)){
     __temp_0: __lambda_0(f, ok)
     f(x, __temp_0)
 }
 
-__lambda_0: (f:(int, __type_0), ok:(int), y: int){
+__lambda_0: (f:(int, (int)), ok:(int), y: int){
     __temp_1: __lambda_1(f, ok)
     f(y, __temp_1)
 }
 
-__lambda_1: (f:(int, __type_0), ok:(int), z: int){
+__lambda_1: (f:(int, (int)), ok:(int), z: int){
     f(z, ok)
 }
 

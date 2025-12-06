@@ -1,0 +1,636 @@
+MirModule {
+    functions: [
+        MirFunction {
+            name: "foo",
+            params: [
+                Param {
+                    name: "p",
+                    ty: Type(
+                        [
+                            Type(
+                                [],
+                            ),
+                        ],
+                    ),
+                    span: Span {
+                        line: 5,
+                        column: 7,
+                        offset: 29,
+                    },
+                    is_variadic: false,
+                },
+                Param {
+                    name: "ok",
+                    ty: Type(
+                        [],
+                    ),
+                    span: Span {
+                        line: 5,
+                        column: 15,
+                        offset: 37,
+                    },
+                    is_variadic: false,
+                },
+            ],
+            block: MirBlock {
+                items: [
+                    Invocation(
+                        MirInvocation {
+                            invocation: Invocation {
+                                of: "p",
+                                args: [
+                                    Arg {
+                                        name: "ok",
+                                        span: Span {
+                                            line: 6,
+                                            column: 4,
+                                            offset: 48,
+                                        },
+                                    },
+                                ],
+                                span: Span {
+                                    line: 6,
+                                    column: 2,
+                                    offset: 46,
+                                },
+                                result: None,
+                            },
+                            variadic: None,
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 5,
+                    column: 21,
+                    offset: 43,
+                },
+            },
+            owns_self: false,
+            span: Span {
+                line: 5,
+                column: 1,
+                offset: 23,
+            },
+        },
+        MirFunction {
+            name: "print1",
+            params: [
+                Param {
+                    name: "n",
+                    ty: Str,
+                    span: Span {
+                        line: 8,
+                        column: 10,
+                        offset: 63,
+                    },
+                    is_variadic: false,
+                },
+                Param {
+                    name: "ok",
+                    ty: Type(
+                        [],
+                    ),
+                    span: Span {
+                        line: 8,
+                        column: 17,
+                        offset: 70,
+                    },
+                    is_variadic: false,
+                },
+            ],
+            block: MirBlock {
+                items: [
+                    StrDef(
+                        StrLiteral {
+                            name: "__temp_0",
+                            value: "The losing number is %s\n",
+                            span: Span {
+                                line: 9,
+                                column: 9,
+                                offset: 86,
+                            },
+                        },
+                    ),
+                    Invocation(
+                        MirInvocation {
+                            invocation: Invocation {
+                                of: "printf",
+                                args: [
+                                    Arg {
+                                        name: "__temp_0",
+                                        span: Span {
+                                            line: 9,
+                                            column: 9,
+                                            offset: 86,
+                                        },
+                                    },
+                                    Arg {
+                                        name: "n",
+                                        span: Span {
+                                            line: 9,
+                                            column: 38,
+                                            offset: 115,
+                                        },
+                                    },
+                                    Arg {
+                                        name: "ok",
+                                        span: Span {
+                                            line: 9,
+                                            column: 41,
+                                            offset: 118,
+                                        },
+                                    },
+                                ],
+                                span: Span {
+                                    line: 9,
+                                    column: 2,
+                                    offset: 79,
+                                },
+                                result: None,
+                            },
+                            variadic: None,
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 8,
+                    column: 23,
+                    offset: 76,
+                },
+            },
+            owns_self: false,
+            span: Span {
+                line: 8,
+                column: 1,
+                offset: 54,
+            },
+        },
+        MirFunction {
+            name: "print2",
+            params: [
+                Param {
+                    name: "n",
+                    ty: Str,
+                    span: Span {
+                        line: 11,
+                        column: 10,
+                        offset: 133,
+                    },
+                    is_variadic: false,
+                },
+                Param {
+                    name: "ok",
+                    ty: Type(
+                        [],
+                    ),
+                    span: Span {
+                        line: 11,
+                        column: 17,
+                        offset: 140,
+                    },
+                    is_variadic: false,
+                },
+            ],
+            block: MirBlock {
+                items: [
+                    StrDef(
+                        StrLiteral {
+                            name: "__temp_1",
+                            value: "The winning number is %s\n",
+                            span: Span {
+                                line: 12,
+                                column: 9,
+                                offset: 156,
+                            },
+                        },
+                    ),
+                    Invocation(
+                        MirInvocation {
+                            invocation: Invocation {
+                                of: "printf",
+                                args: [
+                                    Arg {
+                                        name: "__temp_1",
+                                        span: Span {
+                                            line: 12,
+                                            column: 9,
+                                            offset: 156,
+                                        },
+                                    },
+                                    Arg {
+                                        name: "n",
+                                        span: Span {
+                                            line: 12,
+                                            column: 39,
+                                            offset: 186,
+                                        },
+                                    },
+                                    Arg {
+                                        name: "ok",
+                                        span: Span {
+                                            line: 12,
+                                            column: 42,
+                                            offset: 189,
+                                        },
+                                    },
+                                ],
+                                span: Span {
+                                    line: 12,
+                                    column: 2,
+                                    offset: 149,
+                                },
+                                result: None,
+                            },
+                            variadic: None,
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 11,
+                    column: 23,
+                    offset: 146,
+                },
+            },
+            owns_self: false,
+            span: Span {
+                line: 11,
+                column: 1,
+                offset: 124,
+            },
+        },
+        MirFunction {
+            name: "p1",
+            params: [
+                Param {
+                    name: "ok",
+                    ty: Type(
+                        [],
+                    ),
+                    span: Span {
+                        line: 14,
+                        column: 6,
+                        offset: 200,
+                    },
+                    is_variadic: false,
+                },
+            ],
+            block: MirBlock {
+                items: [
+                    StrDef(
+                        StrLiteral {
+                            name: "__temp_2",
+                            value: "41",
+                            span: Span {
+                                line: 14,
+                                column: 20,
+                                offset: 214,
+                            },
+                        },
+                    ),
+                    Invocation(
+                        MirInvocation {
+                            invocation: Invocation {
+                                of: "print1",
+                                args: [
+                                    Arg {
+                                        name: "__temp_2",
+                                        span: Span {
+                                            line: 14,
+                                            column: 20,
+                                            offset: 214,
+                                        },
+                                    },
+                                    Arg {
+                                        name: "ok",
+                                        span: Span {
+                                            line: 14,
+                                            column: 26,
+                                            offset: 220,
+                                        },
+                                    },
+                                ],
+                                span: Span {
+                                    line: 14,
+                                    column: 13,
+                                    offset: 207,
+                                },
+                                result: None,
+                            },
+                            variadic: None,
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 14,
+                    column: 12,
+                    offset: 206,
+                },
+            },
+            owns_self: false,
+            span: Span {
+                line: 14,
+                column: 1,
+                offset: 195,
+            },
+        },
+        MirFunction {
+            name: "p2",
+            params: [
+                Param {
+                    name: "ok",
+                    ty: Type(
+                        [],
+                    ),
+                    span: Span {
+                        line: 15,
+                        column: 6,
+                        offset: 230,
+                    },
+                    is_variadic: false,
+                },
+            ],
+            block: MirBlock {
+                items: [
+                    StrDef(
+                        StrLiteral {
+                            name: "__temp_3",
+                            value: "42",
+                            span: Span {
+                                line: 15,
+                                column: 20,
+                                offset: 244,
+                            },
+                        },
+                    ),
+                    Invocation(
+                        MirInvocation {
+                            invocation: Invocation {
+                                of: "print2",
+                                args: [
+                                    Arg {
+                                        name: "__temp_3",
+                                        span: Span {
+                                            line: 15,
+                                            column: 20,
+                                            offset: 244,
+                                        },
+                                    },
+                                    Arg {
+                                        name: "ok",
+                                        span: Span {
+                                            line: 15,
+                                            column: 26,
+                                            offset: 250,
+                                        },
+                                    },
+                                ],
+                                span: Span {
+                                    line: 15,
+                                    column: 13,
+                                    offset: 237,
+                                },
+                                result: None,
+                            },
+                            variadic: None,
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 15,
+                    column: 12,
+                    offset: 236,
+                },
+            },
+            owns_self: false,
+            span: Span {
+                line: 15,
+                column: 1,
+                offset: 225,
+            },
+        },
+        MirFunction {
+            name: "__lambda_0",
+            params: [],
+            block: MirBlock {
+                items: [
+                    Invocation(
+                        MirInvocation {
+                            invocation: Invocation {
+                                of: "__lambda_1",
+                                args: [],
+                                span: Span {
+                                    line: 17,
+                                    column: 10,
+                                    offset: 276,
+                                },
+                                result: Some(
+                                    "__temp_5",
+                                ),
+                            },
+                            variadic: None,
+                        },
+                    ),
+                    FunctionDef(
+                        MirFunctionBinding {
+                            name: "__mir_fn_0",
+                            function_name: "p2",
+                            span: Span {
+                                line: 17,
+                                column: 6,
+                                offset: 272,
+                            },
+                            env_allocation: Some(
+                                MirEnvAllocation {
+                                    env_size: 16,
+                                    heap_size: 48,
+                                },
+                            ),
+                        },
+                    ),
+                    Invocation(
+                        MirInvocation {
+                            invocation: Invocation {
+                                of: "foo",
+                                args: [
+                                    Arg {
+                                        name: "__mir_fn_0",
+                                        span: Span {
+                                            line: 17,
+                                            column: 6,
+                                            offset: 272,
+                                        },
+                                    },
+                                    Arg {
+                                        name: "__temp_5",
+                                        span: Span {
+                                            line: 17,
+                                            column: 10,
+                                            offset: 276,
+                                        },
+                                    },
+                                ],
+                                span: Span {
+                                    line: 17,
+                                    column: 2,
+                                    offset: 268,
+                                },
+                                result: None,
+                            },
+                            variadic: None,
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 16,
+                    column: 11,
+                    offset: 265,
+                },
+            },
+            owns_self: false,
+            span: Span {
+                line: 16,
+                column: 9,
+                offset: 263,
+            },
+        },
+        MirFunction {
+            name: "__lambda_1",
+            params: [],
+            block: MirBlock {
+                items: [
+                    IntDef(
+                        IntLiteral {
+                            name: "__temp_6",
+                            value: 0,
+                            span: Span {
+                                line: 17,
+                                column: 15,
+                                offset: 281,
+                            },
+                        },
+                    ),
+                    Invocation(
+                        MirInvocation {
+                            invocation: Invocation {
+                                of: "exit",
+                                args: [
+                                    Arg {
+                                        name: "__temp_6",
+                                        span: Span {
+                                            line: 17,
+                                            column: 15,
+                                            offset: 281,
+                                        },
+                                    },
+                                ],
+                                span: Span {
+                                    line: 17,
+                                    column: 10,
+                                    offset: 276,
+                                },
+                                result: None,
+                            },
+                            variadic: None,
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 17,
+                    column: 10,
+                    offset: 276,
+                },
+            },
+            owns_self: false,
+            span: Span {
+                line: 17,
+                column: 10,
+                offset: 276,
+            },
+        },
+        MirFunction {
+            name: "_start",
+            params: [],
+            block: MirBlock {
+                items: [
+                    Invocation(
+                        MirInvocation {
+                            invocation: Invocation {
+                                of: "__lambda_0",
+                                args: [],
+                                span: Span {
+                                    line: 16,
+                                    column: 9,
+                                    offset: 263,
+                                },
+                                result: Some(
+                                    "__temp_4",
+                                ),
+                            },
+                            variadic: None,
+                        },
+                    ),
+                    FunctionDef(
+                        MirFunctionBinding {
+                            name: "__mir_fn_0",
+                            function_name: "p1",
+                            span: Span {
+                                line: 16,
+                                column: 5,
+                                offset: 259,
+                            },
+                            env_allocation: Some(
+                                MirEnvAllocation {
+                                    env_size: 16,
+                                    heap_size: 48,
+                                },
+                            ),
+                        },
+                    ),
+                    Invocation(
+                        MirInvocation {
+                            invocation: Invocation {
+                                of: "foo",
+                                args: [
+                                    Arg {
+                                        name: "__mir_fn_0",
+                                        span: Span {
+                                            line: 16,
+                                            column: 5,
+                                            offset: 259,
+                                        },
+                                    },
+                                    Arg {
+                                        name: "__temp_4",
+                                        span: Span {
+                                            line: 16,
+                                            column: 9,
+                                            offset: 263,
+                                        },
+                                    },
+                                ],
+                                span: Span {
+                                    line: 16,
+                                    column: 1,
+                                    offset: 255,
+                                },
+                                result: None,
+                            },
+                            variadic: None,
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 16,
+                    column: 1,
+                    offset: 255,
+                },
+            },
+            owns_self: false,
+            span: Span {
+                line: 16,
+                column: 1,
+                offset: 255,
+            },
+        },
+    ],
+}

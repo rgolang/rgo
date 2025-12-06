@@ -5,12 +5,12 @@ use std::process::Command;
 
 use compiler::compiler::{
     ast::{Item, TypeRef},
-    codegen_model::AsmModule,
     compile,
     hir::{
         lower_entry, lower_function, normalize_type_alias, ConstantValue, Env, EnvEntry, Function,
     },
     lexer::Lexer,
+    mir::MirModule,
     parser::Parser,
     span::Span,
     symbol::SymbolRegistry,
@@ -175,14 +175,14 @@ fn entry_item_span(item: &Item) -> Span {
     }
 }
 
-fn compile_source(source: &str) -> Result<(String, AsmModule), String> {
+fn compile_source(source: &str) -> Result<(String, MirModule), String> {
     let mut output = Vec::new();
     let cursor = Cursor::new(source.as_bytes());
     let metadata =
         compile(cursor, &mut output).map_err(|err| format!("assembly generation failed: {err}"))?;
     let asm =
         String::from_utf8(output).map_err(|err| format!("assembly is not valid UTF-8: {err}"))?;
-    Ok((asm, metadata.asm_model))
+    Ok((asm, metadata.mir_module))
 }
 
 fn build_reference_for_path(path: &Path, out_dir: &Path) -> Result<(), String> {
@@ -191,33 +191,103 @@ fn build_reference_for_path(path: &Path, out_dir: &Path) -> Result<(), String> {
         .and_then(|stem| stem.to_str())
         .ok_or_else(|| "filename should be valid UTF-8".to_string())?;
     let source = fs::read_to_string(path).map_err(|err| format!("reading source failed: {err}"))?;
+    let err_path = out_dir.join(format!("{stem}.err"));
+    let expect_error = err_path.exists();
 
+    match generate_artifacts(&source) {
+        Ok(artifacts) => {
+            if expect_error {
+                return Err(format!(
+                    "{}: expected compilation failure but succeeded",
+                    path.display()
+                ));
+            }
+            write_artifacts(out_dir, stem, &artifacts)?;
+            if err_path.exists() {
+                fs::remove_file(&err_path)
+                    .map_err(|err| format!("removing stale error snapshot failed: {err}"))?;
+            }
+            Ok(())
+        }
+        Err(err) => {
+            if expect_error {
+                cleanup_generated_artifacts(out_dir, stem)?;
+                fs::write(&err_path, format!("{err}\n"))
+                    .map_err(|write_err| format!(
+                        "writing expected error snapshot failed: {write_err}"
+                    ))?;
+                Ok(())
+            } else {
+                Err(err)
+            }
+        }
+    }
+}
+
+struct GeneratedArtifacts {
+    parser_output: String,
+    normalized_hir: String,
+    hir_debug: String,
+    asm: String,
+    mir_pretty: String,
+    mir_debug: String,
+}
+
+fn generate_artifacts(source: &str) -> Result<GeneratedArtifacts, String> {
     let (items, mut symbols) =
-        collect_items(&source).map_err(|err| format!("parser step failed: {err}"))?;
+        collect_items(source).map_err(|err| format!("parser step failed: {err}"))?;
     let parser_output = format!("{:#?}", items);
 
     let functions =
         lower_items(items, &mut symbols).map_err(|err| format!("HIR lowering failed: {err}"))?;
 
-    let normalized = render_normalized_rgo(&functions);
+    let normalized_hir = render_normalized_rgo(&functions);
     let hir_debug = format!("{:#?}", functions);
 
-    let (asm, asm_model) =
-        compile_source(&source).map_err(|err| format!("codegen step failed: {err}"))?;
+    let (asm, mir_model) =
+        compile_source(source).map_err(|err| format!("codegen step failed: {err}"))?;
+    Ok(GeneratedArtifacts {
+        parser_output,
+        normalized_hir,
+        hir_debug,
+        asm,
+        mir_pretty: format!("{mir_model}"),
+        mir_debug: format!("{:#?}", mir_model),
+    })
+}
 
-    fs::write(out_dir.join(format!("{stem}.txt")), &parser_output)
+fn write_artifacts(out_dir: &Path, stem: &str, artifacts: &GeneratedArtifacts) -> Result<(), String> {
+    fs::write(out_dir.join(format!("{stem}.txt")), &artifacts.parser_output)
         .map_err(|err| format!("writing parser output failed: {err}"))?;
-    fs::write(out_dir.join(format!("{stem}.hir.rgo")), &normalized)
+    fs::write(out_dir.join(format!("{stem}.hir.rgo")), &artifacts.normalized_hir)
         .map_err(|err| format!("writing normalized HIR failed: {err}"))?;
-    fs::write(out_dir.join(format!("{stem}.hir.debug.txt")), &hir_debug)
+    fs::write(out_dir.join(format!("{stem}.hir.debug.txt")), &artifacts.hir_debug)
         .map_err(|err| format!("writing HIR debug failed: {err}"))?;
-    fs::write(out_dir.join(format!("{stem}.asm")), &asm)
+    fs::write(out_dir.join(format!("{stem}.asm")), &artifacts.asm)
         .map_err(|err| format!("writing assembly failed: {err}"))?;
-    fs::write(
-        out_dir.join(format!("{stem}.asm.txt")),
-        format!("{asm_model}"),
-    )
-    .map_err(|err| format!("writing asm model failed: {err}"))?;
+    fs::write(out_dir.join(format!("{stem}.mir")), &artifacts.mir_pretty)
+        .map_err(|err| format!("writing mir failed: {err}"))?;
+    fs::write(out_dir.join(format!("{stem}.mir.debug.txt")), &artifacts.mir_debug)
+        .map_err(|err| format!("writing mir debug failed: {err}"))?;
+    Ok(())
+}
+
+fn cleanup_generated_artifacts(out_dir: &Path, stem: &str) -> Result<(), String> {
+    const SUFFIXES: &[&str] = &[
+        "txt",
+        "hir.rgo",
+        "hir.debug.txt",
+        "asm",
+        "mir",
+        "mir.debug.txt",
+    ];
+    for suffix in SUFFIXES {
+        let path = out_dir.join(format!("{stem}.{suffix}"));
+        if path.exists() {
+            fs::remove_file(&path)
+                .map_err(|err| format!("removing stale snapshot {} failed: {err}", path.display()))?;
+        }
+    }
     Ok(())
 }
 

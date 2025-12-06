@@ -1,27 +1,30 @@
 [
     Import {
-        name: "str",
+        name: "/str",
         span: Span {
             line: 1,
             column: 1,
             offset: 0,
         },
+        is_libc: false,
     },
     Import {
-        name: "printf",
+        name: "/printf",
         span: Span {
             line: 2,
             column: 1,
-            offset: 5,
+            offset: 6,
         },
+        is_libc: true,
     },
     Import {
-        name: "exit",
+        name: "/exit",
         span: Span {
             line: 3,
             column: 1,
-            offset: 13,
+            offset: 15,
         },
+        is_libc: true,
     },
     FunctionDef {
         name: "foo",
@@ -41,7 +44,7 @@
                         span: Span {
                             line: 5,
                             column: 7,
-                            offset: 26,
+                            offset: 29,
                         },
                         is_variadic: false,
                     },
@@ -53,7 +56,7 @@
                         span: Span {
                             line: 5,
                             column: 20,
-                            offset: 39,
+                            offset: 42,
                         },
                         is_variadic: false,
                     },
@@ -61,7 +64,7 @@
                 span: Span {
                     line: 5,
                     column: 6,
-                    offset: 25,
+                    offset: 28,
                 },
             },
             body: Block {
@@ -76,7 +79,7 @@
                                         span: Span {
                                             line: 6,
                                             column: 4,
-                                            offset: 50,
+                                            offset: 53,
                                         },
                                     },
                                 ),
@@ -87,7 +90,7 @@
                                         span: Span {
                                             line: 6,
                                             column: 10,
-                                            offset: 56,
+                                            offset: 59,
                                         },
                                     },
                                 ),
@@ -95,7 +98,7 @@
                             span: Span {
                                 line: 6,
                                 column: 2,
-                                offset: 48,
+                                offset: 51,
                             },
                         },
                     ),
@@ -103,20 +106,20 @@
                 span: Span {
                     line: 5,
                     column: 26,
-                    offset: 45,
+                    offset: 48,
                 },
             },
             args: [],
             span: Span {
                 line: 5,
                 column: 1,
-                offset: 20,
+                offset: 23,
             },
         },
         span: Span {
             line: 5,
             column: 1,
-            offset: 20,
+            offset: 23,
         },
     },
     FunctionDef {
@@ -130,7 +133,7 @@
                         span: Span {
                             line: 8,
                             column: 9,
-                            offset: 70,
+                            offset: 73,
                         },
                         is_variadic: false,
                     },
@@ -142,7 +145,7 @@
                         span: Span {
                             line: 8,
                             column: 16,
-                            offset: 77,
+                            offset: 80,
                         },
                         is_variadic: false,
                     },
@@ -150,7 +153,7 @@
                 span: Span {
                     line: 8,
                     column: 8,
-                    offset: 69,
+                    offset: 72,
                 },
             },
             body: Block {
@@ -165,7 +168,7 @@
                                         span: Span {
                                             line: 9,
                                             column: 9,
-                                            offset: 93,
+                                            offset: 96,
                                         },
                                     },
                                 ),
@@ -176,7 +179,7 @@
                                         span: Span {
                                             line: 9,
                                             column: 39,
-                                            offset: 123,
+                                            offset: 126,
                                         },
                                     },
                                 ),
@@ -187,7 +190,7 @@
                                         span: Span {
                                             line: 9,
                                             column: 42,
-                                            offset: 126,
+                                            offset: 129,
                                         },
                                     },
                                 ),
@@ -195,7 +198,7 @@
                             span: Span {
                                 line: 9,
                                 column: 2,
-                                offset: 86,
+                                offset: 89,
                             },
                         },
                     ),
@@ -203,20 +206,20 @@
                 span: Span {
                     line: 8,
                     column: 22,
-                    offset: 83,
+                    offset: 86,
                 },
             },
             args: [],
             span: Span {
                 line: 8,
                 column: 1,
-                offset: 62,
+                offset: 65,
             },
         },
         span: Span {
             line: 8,
             column: 1,
-            offset: 62,
+            offset: 65,
         },
     },
     Ident(
@@ -230,7 +233,7 @@
                         span: Span {
                             line: 11,
                             column: 5,
-                            offset: 136,
+                            offset: 139,
                         },
                     },
                 ),
@@ -244,7 +247,7 @@
                                     span: Span {
                                         line: 11,
                                         column: 17,
-                                        offset: 148,
+                                        offset: 151,
                                     },
                                 },
                             ),
@@ -252,7 +255,7 @@
                         span: Span {
                             line: 11,
                             column: 12,
-                            offset: 143,
+                            offset: 146,
                         },
                     },
                 ),
@@ -260,7 +263,7 @@
             span: Span {
                 line: 11,
                 column: 1,
-                offset: 132,
+                offset: 135,
             },
         },
     ),

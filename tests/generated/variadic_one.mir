@@ -1,0 +1,45 @@
+__lambda_0(len: int, nth: (int, (), (str))) {
+    __temp_1 = 1
+    __temp_2 = __lambda_1()
+    __temp_6 = __lambda_3()
+    nth(__temp_1, __temp_2, __temp_6)
+}
+
+__lambda_1() {
+    __temp_3 = "none"
+    __temp_4 = __lambda_2()
+    write(__temp_3, __temp_4)
+}
+
+__lambda_2() {
+    __temp_5 = 0
+    exit(__temp_5)
+}
+
+__lambda_3(v: str) {
+    __temp_7 = __lambda_4()
+    write(v, __temp_7)
+}
+
+__lambda_4() {
+    __temp_8 = 0
+    exit(__temp_8)
+}
+
+foo(items: ((int, (int, (), (str))))) {
+    __temp_0 = __lambda_0()
+    items(__temp_0)
+}
+
+internal_array_str_nth() {
+}
+
+internal_array_str() {
+}
+
+_start() {
+    __temp_9 = "a"
+    __temp_10 = "b"
+    __temp_11 = "c"
+    foo(__temp_9, __temp_10, __temp_11)
+}

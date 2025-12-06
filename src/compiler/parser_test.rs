@@ -23,20 +23,22 @@ fn parser_test() {
     let pretty = format!("{:#?}", items);
     let expected_pretty = r#"[
     Import {
-        name: "str",
+        name: "/str",
         span: Span {
             line: 2,
             column: 1,
             offset: 31,
         },
+        is_libc: false,
     },
     Import {
-        name: "printf",
+        name: "/printf",
         span: Span {
             line: 3,
             column: 1,
-            offset: 36,
+            offset: 37,
         },
+        is_libc: true,
     },
     TypeDef {
         name: "Pair",
@@ -49,7 +51,7 @@ fn parser_test() {
         span: Span {
             line: 5,
             column: 1,
-            offset: 45,
+            offset: 47,
         },
     },
     FunctionDef {
@@ -67,7 +69,7 @@ fn parser_test() {
                         span: Span {
                             line: 7,
                             column: 7,
-                            offset: 82,
+                            offset: 84,
                         },
                         is_variadic: false,
                     },
@@ -75,7 +77,7 @@ fn parser_test() {
                 span: Span {
                     line: 7,
                     column: 6,
-                    offset: 81,
+                    offset: 83,
                 },
             },
             body: Block {
@@ -87,13 +89,13 @@ fn parser_test() {
                             span: Span {
                                 line: 8,
                                 column: 15,
-                                offset: 107,
+                                offset: 109,
                             },
                         },
                         span: Span {
                             line: 8,
                             column: 5,
-                            offset: 97,
+                            offset: 99,
                         },
                     },
                     Ident(
@@ -107,7 +109,7 @@ fn parser_test() {
                                         span: Span {
                                             line: 9,
                                             column: 8,
-                                            offset: 124,
+                                            offset: 126,
                                         },
                                     },
                                 ),
@@ -115,7 +117,7 @@ fn parser_test() {
                             span: Span {
                                 line: 9,
                                 column: 5,
-                                offset: 121,
+                                offset: 123,
                             },
                         },
                     ),
@@ -123,20 +125,20 @@ fn parser_test() {
                 span: Span {
                     line: 7,
                     column: 16,
-                    offset: 91,
+                    offset: 93,
                 },
             },
             args: [],
             span: Span {
                 line: 7,
                 column: 1,
-                offset: 76,
+                offset: 78,
             },
         },
         span: Span {
             line: 7,
             column: 1,
-            offset: 76,
+            offset: 78,
         },
     },
     FunctionDef {
@@ -155,7 +157,7 @@ fn parser_test() {
                         span: Span {
                             line: 11,
                             column: 7,
-                            offset: 142,
+                            offset: 144,
                         },
                         is_variadic: false,
                     },
@@ -163,7 +165,7 @@ fn parser_test() {
                 span: Span {
                     line: 11,
                     column: 6,
-                    offset: 141,
+                    offset: 143,
                 },
             },
             body: Block {
@@ -182,7 +184,7 @@ fn parser_test() {
                                                     span: Span {
                                                         line: 12,
                                                         column: 12,
-                                                        offset: 169,
+                                                        offset: 171,
                                                     },
                                                 },
                                             ),
@@ -190,7 +192,7 @@ fn parser_test() {
                                         span: Span {
                                             line: 12,
                                             column: 9,
-                                            offset: 166,
+                                            offset: 168,
                                         },
                                     },
                                 ),
@@ -198,7 +200,7 @@ fn parser_test() {
                             span: Span {
                                 line: 12,
                                 column: 5,
-                                offset: 162,
+                                offset: 164,
                             },
                         },
                     ),
@@ -206,20 +208,20 @@ fn parser_test() {
                 span: Span {
                     line: 11,
                     column: 21,
-                    offset: 156,
+                    offset: 158,
                 },
             },
             args: [],
             span: Span {
                 line: 11,
                 column: 1,
-                offset: 136,
+                offset: 138,
             },
         },
         span: Span {
             line: 11,
             column: 1,
-            offset: 136,
+            offset: 138,
         },
     },
     FunctionDef {
@@ -233,7 +235,7 @@ fn parser_test() {
                         span: Span {
                             line: 14,
                             column: 7,
-                            offset: 185,
+                            offset: 187,
                         },
                         is_variadic: false,
                     },
@@ -243,7 +245,7 @@ fn parser_test() {
                         span: Span {
                             line: 14,
                             column: 19,
-                            offset: 197,
+                            offset: 199,
                         },
                         is_variadic: false,
                     },
@@ -253,7 +255,7 @@ fn parser_test() {
                         span: Span {
                             line: 14,
                             column: 31,
-                            offset: 209,
+                            offset: 211,
                         },
                         is_variadic: false,
                     },
@@ -261,7 +263,7 @@ fn parser_test() {
                 span: Span {
                     line: 14,
                     column: 6,
-                    offset: 184,
+                    offset: 186,
                 },
             },
             body: Block {
@@ -276,7 +278,7 @@ fn parser_test() {
                                         span: Span {
                                             line: 15,
                                             column: 12,
-                                            offset: 233,
+                                            offset: 235,
                                         },
                                     },
                                 ),
@@ -287,7 +289,7 @@ fn parser_test() {
                                         span: Span {
                                             line: 15,
                                             column: 37,
-                                            offset: 258,
+                                            offset: 260,
                                         },
                                     },
                                 ),
@@ -298,7 +300,7 @@ fn parser_test() {
                                         span: Span {
                                             line: 15,
                                             column: 44,
-                                            offset: 265,
+                                            offset: 267,
                                         },
                                     },
                                 ),
@@ -309,7 +311,7 @@ fn parser_test() {
                                         span: Span {
                                             line: 15,
                                             column: 51,
-                                            offset: 272,
+                                            offset: 274,
                                         },
                                     },
                                 ),
@@ -317,7 +319,7 @@ fn parser_test() {
                             span: Span {
                                 line: 15,
                                 column: 5,
-                                offset: 226,
+                                offset: 228,
                             },
                         },
                     ),
@@ -325,20 +327,20 @@ fn parser_test() {
                 span: Span {
                     line: 14,
                     column: 42,
-                    offset: 220,
+                    offset: 222,
                 },
             },
             args: [],
             span: Span {
                 line: 14,
                 column: 1,
-                offset: 179,
+                offset: 181,
             },
         },
         span: Span {
             line: 14,
             column: 1,
-            offset: 179,
+            offset: 181,
         },
     },
     Ident(
@@ -355,7 +357,7 @@ fn parser_test() {
                                     span: Span {
                                         line: 17,
                                         column: 9,
-                                        offset: 289,
+                                        offset: 291,
                                     },
                                 },
                             ),
@@ -363,7 +365,7 @@ fn parser_test() {
                         span: Span {
                             line: 17,
                             column: 5,
-                            offset: 285,
+                            offset: 287,
                         },
                     },
                 ),
@@ -371,7 +373,7 @@ fn parser_test() {
             span: Span {
                 line: 17,
                 column: 1,
-                offset: 281,
+                offset: 283,
             },
         },
     ),

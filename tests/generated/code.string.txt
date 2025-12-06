@@ -1,19 +1,21 @@
 [
     Import {
-        name: "printf",
+        name: "/printf",
         span: Span {
             line: 1,
             column: 1,
             offset: 0,
         },
+        is_libc: true,
     },
     Import {
-        name: "exit",
+        name: "/exit",
         span: Span {
             line: 2,
             column: 1,
-            offset: 8,
+            offset: 9,
         },
+        is_libc: true,
     },
     Ident(
         Ident {
@@ -25,7 +27,7 @@
                         span: Span {
                             line: 4,
                             column: 8,
-                            offset: 22,
+                            offset: 24,
                         },
                     },
                 ),
@@ -39,7 +41,7 @@
                                     span: Span {
                                         line: 4,
                                         column: 24,
-                                        offset: 38,
+                                        offset: 40,
                                     },
                                 },
                             ),
@@ -47,7 +49,7 @@
                         span: Span {
                             line: 4,
                             column: 19,
-                            offset: 33,
+                            offset: 35,
                         },
                     },
                 ),
@@ -55,7 +57,7 @@
             span: Span {
                 line: 4,
                 column: 1,
-                offset: 15,
+                offset: 17,
             },
         },
     ),

@@ -1,0 +1,149 @@
+[
+    Import {
+        name: "/str",
+        span: Span {
+            line: 1,
+            column: 1,
+            offset: 0,
+        },
+        is_libc: false,
+    },
+    Import {
+        name: "/exit",
+        span: Span {
+            line: 2,
+            column: 1,
+            offset: 6,
+        },
+        is_libc: true,
+    },
+    FunctionDef {
+        name: "foo",
+        lambda: Lambda {
+            params: Params {
+                items: [
+                    NameAndType {
+                        name: "items",
+                        ty: Type(
+                            [
+                                Type(
+                                    [
+                                        Int,
+                                        Type(
+                                            [
+                                                Int,
+                                                Type(
+                                                    [],
+                                                ),
+                                                Type(
+                                                    [
+                                                        Str,
+                                                    ],
+                                                ),
+                                            ],
+                                        ),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        span: Span {
+                            line: 4,
+                            column: 11,
+                            offset: 24,
+                        },
+                        is_variadic: true,
+                    },
+                ],
+                span: Span {
+                    line: 4,
+                    column: 6,
+                    offset: 19,
+                },
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "exit",
+                            args: [
+                                Int(
+                                    IntLiteral {
+                                        value: 0,
+                                        span: Span {
+                                            line: 5,
+                                            column: 10,
+                                            offset: 91,
+                                        },
+                                    },
+                                ),
+                            ],
+                            span: Span {
+                                line: 5,
+                                column: 5,
+                                offset: 86,
+                            },
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 4,
+                    column: 67,
+                    offset: 80,
+                },
+            },
+            args: [],
+            span: Span {
+                line: 4,
+                column: 1,
+                offset: 14,
+            },
+        },
+        span: Span {
+            line: 4,
+            column: 1,
+            offset: 14,
+        },
+    },
+    Ident(
+        Ident {
+            name: "foo",
+            args: [
+                String(
+                    StrLiteral {
+                        value: "a",
+                        span: Span {
+                            line: 7,
+                            column: 5,
+                            offset: 100,
+                        },
+                    },
+                ),
+                String(
+                    StrLiteral {
+                        value: "b",
+                        span: Span {
+                            line: 7,
+                            column: 10,
+                            offset: 105,
+                        },
+                    },
+                ),
+                String(
+                    StrLiteral {
+                        value: "c",
+                        span: Span {
+                            line: 7,
+                            column: 15,
+                            offset: 110,
+                        },
+                    },
+                ),
+            ],
+            span: Span {
+                line: 7,
+                column: 1,
+                offset: 96,
+            },
+        },
+    ),
+]

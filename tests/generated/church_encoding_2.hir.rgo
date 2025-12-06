@@ -1,9 +1,9 @@
-two: (f:(int, __type_0), x: int, ok:(int)){
+two: (f:(int, (int)), x: int, ok:(int)){
     __temp_0: __lambda_0(f, ok)
     f(x, __temp_0)
 }
 
-__lambda_0: (f:(int, __type_0), ok:(int), y: int){
+__lambda_0: (f:(int, (int)), ok:(int), y: int){
     f(y, ok)
 }
 

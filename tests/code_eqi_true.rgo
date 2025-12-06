@@ -1,6 +1,6 @@
-@eqi
-@write
-@exit
+@/eqi
+@/write
+@/exit
 
 eqi(1, 1, {
     write("true", exit(0))

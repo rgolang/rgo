@@ -1,27 +1,30 @@
 [
     Import {
-        name: "int",
+        name: "/int",
         span: Span {
             line: 1,
             column: 1,
             offset: 0,
         },
+        is_libc: false,
     },
     Import {
-        name: "printf",
+        name: "/printf",
         span: Span {
             line: 2,
             column: 1,
-            offset: 5,
+            offset: 6,
         },
+        is_libc: true,
     },
     Import {
-        name: "exit",
+        name: "/exit",
         span: Span {
             line: 3,
             column: 1,
-            offset: 13,
+            offset: 15,
         },
+        is_libc: true,
     },
     Ident(
         Ident {
@@ -33,7 +36,7 @@
                         span: Span {
                             line: 5,
                             column: 8,
-                            offset: 27,
+                            offset: 30,
                         },
                     },
                 ),
@@ -47,7 +50,7 @@
                                     span: Span {
                                         line: 5,
                                         column: 32,
-                                        offset: 51,
+                                        offset: 54,
                                     },
                                 },
                             ),
@@ -55,7 +58,7 @@
                         span: Span {
                             line: 5,
                             column: 27,
-                            offset: 46,
+                            offset: 49,
                         },
                     },
                 ),
@@ -63,7 +66,7 @@
             span: Span {
                 line: 5,
                 column: 1,
-                offset: 20,
+                offset: 23,
             },
         },
     ),

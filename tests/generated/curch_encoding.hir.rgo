@@ -1,32 +1,31 @@
-zero: (f:(int, __type_0), x: int, ok:(int)){
-    munmap(f)
+zero: (f:(int, (int)), x: int, ok:(int)){
     ok(x)
 }
 
-one: (f:(int, __type_0), x: int, ok:(int)){
+one: (f:(int, (int)), x: int, ok:(int)){
     f(x, ok)
 }
 
-two: (f:(int, __type_0), x: int, ok:(int)){
+two: (f:(int, (int)), x: int, ok:(int)){
     __temp_0: __lambda_0(f, ok)
     f(x, __temp_0)
 }
 
-__lambda_0: (f:(int, __type_0), ok:(int), y: int){
+__lambda_0: (f:(int, (int)), ok:(int), y: int){
     f(y, ok)
 }
 
-three: (f:(int, __type_0), x: int, ok:(int)){
+three: (f:(int, (int)), x: int, ok:(int)){
     __temp_2: __lambda_1(f, ok)
     f(x, __temp_2)
 }
 
-__lambda_1: (f:(int, __type_0), ok:(int), y: int){
+__lambda_1: (f:(int, (int)), ok:(int), y: int){
     __temp_3: __lambda_2(f, ok)
     f(y, __temp_3)
 }
 
-__lambda_2: (f:(int, __type_0), ok:(int), z: int){
+__lambda_2: (f:(int, (int)), ok:(int), z: int){
     f(z, ok)
 }
 

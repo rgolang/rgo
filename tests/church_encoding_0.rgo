@@ -1,8 +1,8 @@
-@str
-@int
-@add
-@printf
-@exit
+@/str
+@/int
+@/add
+@/printf
+@/exit
 
 zero: (f: (int, (int)), x: int, ok: (int)){
     ok(x)

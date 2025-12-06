@@ -1,5 +1,5 @@
-@write
-@exit
+@/write
+@/exit
 
 bar: (v: str, ok: ()) {
     write(v, ok)

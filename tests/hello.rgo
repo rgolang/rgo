@@ -1,5 +1,5 @@
-@int
-@printf
-@exit
+@/int
+@/printf
+@/exit
 
 printf("Hello, world!\n", exit(0))

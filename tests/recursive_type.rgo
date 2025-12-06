@@ -1,6 +1,6 @@
-@printf
-@str
-@exit
+@/printf
+@/str
+@/exit
 
 tail: (x: int, rest: tail)
 

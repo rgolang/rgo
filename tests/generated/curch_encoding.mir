@@ -1,0 +1,54 @@
+zero(f: (int, (int)), x: int, ok: (int)) {
+    munmap f
+    ok(x)
+}
+
+one(f: (int, (int)), x: int, ok: (int)) {
+    f(x, ok)
+}
+
+__lambda_0(f: (int, (int)), ok: (int), y: int) {
+    f(y, ok)
+}
+
+two(f: (int, (int)), x: int, ok: (int)) {
+    __temp_0 = __lambda_0(f, ok)
+    f(x, __temp_0)
+}
+
+__lambda_1(f: (int, (int)), ok: (int), y: int) {
+    __temp_3 = __lambda_2(f, ok)
+    f(y, __temp_3)
+}
+
+__lambda_2(f: (int, (int)), ok: (int), z: int) {
+    f(z, ok)
+}
+
+three(f: (int, (int)), x: int, ok: (int)) {
+    __temp_2 = __lambda_1(f, ok)
+    f(x, __temp_2)
+}
+
+__lambda_3(x: int, ok: (int)) {
+    __temp_7 = 10
+    add(x, __temp_7, ok)
+}
+
+__lambda_4(x: int) {
+    __temp_10 = "result: %d\n"
+    __temp_11 = __lambda_5()
+    printf(__temp_10, x, __temp_11)
+}
+
+__lambda_5() {
+    __temp_12 = 0
+    exit(__temp_12)
+}
+
+_start() {
+    __temp_6 = __lambda_3()
+    __temp_8 = 0
+    __temp_9 = __lambda_4()
+    three(__temp_6, __temp_8, __temp_9)
+}

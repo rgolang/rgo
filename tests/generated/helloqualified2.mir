@@ -1,0 +1,14 @@
+__lambda_0() {
+    __temp_1 = 0
+    exit(__temp_1)
+}
+
+foo(x: str) {
+    __temp_0 = __lambda_0()
+    write(x, __temp_0)
+}
+
+_start() {
+    x = "Hello world!\n"
+    foo(x)
+}

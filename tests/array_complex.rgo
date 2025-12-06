@@ -1,0 +1,17 @@
+@/str
+@/exit
+@/write
+@/printf
+
+at: <T>(idx:int, none:(), one:(T))
+arr: <T>((len: int, nth:at<T>))
+
+err: {write("none", exit(0))}
+array: (... items: arr<str>, ok:(len: int, nth:at<str>)) {
+    items(ok)
+}
+array("a", "b", "c", (len: int, nth:at<str>){
+    i: 1
+    (v:str) = nth(i, err)
+    printf("item at %d: %s", i, v, exit(0))
+})

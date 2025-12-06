@@ -1,6 +1,6 @@
 // Double curried continuation
-@str
-@printf
+@/str
+@/printf
 
 pair: (x: str, y: str)
 

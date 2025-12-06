@@ -1,19 +1,21 @@
 [
     Import {
-        name: "itoa",
+        name: "/itoa",
         span: Span {
             line: 1,
             column: 1,
             offset: 0,
         },
+        is_libc: false,
     },
     Import {
-        name: "exit",
+        name: "/exit",
         span: Span {
             line: 2,
             column: 1,
-            offset: 6,
+            offset: 7,
         },
+        is_libc: true,
     },
     Ident(
         Ident {
@@ -25,7 +27,7 @@
                         span: Span {
                             line: 4,
                             column: 6,
-                            offset: 18,
+                            offset: 20,
                         },
                     },
                 ),
@@ -39,7 +41,7 @@
                                     span: Span {
                                         line: 4,
                                         column: 10,
-                                        offset: 22,
+                                        offset: 24,
                                     },
                                     is_variadic: false,
                                 },
@@ -47,7 +49,7 @@
                             span: Span {
                                 line: 4,
                                 column: 9,
-                                offset: 21,
+                                offset: 23,
                             },
                         },
                         body: Block {
@@ -62,7 +64,7 @@
                                                     span: Span {
                                                         line: 4,
                                                         column: 24,
-                                                        offset: 36,
+                                                        offset: 38,
                                                     },
                                                 },
                                             ),
@@ -70,7 +72,7 @@
                                         span: Span {
                                             line: 4,
                                             column: 19,
-                                            offset: 31,
+                                            offset: 33,
                                         },
                                     },
                                 ),
@@ -78,14 +80,14 @@
                             span: Span {
                                 line: 4,
                                 column: 17,
-                                offset: 29,
+                                offset: 31,
                             },
                         },
                         args: [],
                         span: Span {
                             line: 4,
                             column: 9,
-                            offset: 21,
+                            offset: 23,
                         },
                     },
                 ),
@@ -93,7 +95,7 @@
             span: Span {
                 line: 4,
                 column: 1,
-                offset: 13,
+                offset: 15,
             },
         },
     ),

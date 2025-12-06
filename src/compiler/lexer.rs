@@ -26,8 +26,14 @@ impl<R: BufRead> Lexer<R> {
     }
 
     pub fn next_token(&mut self) -> Result<Token, LexError> {
-        self.skip_whitespace_and_comments()
+        let has_newline = self
+            .skip_whitespace_and_comments()
             .map_err(|err| self.io_error(err))?;
+
+        if has_newline {
+            return Ok(Token::new(TokenKind::Newline, self.current_span())); // newline token has zero-width span at current position
+        }
+
         let next = self.next_char().map_err(|err| self.io_error(err))?;
         let (ch, span) = match next {
             Some(value) => value,
@@ -36,11 +42,41 @@ impl<R: BufRead> Lexer<R> {
 
         let token = match ch {
             '@' => {
+                // Check if next char is '/' for builtin imports (@/name)
+                let owner = if let Some(('/', _)) =
+                    self.peek_char().map_err(|err| self.io_error(err))?
+                {
+                    self.next_char().map_err(|err| self.io_error(err))?; // consume '/'
+                    String::new() // empty string represents builtin (/)
+                } else {
+                    // Collect owner name for user-defined imports (@owner/name)
+                    let owner_name = self.collect_identifier()?;
+                    if owner_name.is_empty() {
+                        return Err(LexError::new("import owner cannot be empty", span));
+                    }
+                    // Expect '/' after owner
+                    let (slash, _) = self
+                        .next_char()
+                        .map_err(|err| self.io_error(err))?
+                        .ok_or_else(|| LexError::new("expected '/' after import owner", span))?;
+                    if slash != '/' {
+                        return Err(LexError::new("expected '/' in import path", span));
+                    }
+                    owner_name
+                };
+
                 let name = self.collect_identifier()?;
                 if name.is_empty() {
                     return Err(LexError::new("import name cannot be empty", span));
                 }
-                Token::new(TokenKind::Import(name), span)
+
+                // Combine owner and name into format: "owner/name" or "/name" for builtins
+                let import_path = if owner.is_empty() {
+                    format!("/{}", name)
+                } else {
+                    format!("{}/{}", owner, name)
+                };
+                Token::new(TokenKind::Import(import_path), span)
             }
             'a'..='z' | 'A'..='Z' | '_' => {
                 let mut ident = String::new();
@@ -80,6 +116,8 @@ impl<R: BufRead> Lexer<R> {
             '?' => Token::new(TokenKind::Question, span),
             '/' => Token::new(TokenKind::Slash, span),
             '-' => Token::new(TokenKind::Minus, span),
+            '<' => Token::new(TokenKind::AngleOpen, span),
+            '>' => Token::new(TokenKind::AngleClose, span),
             '=' => Token::new(TokenKind::Equals, span),
             '"' => self.string_token(span, '"')?,
             '\'' => self.string_token(span, '\'')?,
@@ -141,14 +179,19 @@ impl<R: BufRead> Lexer<R> {
         Ok(count)
     }
 
-    fn skip_whitespace_and_comments(&mut self) -> io::Result<()> {
+    fn skip_whitespace_and_comments(&mut self) -> io::Result<bool> {
+        let mut seen_nl = false;
+
         loop {
             let Some((ch, _span)) = self.peek_char()? else {
                 break;
             };
             match ch {
                 c if c.is_whitespace() => {
-                    self.next_char()?;
+                    if c == '\n' || c == '\r' {
+                        seen_nl = true;
+                    }
+                    self.next_char()?; // consume whitespace
                 }
                 '/' => {
                     let slash = self.next_char()?.expect("peeked char must exist");
@@ -156,21 +199,26 @@ impl<R: BufRead> Lexer<R> {
                         if next == '/' {
                             self.next_char()?; // consume second slash
                             self.consume_until_newline()?;
+                            seen_nl = true;
                             continue;
                         }
                     }
+
+                    // Not a comment, restore slash
                     self.pending_char = Some(slash);
                     break;
                 }
+
                 _ => break,
             }
         }
-        Ok(())
+
+        Ok(seen_nl)
     }
 
     fn consume_until_newline(&mut self) -> io::Result<()> {
         while let Some((ch, _)) = self.next_char()? {
-            if ch == '\n' {
+            if ch == '\n' || ch == '\r' {
                 break;
             }
         }

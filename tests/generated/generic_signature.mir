@@ -1,0 +1,11 @@
+__lambda_0() {
+    __temp_2 = 0
+    exit(__temp_2)
+}
+
+foo(items: ((int, (int, (), (str))))) {
+    __temp_0 = "done"
+    __temp_1 = __lambda_0()
+    munmap items
+    write(__temp_0, __temp_1)
+}

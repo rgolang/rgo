@@ -5,6 +5,7 @@ use crate::compiler::ast::{
 use crate::compiler::error::{CompileError, ParseError};
 use crate::compiler::span::Span;
 use crate::compiler::symbol::{self, CaptureParam, FunctionSig, SymbolRegistry};
+use crate::compiler::type_utils::expand_alias_chain;
 use std::collections::{HashMap, HashSet};
 
 pub type Env = HashMap<String, EnvEntry>;
@@ -59,7 +60,6 @@ pub enum BlockItem {
     IntDef(IntLiteral),
     ApplyDef(Apply),
     Invocation(Invocation),
-    ReleaseEnv(ReleaseEnv),
 }
 
 #[derive(Debug, Clone)]
@@ -84,12 +84,12 @@ impl BlockItem {
             | BlockItem::IntDef(IntLiteral { span, .. })
             | BlockItem::ApplyDef(Apply { span, .. })
             | BlockItem::Invocation(Invocation { span, .. }) => *span,
-            BlockItem::ReleaseEnv(ReleaseEnv { span, .. }) => *span,
         }
     }
 
     pub fn binding_info(&self) -> Option<(&String, Span)> {
         match self {
+            BlockItem::FunctionDef(function) => Some((&function.name, function.span)),
             BlockItem::StrDef(literal) => Some((&literal.name, literal.span)),
             BlockItem::IntDef(literal) => Some((&literal.name, literal.span)),
             BlockItem::Invocation(Invocation {
@@ -116,12 +116,6 @@ pub struct Apply {
     pub name: String,
     pub of: String,
     pub args: Vec<Arg>,
-    pub span: Span,
-}
-
-#[derive(Debug, Clone)]
-pub struct ReleaseEnv {
-    pub name: String,
     pub span: Span,
 }
 
@@ -211,6 +205,8 @@ pub fn lower_function(
             .cloned()
             .unwrap_or_default();
         param.ty = symbols.normalize_top_level_type(param.ty.clone());
+        let mut expand_visited = HashSet::new();
+        param.ty = expand_alias_chain(&param.ty, symbols, &mut expand_visited);
         symbols.record_type_variadic(param.ty.clone(), variadic_flags);
     }
     let normalized_params: Vec<TypeRef> = params.iter().map(|param| param.ty.clone()).collect();
@@ -248,7 +244,9 @@ pub fn lower_function(
         &reserved_names,
         &mut nested_capture_params,
     )?;
-    let capture_params = collect_capture_params(&body, &params, outer_env, &nested_capture_params);
+    let normalized_body = normalize_block(body, symbols);
+    let capture_params =
+        collect_capture_params(&normalized_body, &params, outer_env, &nested_capture_params);
 
     let mut all_params = Vec::new();
     for capture in &capture_params {
@@ -264,10 +262,6 @@ pub fn lower_function(
     if !capture_params.is_empty() {
         symbols.register_function_capture(name.clone(), capture_params.clone());
     }
-
-    let mut normalized_body = normalize_block(body, symbols);
-    let closure_params = closure_param_names(&all_params, symbols);
-    insert_release_before_invocation(&mut normalized_body, symbols, &closure_params);
 
     validate_block_signatures(&normalized_body, &env_snapshot, symbols)?;
 
@@ -463,7 +457,7 @@ fn lower_block(
                 }
                 let mut lowered_items = Vec::new();
                 let apply = lower_ident_as_apply(
-                    name,
+                    name.clone(),
                     ident,
                     nested,
                     symbols,
@@ -472,8 +466,28 @@ fn lower_block(
                     &current_env,
                     nested_captures,
                 )?;
+                let result_type = if let Some((sig, _)) =
+                    resolve_target_signature(&apply.of, &current_env, symbols)
+                {
+                    let remaining = sig
+                        .iter()
+                        .skip(apply.args.len())
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    TypeRef::Type(remaining)
+                } else {
+                    TypeRef::Type(Vec::new())
+                };
                 items.extend(lowered_items);
                 items.push(BlockItem::ApplyDef(apply));
+                current_env.insert(
+                    name.clone(),
+                    EnvEntry {
+                        ty: result_type,
+                        span,
+                        constant: None,
+                    },
+                );
             }
             other => unreachable!("unexpected block item: {:?}", other),
         }
@@ -671,11 +685,10 @@ fn lower_ident_as_invocation(
     let resolved_name = resolve_alias_name(&name, alias_map);
     let signature = resolve_target_signature(&resolved_name, env, symbols);
     let builtin_expectations = builtin_arg_expectations(&resolved_name, args.len());
-    let variadic_flags = resolve_variadic_flags(&resolved_name, env, symbols);
     let args = lower_terms_to_args(
         args,
-        signature.as_deref(),
-        variadic_flags.as_deref(),
+        signature.as_ref().map(|(params, _)| params.as_slice()),
+        signature.as_ref().map(|(_, flags)| flags.as_slice()),
         builtin_expectations.as_deref(),
         nested,
         symbols,
@@ -708,11 +721,10 @@ fn lower_ident_as_apply(
 ) -> Result<Apply, CompileError> {
     let resolved_target = resolve_alias_name(&target, alias_map);
     let signature = resolve_target_signature(&resolved_target, env, symbols);
-    let variadic_flags = resolve_variadic_flags(&resolved_target, env, symbols);
     let args = lower_terms_to_args(
         args,
-        signature.as_deref(),
-        variadic_flags.as_deref(),
+        signature.as_ref().map(|(params, _)| params.as_slice()),
+        signature.as_ref().map(|(_, flags)| flags.as_slice()),
         None,
         nested,
         symbols,
@@ -727,15 +739,6 @@ fn lower_ident_as_apply(
         args,
         span,
     })
-}
-
-fn resolve_variadic_flags(target: &str, env: &Env, symbols: &SymbolRegistry) -> Option<Vec<bool>> {
-    if let Some(sig) = symbols.get_function(target) {
-        return Some(sig.is_variadic.clone());
-    }
-    env.get(target)
-        .and_then(|entry| symbols.get_type_variadic(&entry.ty))
-        .cloned()
 }
 
 fn lower_lambda_as_invocation(
@@ -1083,9 +1086,8 @@ fn validate_block_signatures(
                 }
             }
             BlockItem::Invocation(invocation) => {
-                if let Some(sig) = validate_invocation(invocation, &type_env, symbols)? {
+                if let Some(remaining) = validate_invocation(invocation, &type_env, symbols)? {
                     if let Some(result) = &invocation.result {
-                        let remaining = sig.iter().skip(invocation.args.len()).cloned().collect();
                         type_env.insert(
                             result.clone(),
                             EnvEntry {
@@ -1097,124 +1099,10 @@ fn validate_block_signatures(
                     }
                 }
             }
-            BlockItem::ReleaseEnv(_) => {}
         }
     }
 
     Ok(())
-}
-
-fn insert_release_before_invocation(
-    block: &mut Block,
-    symbols: &SymbolRegistry,
-    closure_params: &[String],
-) {
-    let last_tail_call_idx = block
-        .items
-        .iter()
-        .rposition(|item| matches!(item, BlockItem::Invocation(inv) if inv.result.is_none()));
-    let items: Vec<_> = std::mem::take(&mut block.items);
-    let captured_params = captured_closure_params(&items, closure_params);
-    let mut rewritten = Vec::with_capacity(items.len());
-
-    for (idx, mut item) in items.into_iter().enumerate() {
-        if let BlockItem::FunctionDef(function) = &mut item {
-            let nested_closures = closure_param_names(&function.params, symbols);
-            insert_release_before_invocation(&mut function.body, symbols, &nested_closures);
-        }
-
-        if Some(idx) == last_tail_call_idx {
-            if let BlockItem::Invocation(invocation) = &item {
-                for param in closure_params {
-                    if captured_params.contains(param) {
-                        continue;
-                    }
-                    if should_release_closure_param(param, invocation) {
-                        rewritten.push(BlockItem::ReleaseEnv(ReleaseEnv {
-                            name: param.clone(),
-                            span: invocation.span,
-                        }));
-                    }
-                }
-            }
-        }
-
-        rewritten.push(item);
-    }
-
-    block.items = rewritten;
-}
-
-fn captured_closure_params(items: &[BlockItem], closure_params: &[String]) -> HashSet<String> {
-    let closure_names: HashSet<&str> = closure_params.iter().map(|name| name.as_str()).collect();
-    let mut captured = HashSet::new();
-
-    for item in items {
-        match item {
-            BlockItem::ApplyDef(Apply { of, args, .. }) => {
-                if closure_names.contains(of.as_str()) {
-                    captured.insert(of.clone());
-                }
-                for arg in args {
-                    if closure_names.contains(arg.name.as_str()) {
-                        captured.insert(arg.name.clone());
-                    }
-                }
-            }
-            BlockItem::Invocation(invocation) => {
-                if closure_names.contains(invocation.of.as_str()) {
-                    captured.insert(invocation.of.clone());
-                }
-                for arg in &invocation.args {
-                    if closure_names.contains(arg.name.as_str()) {
-                        captured.insert(arg.name.clone());
-                    }
-                }
-            }
-            _ => {}
-        }
-    }
-
-    captured
-}
-
-fn closure_param_names(params: &[Param], symbols: &SymbolRegistry) -> Vec<String> {
-    params
-        .iter()
-        .filter(|param| is_closure_param(&param.ty, symbols))
-        .map(|param| param.name.clone())
-        .collect()
-}
-
-fn should_release_closure_param(param_name: &str, invocation: &Invocation) -> bool {
-    if invocation.of == param_name {
-        return false;
-    }
-    !invocation.args.iter().any(|arg| arg.name == param_name)
-}
-
-fn is_closure_param(ty: &TypeRef, symbols: &SymbolRegistry) -> bool {
-    let mut visited = HashSet::new();
-    is_closure_type(ty, symbols, &mut visited)
-}
-
-fn is_closure_type(ty: &TypeRef, symbols: &SymbolRegistry, visited: &mut HashSet<String>) -> bool {
-    match ty {
-        TypeRef::Int | TypeRef::Str | TypeRef::CompileTimeInt | TypeRef::CompileTimeStr => false,
-        TypeRef::Type(_) => true,
-        TypeRef::Alias(name) => {
-            if visited.contains(name) {
-                return true;
-            }
-            if let Some(info) = symbols.get_type_info(name) {
-                visited.insert(name.clone());
-                let result = is_closure_type(&info.target, symbols, visited);
-                visited.remove(name);
-                return result;
-            }
-            false
-        }
-    }
 }
 
 fn validate_apply(
@@ -1222,44 +1110,17 @@ fn validate_apply(
     type_env: &Env,
     symbols: &SymbolRegistry,
 ) -> Result<Option<TypeRef>, CompileError> {
-    if let Some(sig) = resolve_target_signature(&apply.of, type_env, symbols) {
-        if apply.args.len() > sig.len() {
-            return Err(ParseError::new(
-                format!(
-                    "function '{}' expects at most {} arguments but got {}",
-                    apply.of,
-                    sig.len(),
-                    apply.args.len()
-                ),
-                apply.span,
-            )
-            .into());
-        }
-        for (idx, (arg, param_ty)) in apply.args.iter().zip(sig.iter()).enumerate() {
-            let arg_ty = lookup_arg_type(arg, type_env, symbols).ok_or_else(|| {
-                ParseError::new(
-                    format!("unknown type for argument {} to '{}'", idx + 1, apply.of),
-                    arg.span,
-                )
-            })?;
-            if !type_satisfies(param_ty, &arg_ty, symbols) {
-                return Err(ParseError::new(
-                    format!(
-                        "argument {} to '{}' has type {} but expected {}",
-                        idx + 1,
-                        apply.of,
-                        format_type_ref(&arg_ty),
-                        format_type_ref(param_ty),
-                    ),
-                    arg.span,
-                )
-                .into());
-            }
-            ensure_compile_time_requirement(
-                param_ty, arg, &arg_ty, type_env, symbols, &apply.of, idx,
-            )?;
-        }
-        let remaining = sig.iter().skip(apply.args.len()).cloned().collect();
+    if let Some((sig, variadic)) = resolve_target_signature(&apply.of, type_env, symbols) {
+        let remaining = match_arguments_to_signature(
+            &apply.args,
+            type_env,
+            symbols,
+            &sig,
+            &variadic,
+            &apply.of,
+            apply.span,
+            true,
+        )?;
         Ok(Some(TypeRef::Type(remaining)))
     } else {
         Ok(None)
@@ -1271,71 +1132,464 @@ fn validate_invocation(
     type_env: &Env,
     symbols: &SymbolRegistry,
 ) -> Result<Option<Vec<TypeRef>>, CompileError> {
-    if let Some(sig) = resolve_target_signature(&invocation.of, type_env, symbols) {
-        if invocation.result.is_some() {
-            if invocation.args.len() > sig.len() {
-                return Err(ParseError::new(
-                    format!(
-                        "function '{}' expects at most {} arguments but got {}",
-                        invocation.of,
-                        sig.len(),
-                        invocation.args.len(),
-                    ),
-                    invocation.span,
-                )
-                .into());
-            }
-        } else if invocation.args.len() != sig.len() {
-            return Err(ParseError::new(
-                format!(
-                    "function '{}' expects {} arguments but got {}",
-                    invocation.of,
-                    sig.len(),
-                    invocation.args.len(),
-                ),
-                invocation.span,
-            )
-            .into());
-        }
-
-        for (idx, (arg, param_ty)) in invocation.args.iter().zip(sig.iter()).enumerate() {
-            let arg_ty = lookup_arg_type(arg, type_env, symbols).ok_or_else(|| {
-                ParseError::new(
-                    format!(
-                        "unknown type for argument {} to '{}'",
-                        idx + 1,
-                        invocation.of
-                    ),
-                    arg.span,
-                )
-            })?;
-            if !type_satisfies(param_ty, &arg_ty, symbols) {
-                return Err(ParseError::new(
-                    format!(
-                        "argument {} to '{}' has type {} but expected {}",
-                        idx + 1,
-                        invocation.of,
-                        format_type_ref(&arg_ty),
-                        format_type_ref(param_ty),
-                    ),
-                    arg.span,
-                )
-                .into());
-            }
-            ensure_compile_time_requirement(
-                param_ty,
-                arg,
-                &arg_ty,
-                type_env,
-                symbols,
-                &invocation.of,
-                idx,
-            )?;
-        }
-
-        return Ok(Some(sig));
+    if let Some((sig, variadic)) = resolve_target_signature(&invocation.of, type_env, symbols) {
+        let remaining = match_arguments_to_signature(
+            &invocation.args,
+            type_env,
+            symbols,
+            &sig,
+            &variadic,
+            &invocation.of,
+            invocation.span,
+            invocation.result.is_some(),
+        )?;
+        return Ok(Some(remaining));
     }
     Ok(None)
+}
+
+fn match_arguments_to_signature(
+    args: &[Arg],
+    type_env: &Env,
+    symbols: &SymbolRegistry,
+    sig: &[TypeRef],
+    variadic: &[bool],
+    caller: &str,
+    span: Span,
+    allow_partial: bool,
+) -> Result<Vec<TypeRef>, CompileError> {
+    if allow_partial {
+        return match_arguments_partial(args, type_env, symbols, sig, variadic, caller, span);
+    }
+    match_arguments_full(args, type_env, symbols, sig, variadic, caller, span)
+}
+
+fn match_arguments_partial(
+    args: &[Arg],
+    type_env: &Env,
+    symbols: &SymbolRegistry,
+    sig: &[TypeRef],
+    variadic: &[bool],
+    caller: &str,
+    span: Span,
+) -> Result<Vec<TypeRef>, CompileError> {
+    let mut sig_idx = 0;
+    let mut arg_idx = 0;
+
+    while sig_idx < sig.len() {
+        if *variadic.get(sig_idx).unwrap_or(&false) {
+            let element_ty =
+                element_type_for_variadic(&sig[sig_idx], symbols).ok_or_else(|| {
+                    ParseError::new(
+                        format!(
+                            "cannot determine element type for variadic parameter of '{}'",
+                            caller
+                        ),
+                        span,
+                    )
+                })?;
+            while arg_idx < args.len() {
+                let arg = &args[arg_idx];
+                let arg_ty = lookup_arg_type(arg, type_env, symbols).ok_or_else(|| {
+                    ParseError::new(
+                        format!("unknown type for argument {} to '{}'", arg_idx + 1, caller),
+                        arg.span,
+                    )
+                })?;
+                if !type_satisfies(&element_ty, &arg_ty, symbols) {
+                    return Err(type_mismatch_error(
+                        caller,
+                        arg_idx + 1,
+                        &element_ty,
+                        &arg_ty,
+                        arg.span,
+                        symbols,
+                    ));
+                }
+                ensure_compile_time_requirement(
+                    &element_ty,
+                    arg,
+                    &arg_ty,
+                    type_env,
+                    symbols,
+                    caller,
+                    arg_idx,
+                )?;
+                arg_idx += 1;
+            }
+            sig_idx += 1;
+            continue;
+        }
+
+        if arg_idx >= args.len() {
+            break;
+        }
+
+        let arg = &args[arg_idx];
+        let arg_ty = lookup_arg_type(arg, type_env, symbols).ok_or_else(|| {
+            ParseError::new(
+                format!("unknown type for argument {} to '{}'", arg_idx + 1, caller),
+                arg.span,
+            )
+        })?;
+        if !type_satisfies(&sig[sig_idx], &arg_ty, symbols) {
+            return Err(type_mismatch_error(
+                caller,
+                arg_idx + 1,
+                &sig[sig_idx],
+                &arg_ty,
+                arg.span,
+                symbols,
+            ));
+        }
+        ensure_compile_time_requirement(
+            &sig[sig_idx],
+            arg,
+            &arg_ty,
+            type_env,
+            symbols,
+            caller,
+            arg_idx,
+        )?;
+        sig_idx += 1;
+        arg_idx += 1;
+    }
+
+    if arg_idx < args.len() {
+        return Err(ParseError::new(
+            format!(
+                "function '{}' expects {} arguments but got {}",
+                caller,
+                sig.len(),
+                args.len()
+            ),
+            span,
+        )
+        .into());
+    }
+
+    Ok(sig[sig_idx..].to_vec())
+}
+
+fn match_arguments_full(
+    args: &[Arg],
+    type_env: &Env,
+    symbols: &SymbolRegistry,
+    sig: &[TypeRef],
+    variadic: &[bool],
+    caller: &str,
+    span: Span,
+) -> Result<Vec<TypeRef>, CompileError> {
+    let mut variadic_index = None;
+    for (idx, flag) in variadic.iter().enumerate() {
+        if *flag {
+            if variadic_index.is_some() {
+                return Err(ParseError::new(
+                    format!(
+                        "multiple variadic parameters are not supported for '{}'",
+                        caller
+                    ),
+                    span,
+                )
+                .into());
+            }
+            variadic_index = Some(idx);
+        }
+    }
+
+    if let Some(variadic_idx) = variadic_index {
+        return match_arguments_full_variadic(
+            args,
+            type_env,
+            symbols,
+            sig,
+            variadic_idx,
+            caller,
+            span,
+        );
+    }
+
+    if args.len() != sig.len() {
+        return Err(ParseError::new(
+            format!(
+                "function '{}' expects {} arguments but got {}",
+                caller,
+                sig.len(),
+                args.len()
+            ),
+            span,
+        )
+        .into());
+    }
+
+    for (idx, expected) in sig.iter().enumerate() {
+        let arg = &args[idx];
+        let arg_ty = lookup_arg_type(arg, type_env, symbols).ok_or_else(|| {
+            ParseError::new(
+                format!("unknown type for argument {} to '{}'", idx + 1, caller),
+                arg.span,
+            )
+        })?;
+        if !type_satisfies(expected, &arg_ty, symbols) {
+            return Err(type_mismatch_error(
+                caller,
+                idx + 1,
+                expected,
+                &arg_ty,
+                arg.span,
+                symbols,
+            ));
+        }
+        ensure_compile_time_requirement(expected, arg, &arg_ty, type_env, symbols, caller, idx)?;
+    }
+
+    Ok(Vec::new())
+}
+
+fn match_arguments_full_variadic(
+    args: &[Arg],
+    type_env: &Env,
+    symbols: &SymbolRegistry,
+    sig: &[TypeRef],
+    variadic_idx: usize,
+    caller: &str,
+    span: Span,
+) -> Result<Vec<TypeRef>, CompileError> {
+    let prefix_required = variadic_idx;
+    let suffix_required = sig.len().saturating_sub(variadic_idx + 1);
+    let required = prefix_required + suffix_required;
+    if args.len() < required {
+        return Err(ParseError::new(
+            format!(
+                "function '{}' expected at least {} arguments but got {}",
+                caller,
+                required,
+                args.len()
+            ),
+            span,
+        )
+        .into());
+    }
+
+    for idx in 0..prefix_required {
+        let arg = &args[idx];
+        let arg_ty = lookup_arg_type(arg, type_env, symbols).ok_or_else(|| {
+            ParseError::new(
+                format!("unknown type for argument {} to '{}'", idx + 1, caller),
+                arg.span,
+            )
+        })?;
+        if !type_satisfies(&sig[idx], &arg_ty, symbols) {
+            return Err(type_mismatch_error(
+                caller,
+                idx + 1,
+                &sig[idx],
+                &arg_ty,
+                arg.span,
+                symbols,
+            ));
+        }
+        ensure_compile_time_requirement(&sig[idx], arg, &arg_ty, type_env, symbols, caller, idx)?;
+    }
+
+    let element_ty = element_type_for_variadic(&sig[variadic_idx], symbols).ok_or_else(|| {
+        ParseError::new(
+            format!(
+                "cannot determine element type for variadic parameter of '{}'",
+                caller
+            ),
+            span,
+        )
+    })?;
+
+    let suffix_arg_start = args.len() - suffix_required;
+    let mut arg_idx = prefix_required;
+    while arg_idx < suffix_arg_start {
+        let arg = &args[arg_idx];
+        let arg_ty = lookup_arg_type(arg, type_env, symbols).ok_or_else(|| {
+            ParseError::new(
+                format!("unknown type for argument {} to '{}'", arg_idx + 1, caller),
+                arg.span,
+            )
+        })?;
+        if !type_satisfies(&element_ty, &arg_ty, symbols) {
+            return Err(type_mismatch_error(
+                caller,
+                arg_idx + 1,
+                &element_ty,
+                &arg_ty,
+                arg.span,
+                symbols,
+            ));
+        }
+        ensure_compile_time_requirement(
+            &element_ty,
+            arg,
+            &arg_ty,
+            type_env,
+            symbols,
+            caller,
+            arg_idx,
+        )?;
+        arg_idx += 1;
+    }
+
+    for (offset, expected) in sig[variadic_idx + 1..].iter().enumerate() {
+        let arg_pos = suffix_arg_start + offset;
+        let arg = &args[arg_pos];
+        let arg_ty = lookup_arg_type(arg, type_env, symbols).ok_or_else(|| {
+            ParseError::new(
+                format!("unknown type for argument {} to '{}'", arg_pos + 1, caller),
+                arg.span,
+            )
+        })?;
+        if !type_satisfies(expected, &arg_ty, symbols) {
+            return Err(type_mismatch_error(
+                caller,
+                arg_pos + 1,
+                expected,
+                &arg_ty,
+                arg.span,
+                symbols,
+            ));
+        }
+        ensure_compile_time_requirement(
+            expected, arg, &arg_ty, type_env, symbols, caller, arg_pos,
+        )?;
+    }
+
+    Ok(Vec::new())
+}
+
+const TYPE_MISMATCH_DEPTH_LIMIT: usize = 32;
+
+fn type_mismatch_error(
+    caller: &str,
+    arg_index: usize,
+    expected: &TypeRef,
+    actual: &TypeRef,
+    span: Span,
+    symbols: &SymbolRegistry,
+) -> CompileError {
+    let (expected_mismatch, actual_mismatch) = find_type_mismatch_pair(expected, actual, symbols);
+    let base_message = format!(
+        "argument {} to '{}' has type {} but expected {}",
+        arg_index,
+        caller,
+        format_source_type_ref(&actual_mismatch, symbols),
+        format_source_type_ref(&expected_mismatch, symbols),
+    );
+    let hint = format_source_type_ref(actual, symbols);
+    ParseError::new(
+        format!(
+            "{}; try changing the '{}' signature to {}",
+            base_message, caller, hint
+        ),
+        span,
+    )
+    .into()
+}
+
+fn find_type_mismatch_pair(
+    expected: &TypeRef,
+    actual: &TypeRef,
+    symbols: &SymbolRegistry,
+) -> (TypeRef, TypeRef) {
+    let mut expected_visited = HashSet::new();
+    let expanded_expected = expand_alias_chain(expected, symbols, &mut expected_visited);
+    let mut actual_visited = HashSet::new();
+    let expanded_actual = expand_alias_chain(actual, symbols, &mut actual_visited);
+    find_type_mismatch_pair_inner(&expanded_expected, &expanded_actual, symbols, 0)
+}
+
+fn find_type_mismatch_pair_inner(
+    expected: &TypeRef,
+    actual: &TypeRef,
+    symbols: &SymbolRegistry,
+    depth: usize,
+) -> (TypeRef, TypeRef) {
+    if depth >= TYPE_MISMATCH_DEPTH_LIMIT || type_satisfies(expected, actual, symbols) {
+        return (expected.clone(), actual.clone());
+    }
+    if let (TypeRef::Type(expected_params), TypeRef::Type(actual_params)) = (expected, actual) {
+        let expected_trimmed = trim_unit_continuation(expected_params, symbols);
+        let actual_trimmed = trim_unit_continuation(actual_params, symbols);
+        let len = expected_trimmed.len().min(actual_trimmed.len());
+        for idx in 0..len {
+            let expected_param = &expected_trimmed[idx];
+            let actual_param = &actual_trimmed[idx];
+            if type_satisfies(expected_param, actual_param, symbols) {
+                continue;
+            }
+            return find_type_mismatch_pair_inner(expected_param, actual_param, symbols, depth + 1);
+        }
+    }
+    (expected.clone(), actual.clone())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::compiler::symbol::SymbolRegistry;
+
+    #[test]
+    fn nested_tuple_mismatch_reports_inner_types() {
+        let symbols = SymbolRegistry::new();
+        let expected = TypeRef::Type(vec![
+            TypeRef::Int,
+            TypeRef::Type(vec![
+                TypeRef::Int,
+                TypeRef::Type(vec![]),
+                TypeRef::Type(vec![TypeRef::Int]),
+            ]),
+        ]);
+        let actual = TypeRef::Type(vec![
+            TypeRef::Int,
+            TypeRef::Type(vec![
+                TypeRef::Int,
+                TypeRef::Type(vec![]),
+                TypeRef::Type(vec![TypeRef::Str]),
+            ]),
+        ]);
+        let (expected_mismatch, actual_mismatch) =
+            find_type_mismatch_pair(&expected, &actual, &symbols);
+        assert_eq!(expected_mismatch, TypeRef::Int);
+        assert_eq!(actual_mismatch, TypeRef::Str);
+    }
+}
+
+fn element_type_for_variadic(ty: &TypeRef, symbols: &SymbolRegistry) -> Option<TypeRef> {
+    let mut visited = HashSet::new();
+    let expanded = expand_alias_chain(ty, symbols, &mut visited);
+    let mut current_params = if let TypeRef::Type(params) = expanded {
+        params
+    } else {
+        return None;
+    };
+    loop {
+        if current_params.len() == 1 {
+            if let TypeRef::Type(inner) = &current_params[0] {
+                current_params = inner.clone();
+                continue;
+            }
+        }
+        break;
+    }
+    if current_params.len() > 1 {
+        let nth_type = current_params[1].clone();
+        let mut visited = HashSet::new();
+        let nth_expanded = expand_alias_chain(&nth_type, symbols, &mut visited);
+        if let TypeRef::Type(nth_params) = nth_expanded {
+            if nth_params.len() > 2 {
+                let mut visited = HashSet::new();
+                let one_expanded = expand_alias_chain(&nth_params[2], symbols, &mut visited);
+                if let TypeRef::Type(one_params) = one_expanded {
+                    return one_params.get(0).cloned();
+                }
+            }
+        }
+    }
+    None
 }
 
 fn lookup_arg_type(arg: &Arg, type_env: &Env, symbols: &SymbolRegistry) -> Option<TypeRef> {
@@ -1351,13 +1605,17 @@ fn resolve_target_signature(
     target: &str,
     type_env: &Env,
     symbols: &SymbolRegistry,
-) -> Option<Vec<TypeRef>> {
+) -> Option<(Vec<TypeRef>, Vec<bool>)> {
     if let Some(sig) = symbols.get_function(target) {
-        return Some(sig.params.clone());
+        return Some((sig.params.clone(), sig.is_variadic.clone()));
     }
     if let Some(entry) = type_env.get(target) {
         if let Some(params) = resolve_type_signature(&entry.ty, symbols) {
-            return Some(params);
+            let variadic_flags = symbols
+                .get_type_variadic(&entry.ty)
+                .cloned()
+                .unwrap_or_else(|| vec![false; params.len()]);
+            return Some((params, variadic_flags));
         }
     }
     None
@@ -1375,6 +1633,11 @@ fn resolve_alias_signature(
 ) -> Option<Vec<TypeRef>> {
     match ty {
         TypeRef::Type(params) => Some(params.clone()),
+        TypeRef::AliasInstance { .. } => {
+            let mut expand_visited = HashSet::new();
+            let expanded = expand_alias_chain(ty, symbols, &mut expand_visited);
+            resolve_alias_signature(&expanded, symbols, visited)
+        }
         TypeRef::Alias(name) => {
             if visited.contains(name) {
                 return None;
@@ -1391,27 +1654,54 @@ fn resolve_alias_signature(
     }
 }
 
-fn format_type_ref(ty: &TypeRef) -> String {
-    match ty {
-        TypeRef::Int => "int".to_string(),
-        TypeRef::Str => "str".to_string(),
-        TypeRef::CompileTimeInt => "int!".to_string(),
-        TypeRef::CompileTimeStr => "str!".to_string(),
-        TypeRef::Alias(name) => name.clone(),
-        TypeRef::Type(inner) => format!(
-            "({})",
-            inner
-                .iter()
-                .map(|ty| format_type_ref(ty))
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
+fn format_source_type_ref(ty: &TypeRef, symbols: &SymbolRegistry) -> String {
+    fn helper(ty: &TypeRef, symbols: &SymbolRegistry, visited: &mut HashSet<String>) -> String {
+        match ty {
+            TypeRef::Int => "int".to_string(),
+            TypeRef::Str => "str".to_string(),
+            TypeRef::CompileTimeInt => "int!".to_string(),
+            TypeRef::CompileTimeStr => "str!".to_string(),
+            TypeRef::Alias(name) => {
+                if let Some(info) = symbols.get_type_info(name) {
+                    if name.starts_with("__type_") && !visited.contains(name) {
+                        visited.insert(name.clone());
+                        let rendered = helper(&info.target, symbols, visited);
+                        visited.remove(name);
+                        return rendered;
+                    }
+                }
+                name.clone()
+            }
+            TypeRef::AliasInstance { name, args } => format!(
+                "{}<{}>",
+                name,
+                args.iter()
+                    .map(|ty| helper(ty, symbols, visited))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            TypeRef::Type(inner) => format!(
+                "({})",
+                inner
+                    .iter()
+                    .map(|ty| helper(ty, symbols, visited))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            TypeRef::Generic(name) => name.clone(),
+        }
     }
+
+    helper(ty, symbols, &mut HashSet::new())
 }
 
 fn type_satisfies(expected: &TypeRef, actual: &TypeRef, symbols: &SymbolRegistry) -> bool {
+    let mut expand_visited = HashSet::new();
+    let expanded_expected = expand_alias_chain(expected, symbols, &mut expand_visited);
+    expand_visited.clear();
+    let expanded_actual = expand_alias_chain(actual, symbols, &mut expand_visited);
     let mut visited = HashSet::new();
-    type_satisfies_inner(expected, actual, symbols, &mut visited)
+    type_satisfies_inner(&expanded_expected, &expanded_actual, symbols, &mut visited)
 }
 
 fn type_satisfies_inner(
@@ -1508,6 +1798,11 @@ fn compile_time_requirement_inner(
                 None
             }
         }
+        TypeRef::AliasInstance { .. } => {
+            let mut expand_visited = HashSet::new();
+            let expanded = expand_alias_chain(ty, symbols, &mut expand_visited);
+            compile_time_requirement_inner(&expanded, symbols, visited)
+        }
         _ => None,
     }
 }
@@ -1540,7 +1835,7 @@ fn ensure_compile_time_requirement(
                     "argument {} to '{}' must be {}",
                     arg_index + 1,
                     target,
-                    format_type_ref(param_ty),
+                    format_source_type_ref(param_ty, symbols),
                 ),
                 arg.span,
             )
@@ -1576,6 +1871,11 @@ fn is_unit_type(ty: &TypeRef, symbols: &SymbolRegistry, visited: &mut HashSet<St
                 return result;
             }
             false
+        }
+        TypeRef::AliasInstance { .. } => {
+            let mut expand_visited = HashSet::new();
+            let expanded = expand_alias_chain(ty, symbols, &mut expand_visited);
+            is_unit_type(&expanded, symbols, visited)
         }
         _ => false,
     }

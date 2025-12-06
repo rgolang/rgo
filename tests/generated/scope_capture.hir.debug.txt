@@ -1,7 +1,20 @@
 [
     Function {
         name: "print_sum",
-        params: [],
+        params: [
+            Param {
+                name: "ok",
+                ty: Type(
+                    [],
+                ),
+                span: Span {
+                    line: 5,
+                    column: 13,
+                    offset: 35,
+                },
+                is_variadic: false,
+            },
+        ],
         body: Block {
             items: [
                 IntDef(
@@ -11,7 +24,7 @@
                         span: Span {
                             line: 6,
                             column: 23,
-                            offset: 57,
+                            offset: 65,
                         },
                     },
                 ),
@@ -22,18 +35,27 @@
                         span: Span {
                             line: 6,
                             column: 26,
-                            offset: 60,
+                            offset: 68,
                         },
                     },
                 ),
                 Invocation(
                     Invocation {
                         of: "__lambda_0",
-                        args: [],
+                        args: [
+                            Arg {
+                                name: "ok",
+                                span: Span {
+                                    line: 5,
+                                    column: 13,
+                                    offset: 35,
+                                },
+                            },
+                        ],
                         span: Span {
                             line: 6,
                             column: 5,
-                            offset: 39,
+                            offset: 47,
                         },
                         result: Some(
                             "__temp_2",
@@ -49,7 +71,7 @@
                                 span: Span {
                                     line: 6,
                                     column: 23,
-                                    offset: 57,
+                                    offset: 65,
                                 },
                             },
                             Arg {
@@ -57,7 +79,7 @@
                                 span: Span {
                                     line: 6,
                                     column: 26,
-                                    offset: 60,
+                                    offset: 68,
                                 },
                             },
                             Arg {
@@ -65,14 +87,14 @@
                                 span: Span {
                                     line: 6,
                                     column: 5,
-                                    offset: 39,
+                                    offset: 47,
                                 },
                             },
                         ],
                         span: Span {
                             line: 6,
                             column: 19,
-                            offset: 53,
+                            offset: 61,
                         },
                         result: None,
                     },
@@ -80,26 +102,38 @@
             ],
             span: Span {
                 line: 5,
-                column: 14,
-                offset: 33,
+                column: 19,
+                offset: 41,
             },
         },
         span: Span {
             line: 5,
             column: 1,
-            offset: 20,
+            offset: 23,
         },
     },
     Function {
         name: "__lambda_0",
         params: [
             Param {
+                name: "ok",
+                ty: Type(
+                    [],
+                ),
+                span: Span {
+                    line: 5,
+                    column: 13,
+                    offset: 35,
+                },
+                is_variadic: false,
+            },
+            Param {
                 name: "total",
                 ty: Int,
                 span: Span {
                     line: 6,
                     column: 6,
-                    offset: 40,
+                    offset: 48,
                 },
                 is_variadic: false,
             },
@@ -113,22 +147,8 @@
                         span: Span {
                             line: 7,
                             column: 12,
-                            offset: 74,
+                            offset: 82,
                         },
-                    },
-                ),
-                Invocation(
-                    Invocation {
-                        of: "__lambda_1",
-                        args: [],
-                        span: Span {
-                            line: 7,
-                            column: 34,
-                            offset: 96,
-                        },
-                        result: Some(
-                            "__temp_4",
-                        ),
                     },
                 ),
                 Invocation(
@@ -140,7 +160,7 @@
                                 span: Span {
                                     line: 7,
                                     column: 12,
-                                    offset: 74,
+                                    offset: 82,
                                 },
                             },
                             Arg {
@@ -148,22 +168,22 @@
                                 span: Span {
                                     line: 7,
                                     column: 27,
-                                    offset: 89,
+                                    offset: 97,
                                 },
                             },
                             Arg {
-                                name: "__temp_4",
+                                name: "ok",
                                 span: Span {
                                     line: 7,
                                     column: 34,
-                                    offset: 96,
+                                    offset: 104,
                                 },
                             },
                         ],
                         span: Span {
                             line: 7,
                             column: 5,
-                            offset: 67,
+                            offset: 75,
                         },
                         result: None,
                     },
@@ -172,63 +192,13 @@
             span: Span {
                 line: 6,
                 column: 5,
-                offset: 39,
+                offset: 47,
             },
         },
         span: Span {
             line: 6,
             column: 5,
-            offset: 39,
-        },
-    },
-    Function {
-        name: "__lambda_1",
-        params: [],
-        body: Block {
-            items: [
-                IntDef(
-                    IntLiteral {
-                        name: "__temp_5",
-                        value: 0,
-                        span: Span {
-                            line: 7,
-                            column: 39,
-                            offset: 101,
-                        },
-                    },
-                ),
-                Invocation(
-                    Invocation {
-                        of: "exit",
-                        args: [
-                            Arg {
-                                name: "__temp_5",
-                                span: Span {
-                                    line: 7,
-                                    column: 39,
-                                    offset: 101,
-                                },
-                            },
-                        ],
-                        span: Span {
-                            line: 7,
-                            column: 34,
-                            offset: 96,
-                        },
-                        result: None,
-                    },
-                ),
-            ],
-            span: Span {
-                line: 7,
-                column: 34,
-                offset: 96,
-            },
-        },
-        span: Span {
-            line: 7,
-            column: 34,
-            offset: 96,
+            offset: 47,
         },
     },
     Function {
@@ -238,12 +208,85 @@
             items: [
                 Invocation(
                     Invocation {
-                        of: "print_sum",
+                        of: "__lambda_1",
                         args: [],
                         span: Span {
                             line: 10,
                             column: 1,
-                            offset: 108,
+                            offset: 111,
+                        },
+                        result: Some(
+                            "__temp_5",
+                        ),
+                    },
+                ),
+                Invocation(
+                    Invocation {
+                        of: "print_sum",
+                        args: [
+                            Arg {
+                                name: "__temp_5",
+                                span: Span {
+                                    line: 10,
+                                    column: 1,
+                                    offset: 111,
+                                },
+                            },
+                        ],
+                        span: Span {
+                            line: 10,
+                            column: 6,
+                            offset: 116,
+                        },
+                        result: None,
+                    },
+                ),
+            ],
+            span: Span {
+                line: 11,
+                column: 1,
+                offset: 126,
+            },
+        },
+        span: Span {
+            line: 11,
+            column: 1,
+            offset: 126,
+        },
+    },
+    Function {
+        name: "__lambda_1",
+        params: [],
+        body: Block {
+            items: [
+                IntDef(
+                    IntLiteral {
+                        name: "__temp_6",
+                        value: 0,
+                        span: Span {
+                            line: 11,
+                            column: 6,
+                            offset: 131,
+                        },
+                    },
+                ),
+                Invocation(
+                    Invocation {
+                        of: "exit",
+                        args: [
+                            Arg {
+                                name: "__temp_6",
+                                span: Span {
+                                    line: 11,
+                                    column: 6,
+                                    offset: 131,
+                                },
+                            },
+                        ],
+                        span: Span {
+                            line: 11,
+                            column: 1,
+                            offset: 126,
                         },
                         result: None,
                     },
@@ -252,13 +295,13 @@
             span: Span {
                 line: 10,
                 column: 1,
-                offset: 108,
+                offset: 111,
             },
         },
         span: Span {
             line: 10,
             column: 1,
-            offset: 108,
+            offset: 111,
         },
     },
 ]

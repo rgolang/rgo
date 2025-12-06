@@ -1,0 +1,9 @@
+@/str
+@/exit
+@/write
+
+arr: <T>((len: int, nth:(idx:int, none:(), one:(T))))
+
+foo: (items: arr<str>) {
+    write("done", exit(0))
+}

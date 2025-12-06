@@ -1,4 +1,5 @@
-@rgo_write
-@exit
+@/rgo_write
+@/exit
 
 rgo_write("builtin\n", exit(0))
+

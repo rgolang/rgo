@@ -1,6 +1,6 @@
-@str
-@write
-@exit
+@/str
+@/write
+@/exit
 
 msg: "hello world"
 foo: (input: str, ok:()){

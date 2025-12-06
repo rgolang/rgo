@@ -1,0 +1,7 @@
+@/printf
+@/exit
+
+(x:int){
+    () = printf("the answer is: %d", x)
+    exit(0)
+}(42)

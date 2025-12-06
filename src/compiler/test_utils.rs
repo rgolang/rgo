@@ -1,7 +1,7 @@
 use std::fmt::Write;
 
 use super::ast::TypeRef;
-use super::hir::{Apply, Arg, Block, BlockItem, Function, Param, ReleaseEnv};
+use super::hir::{Apply, Arg, Block, BlockItem, Function, Param};
 
 pub fn render_normalized_rgo(functions: &[Function]) -> String {
     let mut out = String::new();
@@ -63,9 +63,6 @@ fn write_block_item(item: &BlockItem, out: &mut String, indent: usize) {
             write_args(&invocation.args, out);
             out.push(')');
         }
-        BlockItem::ReleaseEnv(ReleaseEnv { name, .. }) => {
-            write!(out, "munmap({})", name).unwrap();
-        }
     }
     out.push('\n');
 }
@@ -114,6 +111,14 @@ fn format_type_ref(ty: &TypeRef) -> String {
         super::ast::TypeRef::CompileTimeInt => "int!".to_string(),
         super::ast::TypeRef::CompileTimeStr => "str!".to_string(),
         super::ast::TypeRef::Alias(name) => name.clone(),
+        super::ast::TypeRef::AliasInstance { name, args } => format!(
+            "{}<{}>",
+            name,
+            args.iter()
+                .map(format_type_ref)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
         super::ast::TypeRef::Type(inner) => format!(
             "({})",
             inner
@@ -122,6 +127,7 @@ fn format_type_ref(ty: &TypeRef) -> String {
                 .collect::<Vec<_>>()
                 .join(", ")
         ),
+        super::ast::TypeRef::Generic(name) => name.clone(),
     }
 }
 

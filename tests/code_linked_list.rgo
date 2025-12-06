@@ -1,7 +1,7 @@
-@str
-@int
-@printf
-@exit
+@/str
+@/int
+@/printf
+@/exit
 
 list: ((int, list), ())
 nil: (next:(int, list), end: ()){

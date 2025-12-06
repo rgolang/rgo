@@ -1,0 +1,50 @@
+nil(next: (int, ((int, list), ())), end: ()) {
+    munmap next
+    end()
+}
+
+cons(head: int, tail: ((int, list), ()), next: (int, ((int, list), ())), end: ()) {
+    munmap end
+    next(head, tail)
+}
+
+__lambda_0(handler: (int, ()), end: (), head: int, tail: ((int, list), ())) {
+    __temp_1 = iterate(handler, tail, end)
+    handler(head, __temp_1)
+}
+
+iterate(handler: (int, ()), arr: ((int, list), ()), end: ()) {
+    __temp_0 = __lambda_0(handler, end)
+    arr(__temp_0, end)
+}
+
+handler(n: int, ok: ()) {
+    __temp_3 = "%d, "
+    printf(__temp_3, n, ok)
+}
+
+__lambda_1() {
+    __temp_6 = 0
+    exit(__temp_6)
+}
+
+end() {
+    __temp_4 = "end\n"
+    __temp_5 = __lambda_1()
+    printf(__temp_4, __temp_5)
+}
+
+_start() {
+    __temp_7 = 1
+    __temp_8 = 2
+    __temp_9 = 3
+    __temp_10 = 4
+    __mir_fn_0 = <function nil>; mmap env_size=32 heap_size=72
+    __temp_11 = cons(__temp_10, __mir_fn_0)
+    __temp_12 = cons(__temp_9, __temp_11)
+    __temp_13 = cons(__temp_8, __temp_12)
+    mylist = cons(__temp_7, __temp_13)
+    __mir_fn_1 = <function handler>; mmap env_size=24 heap_size=56
+    __mir_fn_2 = <function end>; mmap env_size=0 heap_size=24
+    iterate(__mir_fn_1, mylist, __mir_fn_2)
+}
