@@ -17,8 +17,8 @@ The grammar file lives in: [grammar.peg](./grammar.peg)
 
 # Example
 ```
-@printf
-@exit
+@/printf
+@/exit
 
 name: "Alice"
 printf("hello %s", name, exit(0))
@@ -38,7 +38,7 @@ There are no expressions, operators or return values, all computation is a seque
 
 A definition introduces a name for a value inside the current scope:
 ```
-@printf
+@/printf
 
 name: "Bob"
 foo: (ok:()){
@@ -49,8 +49,8 @@ foo: (ok:()){
 ### Execution
 
 ```
-@exit
-@printf
+@/exit
+@/printf
 
 name: "Bob"
 foo: (ok:()){
@@ -148,7 +148,7 @@ ld -dynamic-linker /lib64/ld-linux-x86-64.so.2 -lc bin/hello.o -o bin/hello
 
 - Rebuild the compiler or run the golden snapshot suite with `cargo test`. This also executes `tests/golden_test.rs`, which regenerates snapshots under `tests/generated/`:
   - `*.asm` contains the final NASM output.
-  - `*.asm.txt` records the pseudo-assembly that feeds the final backend.
+  - `*.mir` records the pseudo-assembly that feeds the final backend.
   - `*.hir.rgo` is the normalized high-level IR after parsing.
   - `*.hir.debug.txt` shows the HIR structure.
   - `*.txt` captures the parser AST dump.
@@ -161,10 +161,15 @@ ld -dynamic-linker /lib64/ld-linux-x86-64.so.2 -lc bin/hello.o -o bin/hello
 - `tests/`: integration and golden snapshot tests; `golden_test.rs` is the automated snapshot generator.
 - [SEMANTICS.md](SEMANTICS.md) describes runtime expectations and language rules.
 
-## Notes for contributors
-
-- The compiler is intentionally small: prefer clarity over clever macros.
-- Document any new language surface you add so users can follow the same mental model.
+## Compilation
+The compilation process flows as follows:
+1. `Lexer`: Transforms source text into a stream of `Token`s.
+2. `Parser`: Consumes tokens to produce an Abstract Syntax Tree (AST).
+3. `HIR`: AST is desugared and type checked.
+4. `MIR`: Control flow analysis and memory management.
+5. `Codegen`: Optimization and assembly output.
+6. `Assembler`: Converts assembly text into machine object files.
+7. `Linker`: Combines object files and libraries into the final executable.
 
 ## Current Limitations & Roadmap Notes
 
@@ -181,7 +186,7 @@ Aggregate data structures are not yet supported. There is no syntax or type-leve
 - Minimal runtime surface  
 At present, the only “standard library” consists of printf, sprintf, and arbitrary native NASM instructions. Everything else must be built manually.
 - Loops leak memory  
-Loops are implemented using recursion, and recursion currently doesn't detect closure release logic and runs out of memory
+Loops are implemented using recursion, they should not leak, but this hasn't been throughly tested
 
 Despite that, functionality is slowly expanding, and the compiler architecture is structured so these features can be added piece by piece while keeping the language’s core goals (simplicity, explicitness, and predictability) intact.
 
