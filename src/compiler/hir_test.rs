@@ -3,8 +3,8 @@ use std::io::Cursor;
 use std::path::Path;
 
 use super::{
-    ast::{Item, TypeRef},
-    hir::{lower_entry, lower_function, Env, EnvEntry},
+    ast::{Block, Item, Lambda, Params, TypeRef},
+    hir::{lower_function, Env, EnvEntry},
     lexer::Lexer,
     parser::Parser,
     symbol::SymbolRegistry,
@@ -35,30 +35,52 @@ fn hir_test() {
             Item::Ident(ident) => {
                 let span = ident.span;
                 let term_item = Item::Ident(ident);
-                if let Some(funcs) = lower_entry(Vec::new(), vec![term_item], span, &mut symbols)
-                    .expect("lower_entry should accept hir_test.rgo")
-                {
-                    for func in funcs {
-                        let (main_fn, nested) = lower_function(func, &mut symbols, &env)
-                            .expect("lower_function should succeed");
-                        functions.push(main_fn);
-                        functions.extend(nested);
-                    }
-                }
+                // Create synthetic function for entry item
+                let synthetic_entry = Item::FunctionDef {
+                    name: "_start".into(),
+                    lambda: Lambda {
+                        params: Params {
+                            items: Vec::new(),
+                            span,
+                        },
+                        body: Block {
+                            items: vec![term_item],
+                            span,
+                        },
+                        args: Vec::new(),
+                        span,
+                    },
+                    span,
+                };
+                let (main_fn, nested) = lower_function(synthetic_entry, &mut symbols, &env)
+                    .expect("lower_function should succeed");
+                functions.push(main_fn);
+                functions.extend(nested);
             }
             Item::Lambda(lambda) => {
                 let span = lambda.span;
                 let term_item = Item::Lambda(lambda);
-                if let Some(funcs) = lower_entry(Vec::new(), vec![term_item], span, &mut symbols)
-                    .expect("lower_entry should accept hir_test.rgo")
-                {
-                    for func in funcs {
-                        let (main_fn, nested) = lower_function(func, &mut symbols, &env)
-                            .expect("lower_function should succeed");
-                        functions.push(main_fn);
-                        functions.extend(nested);
-                    }
-                }
+                // Create synthetic function for entry item
+                let synthetic_entry = Item::FunctionDef {
+                    name: "_start".into(),
+                    lambda: Lambda {
+                        params: Params {
+                            items: Vec::new(),
+                            span,
+                        },
+                        body: Block {
+                            items: vec![term_item],
+                            span,
+                        },
+                        args: Vec::new(),
+                        span,
+                    },
+                    span,
+                };
+                let (main_fn, nested) = lower_function(synthetic_entry, &mut symbols, &env)
+                    .expect("lower_function should succeed");
+                functions.push(main_fn);
+                functions.extend(nested);
             }
             Item::StrDef { name, span, .. } => {
                 env.insert(

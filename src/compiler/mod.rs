@@ -53,22 +53,14 @@ pub fn compile<R: BufRead, W: Write>(
     // Emit preamble (globals, default labels, etc.).
     codegen::write_preamble(out)?;
 
-    // TODO: Collect block lines that are not functions, then emit entrypoint at the end.
+    // Collect block lines that are not functions, then emit entrypoint at the end.
     // ---------- STREAM ITEMS ----------
     let mut entry_defs = Vec::new();
     let mut entry_items = Vec::new();
     while let Some(item) = parser.next(&mut symbols)? {
         match item {
             function @ Item::FunctionDef { .. } => {
-                let (main_fn, nested_fns) = hir::lower_function(function, &mut symbols, &env)?;
-
-                // Emit nested functions *first*
-                for nf in nested_fns {
-                    emit_function(nf, &symbols, &mut ctx, out)?;
-                }
-
-                // Then emit the main function
-                emit_function(main_fn, &symbols, &mut ctx, out)?;
+                compile_function_pipeline(function, &mut symbols, &env, &mut ctx, out)?;
             }
             Item::StrDef {
                 name,
@@ -159,7 +151,48 @@ pub fn compile<R: BufRead, W: Write>(
     }
 
     // ---------- FINISH GLOBALS ----------
-    emit_entry_point(entry_defs, entry_items, &mut symbols, &mut ctx, out, &env)?;
+    // Treat the top-level script as a regular function named "_start"
+    if !entry_items.is_empty() {
+        let span = item_span(entry_items.last().unwrap());
+
+        // Validate that all entry items are valid (idents, lambdas, or scope captures)
+        for entry_item in &entry_items {
+            match entry_item {
+                Item::Ident(_) | Item::Lambda(_) | Item::ScopeCapture { .. } => {
+                    // Valid items
+                }
+                _invalid => {
+                    return Err(ParseError::new("top-level term must be an exec", span).into());
+                }
+            }
+        }
+
+        // Combine entry_defs and entry_items into the function body
+        let mut body_items = entry_defs;
+        body_items.extend(entry_items);
+
+        // Create a synthetic FunctionDef for the entry point
+        let synthetic_entry = Item::FunctionDef {
+            name: "_start".into(),
+            lambda: ast::Lambda {
+                params: ast::Params {
+                    items: Vec::new(),
+                    span,
+                },
+                body: ast::Block {
+                    items: body_items,
+                    span,
+                },
+                args: Vec::new(),
+                span,
+            },
+            span,
+        };
+
+        // Compile it like a normal function
+        compile_function_pipeline(synthetic_entry, &mut symbols, &env, &mut ctx, out)?;
+    }
+
     codegen::emit_builtin_definitions(&symbols, &mut ctx, out)?;
     ctx.emit_externs(out)?;
     ctx.emit_data(out)?;
@@ -183,35 +216,6 @@ fn emit_function<W: Write>(
     Ok(())
 }
 
-//TODO: Duplicate.
-fn emit_entry_point<W: Write>(
-    prelude: Vec<Item>,
-    entry_items: Vec<Item>,
-    symbols: &mut SymbolRegistry,
-    ctx: &mut codegen::CodegenContext,
-    out: &mut W,
-    env: &Env,
-) -> Result<(), CompileError> {
-    if entry_items.is_empty() {
-        return Ok(());
-    }
-    let span = item_span(entry_items.last().unwrap());
-    // Convert top-level expressions into synthetic functions
-    if let Some(funcs) = hir::lower_entry(prelude, entry_items, span, symbols)? {
-        for f in funcs {
-            let (main_fn, nested_fns) = hir::lower_function(f, symbols, env)?;
-
-            for nf in nested_fns {
-                emit_function(nf, &symbols, ctx, out)?;
-            }
-
-            emit_function(main_fn, &symbols, ctx, out)?;
-        }
-    }
-
-    Ok(())
-}
-
 fn item_span(item: &Item) -> Span {
     match item {
         Item::Import { span, .. }
@@ -224,4 +228,25 @@ fn item_span(item: &Item) -> Span {
         Item::Ident(ident) => ident.span,
         Item::Lambda(lambda) => lambda.span,
     }
+}
+
+fn compile_function_pipeline<W: Write>(
+    function_item: Item,
+    symbols: &mut SymbolRegistry,
+    env: &Env,
+    ctx: &mut codegen::CodegenContext,
+    out: &mut W,
+) -> Result<(), CompileError> {
+    // 1. Lower AST to HIR
+    let (main_fn, nested_fns) = hir::lower_function(function_item, symbols, env)?;
+
+    // 2. Emit nested functions first (dependencies)
+    for nf in nested_fns {
+        emit_function(nf, symbols, ctx, out)?;
+    }
+
+    // 3. Emit the actual function
+    emit_function(main_fn, symbols, ctx, out)?;
+
+    Ok(())
 }

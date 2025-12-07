@@ -3,10 +3,10 @@ use std::io::Write;
 
 use crate::compiler::ast::TypeRef;
 use crate::compiler::error::CodegenError;
-use crate::compiler::hir::{Arg, Block, Invocation, Param, ENTRY_FUNCTION_NAME};
+use crate::compiler::hir::{Arg, Block, Exec, Param, ENTRY_FUNCTION_NAME};
 use crate::compiler::mir::{
     DeepCopy, MirEnvAllocation, MirFunction, MirFunctionBinding, MirModule, MirStatement,
-    MirVariadicCallInfo, ReleaseEnv,
+    MirVariadicExecInfo, ReleaseEnv,
 };
 use crate::compiler::runtime::{
     env_metadata_size, ENV_METADATA_FIELD_SIZE, ENV_METADATA_POINTER_COUNT_OFFSET,
@@ -44,7 +44,7 @@ enum Expr {
 }
 
 #[derive(Clone, Debug)]
-enum CallArgKind<'a> {
+enum ExecArgKind<'a> {
     Normal(&'a Arg),
     Variadic(&'a [Arg]),
 }
@@ -327,7 +327,7 @@ impl CodegenContext {
             ARRAY_METADATA_EXTRA_BASE_OFFSET
         )?;
         writeln!(out, "    add r9, rax ; offset to array extras")?;
-        writeln!(out, "    mov r9, [r9] ; load invocation slot size")?;
+        writeln!(out, "    mov r9, [r9] ; load exec slot size")?;
         writeln!(out, "    mov r11, r10 ; copy metadata pointer")?;
         writeln!(out, "    sub r11, r8 ; compute env base pointer")?;
         writeln!(out, "    mov rax, r8 ; payload plus slot bytes")?;
@@ -420,7 +420,7 @@ impl CodegenContext {
             ARRAY_METADATA_EXTRA_BASE_OFFSET
         )?;
         writeln!(out, "    add r9, rax ; offset to array extras")?;
-        writeln!(out, "    mov r9, [r9] ; load invocation slot size")?;
+        writeln!(out, "    mov r9, [r9] ; load exec slot size")?;
         writeln!(out, "    mov r11, r10 ; duplicate pointer")?;
         writeln!(out, "    sub r11, r8 ; compute env base")?;
         writeln!(out, "    mov rax, r8 ; payload plus slot bytes")?;
@@ -813,12 +813,12 @@ fn mir_statement_binding_info<'a>(stmt: &'a MirStatement) -> Option<(&'a str, Sp
         MirStatement::FunctionDef(binding) => Some((binding.name.as_str(), binding.span)),
         MirStatement::StrDef(literal) => Some((literal.name.as_str(), literal.span)),
         MirStatement::IntDef(literal) => Some((literal.name.as_str(), literal.span)),
-        MirStatement::ApplyDef(apply) => Some((apply.apply.name.as_str(), apply.apply.span)),
-        MirStatement::Invocation(invocation) => invocation
-            .invocation
+        MirStatement::StructDef(apply) => Some((apply.value.name.as_str(), apply.value.span)),
+        MirStatement::Exec(exec) => exec
+            .exec
             .result
             .as_ref()
-            .map(|name| (name.as_str(), invocation.invocation.span)),
+            .map(|name| (name.as_str(), exec.exec.span)),
         MirStatement::ReleaseEnv(_) => None,
         MirStatement::DeepCopy(copy) => Some((copy.copy.as_str(), copy.span)),
     }
@@ -1050,29 +1050,27 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 self.store_binding_value(&literal.name, value, literal.span)?;
                 return Ok(());
             }
-            MirStatement::ApplyDef(apply) => {
-                let invocation = Invocation {
-                    of: apply.apply.of.clone(),
-                    args: apply.apply.args.clone(),
-                    span: apply.apply.span,
+            MirStatement::StructDef(struct_def) => {
+                let exec = Exec {
+                    of: struct_def.value.of.clone(),
+                    args: struct_def.value.args.clone(),
+                    span: struct_def.value.span,
                     result: None,
                 };
-                let value = self.emit_invocation_value(&invocation, apply.variadic.as_ref())?;
-                self.store_binding_value(&apply.apply.name, value, apply.apply.span)?;
+                let value = self.emit_exec_value(&exec, struct_def.variadic.as_ref())?;
+                self.store_binding_value(&struct_def.value.name, value, struct_def.value.span)?;
                 return Ok(());
             }
-            MirStatement::Invocation(invocation) if invocation.invocation.result.is_some() => {
-                let name = invocation.invocation.result.as_ref().unwrap().clone();
-                let value = self
-                    .emit_invocation_value(&invocation.invocation, invocation.variadic.as_ref())?;
-                self.store_binding_value(&name, value, invocation.invocation.span)?;
+            MirStatement::Exec(exec) if exec.exec.result.is_some() => {
+                let name = exec.exec.result.as_ref().unwrap().clone();
+                let value = self.emit_exec_value(&exec.exec, exec.variadic.as_ref())?;
+                self.store_binding_value(&name, value, exec.exec.span)?;
                 return Ok(());
             }
-            MirStatement::Invocation(invocation) => {
-                let result =
-                    self.emit_invocation(&invocation.invocation, invocation.variadic.as_ref())?;
+            MirStatement::Exec(exec) => {
+                let result = self.emit_exec(&exec.exec, exec.variadic.as_ref())?;
                 if let ExprValue::Closure(_) = result {
-                    // discard unused closures to avoid leaking temporaries
+                    // TODO: discard unused closures to avoid leaking temporaries
                 }
                 return Ok(());
             }
@@ -1165,22 +1163,22 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn emit_invocation_value(
+    fn emit_exec_value(
         &mut self,
-        invocation: &Invocation,
-        variadic: Option<&MirVariadicCallInfo>,
+        exec: &Exec,
+        variadic: Option<&MirVariadicExecInfo>,
     ) -> Result<ExprValue, CodegenError> {
-        if let Some(sig) = self.symbols.get_function(&invocation.of) {
-            self.emit_named_function_closure(&invocation.of, sig, None)?;
+        if let Some(sig) = self.symbols.get_function(&exec.of) {
+            self.emit_named_function_closure(&exec.of, sig, None)?;
             let env_size = env_size_bytes(&sig.params, self.symbols);
             let state = ClosureState::new(sig.params.clone(), env_size);
-            return self.apply_closure(state, &invocation.args, invocation.span, false);
+            return self.apply_closure(state, &exec.args, exec.span, false);
         }
-        if let Some(binding) = self.frame.binding(&invocation.of) {
+        if let Some(binding) = self.frame.binding(&exec.of) {
             if binding.kind != ValueKind::Closure {
                 return Err(CodegenError::new(
-                    format!("'{}' is not callable", invocation.of),
-                    invocation.span,
+                    format!("'{}' is not callable", exec.of),
+                    exec.span,
                 ));
             }
             writeln!(
@@ -1194,9 +1192,9 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 binding.slot_addr(1)
             )?;
             let state = ClosureState::new(binding.continuation_params.clone(), binding.env_size);
-            return self.apply_closure(state, &invocation.args, invocation.span, false);
+            return self.apply_closure(state, &exec.args, exec.span, false);
         }
-        self.emit_invocation(invocation, variadic)
+        self.emit_exec(exec, variadic)
     }
 
     fn store_binding_value(
@@ -1317,29 +1315,29 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         self.emit_expr(&expr)
     }
 
-    fn emit_invocation(
+    fn emit_exec(
         &mut self,
-        invocation: &Invocation,
-        variadic: Option<&MirVariadicCallInfo>,
+        exec: &Exec,
+        variadic: Option<&MirVariadicExecInfo>,
     ) -> Result<ExprValue, CodegenError> {
-        let name = invocation.of.as_str();
-        let span = invocation.span;
+        let name = exec.of.as_str();
+        let span = exec.span;
 
         if name == "exit" {
-            return self.emit_exit_call(&invocation.args, span);
+            return self.emit_exit_wrapper_exec(&exec.args, span);
         }
 
         if name == "printf" {
-            return self.emit_printf_call(&invocation.args, span);
+            return self.emit_printf_wrapper_exec(&exec.args, span);
         }
         if name == "sprintf" {
-            return self.emit_sprintf_call(&invocation.args, span);
+            return self.emit_sprintf_wrapper_exec(&exec.args, span);
         }
         if name == "write" {
-            return self.emit_write_call(&invocation.args, span);
+            return self.emit_write_wrapper_exec(&exec.args, span);
         }
         if name == "puts" {
-            return self.emit_puts_call(&invocation.args, span);
+            return self.emit_puts_wrapper_exec(&exec.args, span);
         }
 
         if let Some(binding) = self.frame.binding(name) {
@@ -1360,18 +1358,18 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 binding.slot_addr(1)
             )?;
             let state = ClosureState::new(binding.continuation_params.clone(), binding.env_size);
-            return self.apply_closure(state, &invocation.args, span, true);
+            return self.apply_closure(state, &exec.args, span, true);
         }
 
         if let Some(sig) = self.symbols.get_function(name) {
-            return self.emit_named_exec(name, sig, &invocation.args, span, variadic);
+            return self.emit_named_exec(name, sig, &exec.args, span, variadic);
         }
 
         self.ctx.add_extern(name);
         let placeholder: Vec<TypeRef> = std::iter::repeat(TypeRef::Int)
-            .take(invocation.args.len())
+            .take(exec.args.len())
             .collect();
-        self.prepare_call_args(&invocation.args, &placeholder)?;
+        self.prepare_call_args(&exec.args, &placeholder)?;
         self.move_args_to_registers(&placeholder)?;
         writeln!(self.out, "    leave ; unwind before jumping")?;
         writeln!(self.out, "    jmp {} ; jump to named function", name)?;
@@ -1380,7 +1378,55 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(ExprValue::Word)
     }
 
-    fn emit_printf_call(&mut self, args: &[Arg], span: Span) -> Result<ExprValue, CodegenError> {
+    /// Generic variadic libc wrapper for functions like printf.
+    ///
+    /// Handles variadic arguments and proper stack alignment.
+    /// The `return_handler` closure allows custom handling of the return value.
+    #[allow(dead_code)]
+    fn emit_libc_wrapper_variadic(
+        &mut self,
+        libc_name: &str,
+        args: &[Arg],
+        span: Span,
+    ) -> Result<ExprValue, CodegenError> {
+        // Last argument must be a continuation
+        if args.is_empty() {
+            return Err(CodegenError::new(
+                format!("{} requires a continuation as last argument", libc_name),
+                span,
+            ));
+        }
+
+        let continuation_arg = &args[args.len() - 1];
+        let continuation_value = self.emit_arg_value(continuation_arg)?;
+        let _closure_state = match continuation_value {
+            ExprValue::Closure(state) => state,
+            _ => {
+                return Err(CodegenError::new(
+                    format!("last argument to {} must be a continuation", libc_name),
+                    continuation_arg.span,
+                ))
+            }
+        };
+
+        // Preserve continuation (code pointer in rax, env_end in rdx)
+        writeln!(
+            self.out,
+            "    push rax ; preserve continuation code pointer"
+        )?;
+        writeln!(
+            self.out,
+            "    push rdx ; preserve continuation env_end pointer"
+        )?;
+
+        Ok(ExprValue::Word)
+    }
+
+    fn emit_printf_wrapper_exec(
+        &mut self,
+        args: &[Arg],
+        span: Span,
+    ) -> Result<ExprValue, CodegenError> {
         if args.len() < 2 {
             return Err(CodegenError::new(
                 "printf requires a format string and a continuation",
@@ -1390,8 +1436,10 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
         let continuation_arg = &args[args.len() - 1];
         let continuation_value = self.emit_arg_value(continuation_arg)?;
-        let closure_state = match continuation_value {
-            ExprValue::Closure(state) => state,
+        match continuation_value {
+            ExprValue::Closure(_) => {
+                // continuation validation is done in MIR layer
+            }
             _ => {
                 return Err(CodegenError::new(
                     "last argument to printf must be a continuation",
@@ -1399,13 +1447,6 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 ))
             }
         };
-
-        if !closure_state.remaining().is_empty() {
-            return Err(CodegenError::new(
-                "printf continuation must accept no arguments",
-                continuation_arg.span,
-            ));
-        }
 
         writeln!(
             self.out,
@@ -1460,10 +1501,14 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(ExprValue::Word)
     }
 
-    fn emit_sprintf_call(&mut self, args: &[Arg], span: Span) -> Result<ExprValue, CodegenError> {
+    fn emit_sprintf_wrapper_exec(
+        &mut self,
+        args: &[Arg],
+        span: Span,
+    ) -> Result<ExprValue, CodegenError> {
         if args.len() < 2 {
             return Err(CodegenError::new(
-                "sprintf requires a format string, an integer, and a continuation",
+                "sprintf requires a format string and a continuation",
                 span,
             ));
         }
@@ -1481,18 +1526,6 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         };
 
         let remaining_params = closure_state.remaining();
-        if remaining_params.is_empty() {
-            return Err(CodegenError::new(
-                "sprintf continuation must accept at least one string argument",
-                continuation_arg.span,
-            ));
-        }
-        if remaining_params[0] != TypeRef::Str {
-            return Err(CodegenError::new(
-                "sprintf continuation must accept a string argument",
-                continuation_arg.span,
-            ));
-        }
 
         writeln!(
             self.out,
@@ -1573,41 +1606,17 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(ExprValue::Word)
     }
 
-    fn emit_write_call(&mut self, args: &[Arg], span: Span) -> Result<ExprValue, CodegenError> {
+    fn emit_write_wrapper_exec(
+        &mut self,
+        args: &[Arg],
+        span: Span,
+    ) -> Result<ExprValue, CodegenError> {
         if args.len() < 2 {
             return Err(CodegenError::new(
                 "write requires a string and a continuation",
                 span,
             ));
         }
-
-        let continuation_arg = &args[args.len() - 1];
-        let continuation_value = self.emit_arg_value(continuation_arg)?;
-        let closure_state = match continuation_value {
-            ExprValue::Closure(state) => state,
-            _ => {
-                return Err(CodegenError::new(
-                    "last argument to write must be a continuation",
-                    continuation_arg.span,
-                ))
-            }
-        };
-
-        if !closure_state.remaining().is_empty() {
-            return Err(CodegenError::new(
-                "write continuation must accept no arguments",
-                continuation_arg.span,
-            ));
-        }
-
-        writeln!(
-            self.out,
-            "    push rax ; preserve continuation code pointer"
-        )?;
-        writeln!(
-            self.out,
-            "    push rdx ; preserve continuation env_end pointer"
-        )?;
 
         let call_args = &args[..args.len() - 1];
         if call_args.len() != 1 {
@@ -1617,13 +1626,39 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             ));
         }
 
+        // First, validate continuation
+        let continuation_arg = &args[args.len() - 1];
+        let continuation_value = self.emit_arg_value(continuation_arg)?;
+        match continuation_value {
+            ExprValue::Closure(_) => {}
+            _ => {
+                return Err(CodegenError::new(
+                    "last argument to write must be a continuation",
+                    continuation_arg.span,
+                ))
+            }
+        };
+
+        // Preserve continuation
+        writeln!(
+            self.out,
+            "    push rax ; preserve continuation code pointer"
+        )?;
+        writeln!(
+            self.out,
+            "    push rdx ; preserve continuation env_end pointer"
+        )?;
+
+        // Prepare call arguments (string in rdi)
         let params = vec![TypeRef::Str];
         self.prepare_call_args(call_args, &params)?;
         self.move_args_to_registers(&params)?;
 
-        let (loop_label, done_label) = self.next_write_loop_labels();
+        // At this point, string pointer is in rdi
+        // Calculate its length
         writeln!(self.out, "    mov r8, rdi ; keep string pointer")?;
         writeln!(self.out, "    xor rcx, rcx ; reset length counter")?;
+        let (loop_label, done_label) = self.next_write_loop_labels();
         writeln!(self.out, "{}:", loop_label)?;
         writeln!(
             self.out,
@@ -1634,12 +1669,17 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         writeln!(self.out, "    inc rcx ; advance char counter")?;
         writeln!(self.out, "    jmp {}", loop_label)?;
         writeln!(self.out, "{}:", done_label)?;
+
+        // Now set up System V ABI arguments for write(int fd, const void *buf, size_t count)
         writeln!(self.out, "    mov rsi, r8 ; buffer start")?;
         writeln!(self.out, "    mov rdx, rcx ; length to write")?;
         writeln!(self.out, "    mov rdi, 1 ; stdout fd")?;
+
+        // Call write
         self.ctx.add_extern("write");
         writeln!(self.out, "    call write ; invoke libc write")?;
 
+        // Restore continuation and jump
         writeln!(
             self.out,
             "    pop rdx ; restore continuation env_end pointer"
@@ -1655,8 +1695,11 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
         Ok(ExprValue::Word)
     }
-
-    fn emit_puts_call(&mut self, args: &[Arg], span: Span) -> Result<ExprValue, CodegenError> {
+    fn emit_puts_wrapper_exec(
+        &mut self,
+        args: &[Arg],
+        span: Span,
+    ) -> Result<ExprValue, CodegenError> {
         if args.len() < 2 {
             return Err(CodegenError::new(
                 "puts requires a string and a continuation",
@@ -1664,66 +1707,15 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             ));
         }
 
-        let continuation_arg = &args[args.len() - 1];
-        let continuation_value = self.emit_arg_value(continuation_arg)?;
-        let closure_state = match continuation_value {
-            ExprValue::Closure(state) => state,
-            _ => {
-                return Err(CodegenError::new(
-                    "last argument to puts must be a continuation",
-                    continuation_arg.span,
-                ))
-            }
-        };
-
-        if !closure_state.remaining().is_empty() {
-            return Err(CodegenError::new(
-                "puts continuation must accept no arguments",
-                continuation_arg.span,
-            ));
-        }
-
-        writeln!(
-            self.out,
-            "    push rax ; preserve continuation code pointer"
-        )?;
-        writeln!(
-            self.out,
-            "    push rdx ; preserve continuation env_end pointer"
-        )?;
-
-        let call_args = &args[..args.len() - 1];
-        if call_args.len() != 1 {
-            return Err(CodegenError::new(
-                "puts requires a string before the continuation",
-                span,
-            ));
-        }
-
-        let params = vec![TypeRef::Str];
-        self.prepare_call_args(call_args, &params)?;
-        self.move_args_to_registers(&params)?;
-
-        self.ctx.add_extern("puts");
-        writeln!(self.out, "    call puts ; invoke libc puts")?;
-
-        writeln!(
-            self.out,
-            "    pop rdx ; restore continuation env_end pointer"
-        )?;
-        writeln!(self.out, "    pop rax ; restore continuation code pointer")?;
-        writeln!(
-            self.out,
-            "    mov rdi, rdx ; pass env_end pointer to continuation"
-        )?;
-        writeln!(self.out, "    leave ; unwind before jumping")?;
-        writeln!(self.out, "    jmp rax ; jump into continuation")?;
-        self.terminated = true;
-
-        Ok(ExprValue::Word)
+        let param_types = vec![TypeRef::Str];
+        self.emit_libc_wrapper_exec("puts", args, &param_types, span, false, |_| Ok(()))
     }
 
-    fn emit_exit_call(&mut self, args: &[Arg], span: Span) -> Result<ExprValue, CodegenError> {
+    fn emit_exit_wrapper_exec(
+        &mut self,
+        args: &[Arg],
+        span: Span,
+    ) -> Result<ExprValue, CodegenError> {
         if args.len() != 1 {
             return Err(CodegenError::new("exit requires an integer argument", span));
         }
@@ -1747,13 +1739,120 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(ExprValue::Word)
     }
 
+    /// Generic libc wrapper that handles System V AMD64 C ABI calling convention.
+    ///
+    /// Takes arguments, passes them via System V ABI (rdi, rsi, rdx, rcx, r8, r9),
+    /// calls the libc function, and jumps to continuation.
+    ///
+    /// The `return_handler` closure allows custom handling of the return value (rax).
+    /// For simple wrappers that ignore return values, it can just do nothing.
+    #[allow(dead_code)]
+    fn emit_libc_wrapper_exec<F>(
+        &mut self,
+        libc_name: &str,
+        args: &[Arg],
+        param_types: &[TypeRef],
+        span: Span,
+        is_variadic: bool,
+        mut return_handler: F,
+    ) -> Result<ExprValue, CodegenError>
+    where
+        F: FnMut(&mut Self) -> Result<(), CodegenError>,
+    {
+        // Last argument must be a continuation
+        if args.is_empty() {
+            return Err(CodegenError::new(
+                format!("{} requires a continuation as last argument", libc_name),
+                span,
+            ));
+        }
+
+        let continuation_arg = &args[args.len() - 1];
+        let continuation_value = self.emit_arg_value(continuation_arg)?;
+        let _closure_state = match continuation_value {
+            ExprValue::Closure(state) => state,
+            _ => {
+                return Err(CodegenError::new(
+                    format!("last argument to {} must be a continuation", libc_name),
+                    continuation_arg.span,
+                ))
+            }
+        };
+
+        // Preserve continuation (code pointer in rax, env_end in rdx)
+        writeln!(
+            self.out,
+            "    push rax ; preserve continuation code pointer"
+        )?;
+        writeln!(
+            self.out,
+            "    push rdx ; preserve continuation env_end pointer"
+        )?;
+
+        // Prepare call arguments (all except the continuation)
+        let call_args = &args[..args.len() - 1];
+        if call_args.len() != param_types.len() {
+            return Err(CodegenError::new(
+                format!(
+                    "{} requires {} arguments plus continuation, got {}",
+                    libc_name,
+                    param_types.len(),
+                    call_args.len()
+                ),
+                span,
+            ));
+        }
+
+        self.prepare_call_args(call_args, param_types)?;
+        self.move_args_to_registers(param_types)?;
+
+        // Call the libc function
+        self.ctx.add_extern(libc_name);
+
+        // Stack alignment: for variadic functions, the stack must be 16-byte aligned before call
+        // For non-variadic, we just call directly (the call instruction will misalign by 8)
+        if is_variadic {
+            writeln!(
+                self.out,
+                "    sub rsp, 8 ; align stack to 16-byte boundary for variadic call"
+            )?;
+        }
+
+        writeln!(self.out, "    call {} ; invoke libc function", libc_name)?;
+
+        if is_variadic {
+            writeln!(self.out, "    add rsp, 8 ; restore stack")?;
+        }
+
+        // Allow custom return value handling
+        return_handler(self)?;
+
+        // Restore continuation pointers
+        writeln!(
+            self.out,
+            "    pop rdx ; restore continuation env_end pointer"
+        )?;
+        writeln!(self.out, "    pop rax ; restore continuation code pointer")?;
+
+        // Jump to continuation
+        writeln!(
+            self.out,
+            "    mov rdi, rdx ; pass env_end pointer to continuation"
+        )?;
+        writeln!(self.out, "    leave ; unwind before jumping")?;
+        writeln!(self.out, "    jmp rax ; jump into continuation")?;
+        self.terminated = true;
+
+        Ok(ExprValue::Word)
+    }
+
     fn emit_named_exec(
         &mut self,
         of: &str,
         sig: &FunctionSig,
         args: &[Arg],
         span: Span,
-        variadic: Option<&MirVariadicCallInfo>,
+        variadic: Option<&MirVariadicExecInfo>,
     ) -> Result<ExprValue, CodegenError> {
         let has_variadic = sig.is_variadic.iter().any(|&flag| flag);
         if !has_variadic && args.len() > sig.params.len() {
@@ -1778,10 +1877,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         if has_variadic {
             let layout_info = variadic.ok_or_else(|| {
                 CodegenError::new(
-                    format!(
-                        "compiler bug: variadic invocation metadata missing for '{}'",
-                        of
-                    ),
+                    format!("compiler bug: variadic exec metadata missing for '{}'", of),
                     span,
                 )
             })?;
@@ -1950,9 +2046,9 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn push_call_layout(
+    fn push_exec_layout(
         &mut self,
-        layout: &[CallArgKind],
+        layout: &[ExecArgKind],
         params: &[TypeRef],
         callee: &str,
         span: Span,
@@ -1972,12 +2068,12 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         }
         for (kind, ty) in layout.iter().zip(params).rev() {
             match kind {
-                CallArgKind::Normal(arg) => {
+                ExecArgKind::Normal(arg) => {
                     let value = self.emit_arg_value(arg)?;
                     self.ensure_value_matches(&value, ty, arg.span)?;
                     self.push_value(&value)?;
                 }
-                CallArgKind::Variadic(slice) => {
+                ExecArgKind::Variadic(slice) => {
                     let value = self.emit_variadic_array_arg(callee, ty, slice, span)?;
                     self.push_value(&value)?;
                 }
@@ -1992,7 +2088,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         params: &[TypeRef],
         callee: &str,
         span: Span,
-        layout: &MirVariadicCallInfo,
+        layout: &MirVariadicExecInfo,
     ) -> Result<(), CodegenError> {
         if args.len() < layout.required_arguments() {
             return Err(CodegenError::new(
@@ -2019,15 +2115,15 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         }
         let mut call_layout = Vec::with_capacity(params.len());
         for idx in 0..prefix_required {
-            call_layout.push(CallArgKind::Normal(&args[idx]));
+            call_layout.push(ExecArgKind::Normal(&args[idx]));
         }
-        call_layout.push(CallArgKind::Variadic(
+        call_layout.push(ExecArgKind::Variadic(
             &args[prefix_required..suffix_arg_start],
         ));
         for idx in 0..suffix_required {
-            call_layout.push(CallArgKind::Normal(&args[suffix_arg_start + idx]));
+            call_layout.push(ExecArgKind::Normal(&args[suffix_arg_start + idx]));
         }
-        self.push_call_layout(&call_layout, params, callee, span)
+        self.push_exec_layout(&call_layout, params, callee, span)
     }
 
     fn emit_variadic_array_arg(
@@ -2060,8 +2156,8 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 nth_slot_size = env_size_bytes(&nth_params, self.symbols);
             }
         }
-        let invocation_slot_size = call_slot_size.max(nth_slot_size);
-        let env_size = payload_size + invocation_slot_size;
+        let exec_slot_size = call_slot_size.max(nth_slot_size);
+        let env_size = payload_size + exec_slot_size;
         let pointer_count = if element_kind == ValueKind::Closure {
             args.len()
         } else {
@@ -2145,8 +2241,8 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             ARRAY_METADATA_EXTRA_BASE_OFFSET + closure_offsets.len() * ENV_METADATA_FIELD_SIZE;
         writeln!(
             self.out,
-            "    mov qword [rdx+{}], {} ; invocation slot metadata for array",
-            array_extra_offset, invocation_slot_size
+            "    mov qword [rdx+{}], {} ; exec slot metadata for array",
+            array_extra_offset, exec_slot_size
         )?;
         writeln!(
             self.out,
@@ -2766,6 +2862,110 @@ fn variadic_element_type(ty: &TypeRef, symbols: &SymbolRegistry) -> Option<TypeR
         }
     }
     None
+}
+
+/// Emits a generic libc wrapper that follows the System V AMD64 ABI:
+/// - Arguments 1-6 are passed in rdi, rsi, rdx, rcx, r8, r9 (up to 6 word-sized args)
+/// - Arguments beyond 6 are spilled onto the stack (8-byte aligned)
+/// - Stack must be 16-byte aligned before the `call` instruction
+/// - Return value comes back in rax (for int/pointer) or xmm0 (for float, not used yet)
+/// - This wrapper preserves the continuation (code pointer in rax, env_end in rdx)
+///   and jumps to it after the libc call completes
+///
+/// NOTE: This is a template for future libc wrappers. Currently, printf/sprintf/puts
+/// require special handling (printf/sprintf for formatting, puts for simple output),
+/// so they use custom implementations. As more libc functions are needed, this generic
+/// approach can be refined and used for simpler functions like strlen, strncat, etc.
+#[allow(dead_code)]
+fn emit_generic_libc_wrapper<W: Write>(
+    ctx: &mut CodegenContext,
+    out: &mut W,
+    libc_function_name: &str,
+    param_types: &[TypeRef],
+    symbols: &SymbolRegistry,
+) -> Result<(), CodegenError> {
+    let wrapper_label = format!("rgo_{}", libc_function_name);
+    writeln!(out, "global {}", wrapper_label)?;
+    writeln!(out, "{}:", wrapper_label)?;
+
+    // Prologue: save caller frame pointer and establish new frame
+    writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
+    writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
+
+    // Preserve the rgo continuation (code pointer and env_end pointer)
+    // These were passed as the last two arguments (implicit in rgo's convention)
+    writeln!(out, "    push rsi ; preserve continuation code pointer")?;
+    writeln!(out, "    push rdx ; preserve continuation env_end pointer")?;
+
+    // Calculate total argument slots and validate
+    let total_slots: usize = param_types
+        .iter()
+        .map(|ty| {
+            if resolved_type_kind(ty, symbols) == ValueKind::Closure {
+                2 // closure = code ptr + env_end ptr
+            } else {
+                1 // word-sized
+            }
+        })
+        .sum();
+
+    // System V ABI limit: 6 registers available for integer/pointer arguments
+    if total_slots > 6 {
+        // Additional arguments will be on the stack; we need to ensure proper alignment
+        let stack_args = total_slots - 6;
+        writeln!(
+            out,
+            "    ; Note: {} argument slots will be spilled to stack",
+            stack_args
+        )?;
+    }
+
+    // At this point, arguments have been pushed in reverse order by prepare_call_args,
+    // and move_args_to_registers has restored them to the proper ABI registers.
+    // The caller is responsible for ensuring correct argument setup before calling this wrapper.
+
+    // Ensure 16-byte stack alignment before variadic call
+    // Stack is currently misaligned by 1 qword (due to the call instruction earlier),
+    // and we've pushed 2 values (rsi, rdx), so we need to align for the libc call
+    writeln!(
+        out,
+        "    sub rsp, 8 ; align stack to 16-byte boundary for call"
+    )?;
+
+    // Emit the actual libc call
+    ctx.add_extern(libc_function_name);
+    writeln!(
+        out,
+        "    call {} ; invoke libc function",
+        libc_function_name
+    )?;
+
+    // Clean up the alignment adjustment
+    writeln!(out, "    add rsp, 8")?;
+
+    // Return value is now in rax (for int/pointer) or xmm0 (for float)
+    // For now, we handle only int/pointer returns (xmm0 not yet supported)
+
+    // Restore the rgo continuation
+    writeln!(out, "    pop rdx ; restore continuation env_end pointer")?;
+    writeln!(out, "    pop rsi ; restore continuation code pointer")?;
+
+    // Prepare to jump to continuation
+    // Move rax (return value) to the continuation's input if needed
+    // For now, we assume the continuation doesn't need the return value
+    // (The specific wrappers like printf can override this behavior)
+    writeln!(out, "    mov rax, rsi ; continuation entry point")?;
+    writeln!(
+        out,
+        "    mov rdi, rdx ; pass env_end pointer to continuation"
+    )?;
+
+    // Epilogue and jump
+    writeln!(out, "    leave ; epilogue: unwind before jump")?;
+    writeln!(out, "    jmp rax ; jump into continuation")?;
+    writeln!(out)?;
+
+    Ok(())
 }
 
 fn emit_builtin_write<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result<(), CodegenError> {

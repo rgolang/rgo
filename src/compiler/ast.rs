@@ -2,7 +2,7 @@ use crate::compiler::span::Span;
 
 // TODO: Move to parser.rs
 // TODO: Rename Item to BlockItem
-// An Item is a block-level construct: function definitions, type definitions, imports (for root level) and invocations.
+// An Item is a block-level construct: function definitions, type definitions, imports (for root level) and execs.
 #[derive(Debug, Clone)]
 pub enum Item {
     Import {

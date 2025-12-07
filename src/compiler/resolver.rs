@@ -38,12 +38,12 @@ fn resolve_block(
                 }
                 scope.define(&apply.name);
             }
-            BlockItem::Invocation(invocation) => {
-                resolve_target(&invocation.of, scope, symbols, invocation.span)?;
-                for arg in &invocation.args {
+            BlockItem::Exec(exec) => {
+                resolve_target(&exec.of, scope, symbols, exec.span)?;
+                for arg in &exec.args {
                     resolve_arg(arg, scope, symbols)?;
                 }
-                if let Some(result) = &invocation.result {
+                if let Some(result) = &exec.result {
                     scope.define(result);
                 }
             }

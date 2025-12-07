@@ -4,7 +4,7 @@ use crate::compiler::ast::{
 };
 use crate::compiler::error::{CompileError, ParseError};
 use crate::compiler::span::Span;
-use crate::compiler::symbol::{self, CaptureParam, FunctionSig, SymbolRegistry};
+use crate::compiler::symbol::{CaptureParam, FunctionSig, SymbolRegistry};
 use crate::compiler::type_utils::expand_alias_chain;
 use std::collections::{HashMap, HashSet};
 
@@ -59,7 +59,7 @@ pub enum BlockItem {
     StrDef(StrLiteral),
     IntDef(IntLiteral),
     ApplyDef(Apply),
-    Invocation(Invocation),
+    Exec(Exec),
 }
 
 #[derive(Debug, Clone)]
@@ -83,7 +83,7 @@ impl BlockItem {
             BlockItem::StrDef(StrLiteral { span, .. })
             | BlockItem::IntDef(IntLiteral { span, .. })
             | BlockItem::ApplyDef(Apply { span, .. })
-            | BlockItem::Invocation(Invocation { span, .. }) => *span,
+            | BlockItem::Exec(Exec { span, .. }) => *span,
         }
     }
 
@@ -92,7 +92,7 @@ impl BlockItem {
             BlockItem::FunctionDef(function) => Some((&function.name, function.span)),
             BlockItem::StrDef(literal) => Some((&literal.name, literal.span)),
             BlockItem::IntDef(literal) => Some((&literal.name, literal.span)),
-            BlockItem::Invocation(Invocation {
+            BlockItem::Exec(Exec {
                 result: Some(name),
                 span,
                 ..
@@ -104,7 +104,7 @@ impl BlockItem {
 }
 
 #[derive(Debug, Clone)]
-pub struct Invocation {
+pub struct Exec {
     pub of: String,
     pub args: Vec<Arg>,
     pub span: Span,
@@ -276,53 +276,6 @@ pub fn lower_function(
     ))
 }
 
-pub fn lower_entry(
-    mut block_items: Vec<AstItem>,
-    entry_items: Vec<AstItem>,
-    span: Span,
-    symbols: &mut SymbolRegistry,
-) -> Result<Option<Vec<AstItem>>, CompileError> {
-    for entry_item in entry_items {
-        match entry_item {
-            item @ (AstItem::Ident(_) | AstItem::Lambda(_) | AstItem::ScopeCapture { .. }) => {
-                block_items.push(item);
-            }
-            _invalid => {
-                return Err(ParseError::new("top-level term must be an invocation", span).into());
-            }
-        }
-    }
-
-    let main_sig = symbol::FunctionSig {
-        name: ENTRY_FUNCTION_NAME.to_string(),
-        params: Vec::new(),
-        is_variadic: Vec::new(),
-        span,
-    };
-    symbols.declare_function(main_sig)?;
-
-    let body = AstBlock {
-        items: block_items,
-        span,
-    };
-
-    let entry = AstItem::FunctionDef {
-        name: ENTRY_FUNCTION_NAME.to_string(),
-        lambda: AstLambda {
-            params: AstParams {
-                items: Vec::new(),
-                span,
-            },
-            body,
-            args: Vec::new(),
-            span,
-        },
-        span,
-    };
-
-    Ok(Some(vec![entry]))
-}
-
 pub fn normalize_type_alias(name: &str, symbols: &mut SymbolRegistry) -> Result<(), ParseError> {
     if let Some(info) = symbols.get_type_info(name).cloned() {
         let normalized = symbols.normalize_top_level_type(info.target.clone());
@@ -363,9 +316,9 @@ fn lower_block(
                 };
                 let callback_term = AstTerm::Lambda(lambda);
                 let term_span = term.span();
-                let invocation_term = append_scope_capture_arg(term, callback_term, term_span)?;
-                let lowered_items = lower_invocation_stmt(
-                    invocation_term,
+                let exec_term = append_scope_capture_arg(term, callback_term, term_span)?;
+                let lowered_items = lower_exec_stmt(
+                    exec_term,
                     nested,
                     symbols,
                     &alias_map,
@@ -376,7 +329,7 @@ fn lower_block(
                 break;
             }
             AstItem::Ident(term) => {
-                items.extend(lower_invocation_stmt(
+                items.extend(lower_exec_stmt(
                     AstTerm::Ident(term),
                     nested,
                     symbols,
@@ -386,7 +339,7 @@ fn lower_block(
                 )?);
             }
             AstItem::Lambda(lambda) => {
-                items.extend(lower_invocation_stmt(
+                items.extend(lower_exec_stmt(
                     AstTerm::Lambda(lambda),
                     nested,
                     symbols,
@@ -545,7 +498,7 @@ fn collect_capture_params(
 
     for item in &block.items {
         match item {
-            BlockItem::Invocation(Invocation { of, args, .. }) => {
+            BlockItem::Exec(Exec { of, args, .. }) => {
                 record_name_capture(of, &locals, outer_env, &mut captures, &mut seen);
                 record_arg_captures(args, &locals, outer_env, &mut captures, &mut seen);
             }
@@ -581,7 +534,7 @@ fn gather_local_definitions(block: &Block, params: &[Param]) -> HashSet<String> 
             BlockItem::ApplyDef(Apply { name, .. }) => {
                 locals.insert(name.clone());
             }
-            BlockItem::Invocation(Invocation {
+            BlockItem::Exec(Exec {
                 result: Some(name), ..
             }) => {
                 locals.insert(name.clone());
@@ -636,7 +589,7 @@ fn record_name_capture(
     }
 }
 
-fn lower_invocation_stmt(
+fn lower_exec_stmt(
     term: AstTerm,
     nested: &mut Vec<Function>,
     symbols: &mut SymbolRegistry,
@@ -645,8 +598,8 @@ fn lower_invocation_stmt(
     nested_captures: &mut Vec<CaptureParam>,
 ) -> Result<Vec<BlockItem>, CompileError> {
     let mut items = Vec::new();
-    let invocation = match term {
-        AstTerm::Ident(ident) => lower_ident_as_invocation(
+    let exec = match term {
+        AstTerm::Ident(ident) => lower_ident_as_exec(
             None,
             ident,
             nested,
@@ -656,7 +609,7 @@ fn lower_invocation_stmt(
             env,
             nested_captures,
         )?,
-        AstTerm::Lambda(lambda) => lower_lambda_as_invocation(
+        AstTerm::Lambda(lambda) => lower_lambda_as_exec(
             None,
             lambda,
             nested,
@@ -666,13 +619,13 @@ fn lower_invocation_stmt(
             env,
             nested_captures,
         )?,
-        other => unreachable!("expected invocation term, got {:?}", other),
+        other => unreachable!("expected exec term, got {:?}", other),
     };
-    items.push(BlockItem::Invocation(invocation));
+    items.push(BlockItem::Exec(exec));
     Ok(items)
 }
 
-fn lower_ident_as_invocation(
+fn lower_ident_as_exec(
     result: Option<String>,
     AstIdent { name, args, span }: AstIdent,
     nested: &mut Vec<Function>,
@@ -681,7 +634,7 @@ fn lower_ident_as_invocation(
     alias_map: &HashMap<String, String>,
     env: &Env,
     nested_captures: &mut Vec<CaptureParam>,
-) -> Result<Invocation, CompileError> {
+) -> Result<Exec, CompileError> {
     let resolved_name = resolve_alias_name(&name, alias_map);
     let signature = resolve_target_signature(&resolved_name, env, symbols);
     let builtin_expectations = builtin_arg_expectations(&resolved_name, args.len());
@@ -697,7 +650,7 @@ fn lower_ident_as_invocation(
         env,
         nested_captures,
     )?;
-    Ok(Invocation {
+    Ok(Exec {
         of: resolved_name,
         args,
         span,
@@ -741,7 +694,7 @@ fn lower_ident_as_apply(
     })
 }
 
-fn lower_lambda_as_invocation(
+fn lower_lambda_as_exec(
     result: Option<String>,
     AstLambda {
         params,
@@ -755,7 +708,7 @@ fn lower_lambda_as_invocation(
     alias_map: &HashMap<String, String>,
     env: &Env,
     nested_captures: &mut Vec<CaptureParam>,
-) -> Result<Invocation, CompileError> {
+) -> Result<Exec, CompileError> {
     let fn_name = symbols.fresh_lambda_name(span);
 
     let nested_item = AstItem::FunctionDef {
@@ -792,7 +745,7 @@ fn lower_lambda_as_invocation(
         env,
         nested_captures,
     )?;
-    Ok(Invocation {
+    Ok(Exec {
         of: fn_name,
         args: lowered_args,
         span,
@@ -844,11 +797,8 @@ fn lower_terms_to_args_default(
             let builtin_expected_ty = builtin_expectations
                 .and_then(|expect| expect.get(idx))
                 .and_then(|opt| opt.as_ref());
-            let term = wrap_builtin_invocation_in_lambda(
-                term,
-                expected_ty.or(builtin_expected_ty),
-                symbols,
-            );
+            let term =
+                wrap_builtin_exec_in_lambda(term, expected_ty.or(builtin_expected_ty), symbols);
             lower_term_to_arg(
                 term,
                 nested,
@@ -892,7 +842,7 @@ fn lower_term_to_arg(
                 nested_captures,
             )?;
             let temp_name = symbols.fresh_temp_name();
-            items.push(BlockItem::Invocation(Invocation {
+            items.push(BlockItem::Exec(Exec {
                 of: resolve_alias_name(&ast_ident.name, alias_map),
                 args,
                 span: ast_ident.span,
@@ -930,7 +880,7 @@ fn lower_term_to_arg(
         AstTerm::Lambda(lambda) => {
             let temp_name = symbols.fresh_temp_name();
             let span = lambda.span;
-            let invocation = lower_lambda_as_invocation(
+            let exec = lower_lambda_as_exec(
                 Some(temp_name.clone()),
                 lambda,
                 nested,
@@ -940,10 +890,10 @@ fn lower_term_to_arg(
                 env,
                 nested_captures,
             )?;
-            if let Some(captures) = symbols.function_captures(&invocation.of) {
+            if let Some(captures) = symbols.function_captures(&exec.of) {
                 nested_captures.extend(captures.iter().cloned());
             }
-            items.push(BlockItem::Invocation(invocation));
+            items.push(BlockItem::Exec(exec));
             Ok(Arg {
                 name: temp_name,
                 span,
@@ -952,7 +902,7 @@ fn lower_term_to_arg(
     }
 }
 
-fn wrap_builtin_invocation_in_lambda(
+fn wrap_builtin_exec_in_lambda(
     term: AstTerm,
     expected: Option<&TypeRef>,
     symbols: &SymbolRegistry,
@@ -1020,8 +970,8 @@ fn normalize_block(mut block: Block, symbols: &mut SymbolRegistry) -> Block {
             continue;
         }
 
-        if let Some((parent_idx, inv_idx)) = find_apply_to_invocation(&items, &use_sites) {
-            inline_apply_into_invocation(&mut items, parent_idx, inv_idx);
+        if let Some((parent_idx, inv_idx)) = find_apply_to_exec(&items, &use_sites) {
+            inline_apply_into_exec(&mut items, parent_idx, inv_idx);
             continue;
         }
 
@@ -1085,14 +1035,14 @@ fn validate_block_signatures(
                     );
                 }
             }
-            BlockItem::Invocation(invocation) => {
-                if let Some(remaining) = validate_invocation(invocation, &type_env, symbols)? {
-                    if let Some(result) = &invocation.result {
+            BlockItem::Exec(exec) => {
+                if let Some(remaining) = validate_exec(exec, &type_env, symbols)? {
+                    if let Some(result) = &exec.result {
                         type_env.insert(
                             result.clone(),
                             EnvEntry {
                                 ty: TypeRef::Type(remaining),
-                                span: invocation.span,
+                                span: exec.span,
                                 constant: None,
                             },
                         );
@@ -1127,21 +1077,21 @@ fn validate_apply(
     }
 }
 
-fn validate_invocation(
-    invocation: &Invocation,
+fn validate_exec(
+    exec: &Exec,
     type_env: &Env,
     symbols: &SymbolRegistry,
 ) -> Result<Option<Vec<TypeRef>>, CompileError> {
-    if let Some((sig, variadic)) = resolve_target_signature(&invocation.of, type_env, symbols) {
+    if let Some((sig, variadic)) = resolve_target_signature(&exec.of, type_env, symbols) {
         let remaining = match_arguments_to_signature(
-            &invocation.args,
+            &exec.args,
             type_env,
             symbols,
             &sig,
             &variadic,
-            &invocation.of,
-            invocation.span,
-            invocation.result.is_some(),
+            &exec.of,
+            exec.span,
+            exec.result.is_some(),
         )?;
         return Ok(Some(remaining));
     }
@@ -1894,9 +1844,9 @@ fn rewrite_block_captures(items: Vec<BlockItem>, symbols: &mut SymbolRegistry) -
 
         let mut prefix = Vec::new();
         match &mut item {
-            BlockItem::Invocation(invocation) => {
-                rewrite_args(&mut invocation.args, &mut prefix, symbols, invocation.span);
-                rewrite_function_target(&mut invocation.of, &mut prefix, symbols, invocation.span);
+            BlockItem::Exec(exec) => {
+                rewrite_args(&mut exec.args, &mut prefix, symbols, exec.span);
+                rewrite_function_target(&mut exec.of, &mut prefix, symbols, exec.span);
             }
             BlockItem::ApplyDef(apply) => {
                 rewrite_args(&mut apply.args, &mut prefix, symbols, apply.span);
@@ -1961,17 +1911,17 @@ fn compute_use_sites(items: &[BlockItem]) -> HashMap<String, Vec<UseSite>> {
                 for arg in args {
                     map.entry(arg.name.clone())
                         .or_insert_with(Vec::new)
-                        .push(UseSite::InvocationArg);
+                        .push(UseSite::ExecArg);
                 }
             }
-            BlockItem::Invocation(Invocation { of, args, .. }) => {
+            BlockItem::Exec(Exec { of, args, .. }) => {
                 map.entry(of.clone())
                     .or_insert_with(Vec::new)
-                    .push(UseSite::InvocationOf(idx));
+                    .push(UseSite::ExecOf(idx));
                 for arg in args {
                     map.entry(arg.name.clone())
                         .or_insert_with(Vec::new)
-                        .push(UseSite::InvocationArg);
+                        .push(UseSite::ExecArg);
                 }
             }
             _ => {}
@@ -1999,7 +1949,7 @@ fn find_apply_to_apply(
     None
 }
 
-fn find_apply_to_invocation(
+fn find_apply_to_exec(
     items: &[BlockItem],
     use_sites: &HashMap<String, Vec<UseSite>>,
 ) -> Option<(usize, usize)> {
@@ -2007,7 +1957,7 @@ fn find_apply_to_invocation(
         if let BlockItem::ApplyDef(Apply { name, .. }) = item {
             if let Some(sites) = use_sites.get(name) {
                 if sites.len() == 1 {
-                    if let UseSite::InvocationOf(inv_idx) = sites[0] {
+                    if let UseSite::ExecOf(inv_idx) = sites[0] {
                         return Some((idx, inv_idx));
                     }
                 }
@@ -2049,25 +1999,25 @@ fn inline_apply_into_apply(items: &mut Vec<BlockItem>, parent_idx: usize, child_
     items[child_idx] = BlockItem::ApplyDef(merged);
 }
 
-fn inline_apply_into_invocation(items: &mut Vec<BlockItem>, parent_idx: usize, inv_idx: usize) {
+fn inline_apply_into_exec(items: &mut Vec<BlockItem>, parent_idx: usize, inv_idx: usize) {
     let parent = match items[parent_idx].clone() {
         BlockItem::ApplyDef(apply) => apply,
         _ => return,
     };
 
-    let invocation = match items[inv_idx].clone() {
-        BlockItem::Invocation(inv) => inv,
+    let exec = match items[inv_idx].clone() {
+        BlockItem::Exec(inv) => inv,
         _ => return,
     };
 
     let mut merged_args = parent.args.clone();
-    merged_args.extend(invocation.args.clone());
+    merged_args.extend(exec.args.clone());
 
-    let merged_invocation = Invocation {
+    let merged_exec = Exec {
         of: parent.of.clone(),
         args: merged_args,
-        span: invocation.span,
-        result: invocation.result.clone(),
+        span: exec.span,
+        result: exec.result.clone(),
     };
 
     let inv_idx = if parent_idx < inv_idx {
@@ -2078,12 +2028,12 @@ fn inline_apply_into_invocation(items: &mut Vec<BlockItem>, parent_idx: usize, i
         inv_idx
     };
 
-    items[inv_idx] = BlockItem::Invocation(merged_invocation);
+    items[inv_idx] = BlockItem::Exec(merged_exec);
 }
 
 #[derive(Copy, Clone)]
 enum UseSite {
     ApplyOf(usize),
-    InvocationOf(usize),
-    InvocationArg,
+    ExecOf(usize),
+    ExecArg,
 }

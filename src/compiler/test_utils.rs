@@ -55,12 +55,12 @@ fn write_block_item(item: &BlockItem, out: &mut String, indent: usize) {
             write_args(args, out);
             out.push(')');
         }
-        BlockItem::Invocation(invocation) => {
-            if let Some(result) = &invocation.result {
+        BlockItem::Exec(exec) => {
+            if let Some(result) = &exec.result {
                 write!(out, "{}: ", result).unwrap();
             }
-            write!(out, "{}(", invocation.of).unwrap();
-            write_args(&invocation.args, out);
+            write!(out, "{}(", exec.of).unwrap();
+            write_args(&exec.args, out);
             out.push(')');
         }
     }

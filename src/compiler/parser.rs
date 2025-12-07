@@ -89,13 +89,13 @@ impl<R: BufRead> Parser<R> {
                     return self.parse_bind(name, span, symbols);
                 }
 
-                // Must be an invocation
-                self.peeked.push_front(ident); // restore token to attempt invocation parse
+                // Must be an exec
+                self.peeked.push_front(ident); // restore token to attempt exec parse
             }
             TokenKind::LParen => {
                 return self.parse_lambda_or_scope_capture(symbols);
             }
-            TokenKind::LBrace => {} // allow lambda invocation (possibly without args)
+            TokenKind::LBrace => {} // allow lambda exec (possibly without args)
             TokenKind::Newline => {}
             _ => return Err(ParseError::new("expected a top-level item", span).into()),
         }

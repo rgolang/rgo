@@ -4,7 +4,7 @@ use std::fmt;
 use crate::compiler::ast::TypeRef;
 use crate::compiler::error::CodegenError;
 use crate::compiler::hir::{
-    Apply, Arg, Block, BlockItem, Function, IntLiteral, Invocation, Param, StrLiteral,
+    Apply, Arg, Block, BlockItem, Exec, Function, IntLiteral, Param, StrLiteral,
 };
 use crate::compiler::runtime::env_metadata_size;
 use crate::compiler::span::Span;
@@ -207,8 +207,8 @@ pub enum MirStatement {
     FunctionDef(MirFunctionBinding),
     StrDef(StrLiteral),
     IntDef(IntLiteral),
-    ApplyDef(MirApply),
-    Invocation(MirInvocation),
+    StructDef(MirStruct),
+    Exec(MirExec),
     ReleaseEnv(ReleaseEnv),
     DeepCopy(DeepCopy),
 }
@@ -238,16 +238,16 @@ impl fmt::Display for MirStatement {
             MirStatement::IntDef(IntLiteral { name, value, .. }) => {
                 write!(f, "{} = {}", name, value)
             }
-            MirStatement::ApplyDef(apply) => {
-                let args = render_args(&apply.apply.args);
-                write!(f, "{} = {}({})", apply.apply.name, apply.apply.of, args)
+            MirStatement::StructDef(apply) => {
+                let args = render_args(&apply.value.args);
+                write!(f, "{} = {}({})", apply.value.name, apply.value.of, args)
             }
-            MirStatement::Invocation(invocation) => {
-                let args = render_args(&invocation.invocation.args);
-                if let Some(result) = &invocation.invocation.result {
-                    write!(f, "{} = {}({})", result, invocation.invocation.of, args)
+            MirStatement::Exec(exec) => {
+                let args = render_args(&exec.exec.args);
+                if let Some(result) = &exec.exec.result {
+                    write!(f, "{} = {}({})", result, exec.exec.of, args)
                 } else {
-                    write!(f, "{}({})", invocation.invocation.of, args)
+                    write!(f, "{}({})", exec.exec.of, args)
                 }
             }
             MirStatement::ReleaseEnv(ReleaseEnv { name, .. }) => {
@@ -275,25 +275,25 @@ pub struct MirEnvAllocation {
 }
 
 #[derive(Clone, Debug)]
-pub struct MirApply {
-    pub apply: Apply,
-    pub variadic: Option<MirVariadicCallInfo>,
+pub struct MirStruct {
+    pub value: Apply,
+    pub variadic: Option<MirVariadicExecInfo>,
 }
 
 #[derive(Clone, Debug)]
-pub struct MirInvocation {
-    pub invocation: Invocation,
-    pub variadic: Option<MirVariadicCallInfo>,
+pub struct MirExec {
+    pub exec: Exec,
+    pub variadic: Option<MirVariadicExecInfo>,
 }
 
 #[derive(Clone, Debug)]
-pub struct MirVariadicCallInfo {
+pub struct MirVariadicExecInfo {
     pub variadic_param_index: usize,
     pub prefix_len: usize,
     pub suffix_len: usize,
 }
 
-impl MirVariadicCallInfo {
+impl MirVariadicExecInfo {
     pub fn required_arguments(&self) -> usize {
         self.prefix_len + self.suffix_len
     }
@@ -332,7 +332,7 @@ fn lower_block_item(
             Ok(vec![MirStatement::IntDef(literal.clone())])
         }
         BlockItem::ApplyDef(apply) => lower_apply_statements(apply, symbols, ctx),
-        BlockItem::Invocation(invocation) => lower_invocation_statements(invocation, symbols, ctx),
+        BlockItem::Exec(exec) => lower_exec_statements(exec, symbols, ctx),
     }
 }
 
@@ -348,25 +348,28 @@ fn lower_apply_statements(
     }
     let lowered = lower_apply(&apply, symbols)?;
     ctx.bind(&apply.name);
-    statements.push(MirStatement::ApplyDef(lowered));
+    statements.push(MirStatement::StructDef(lowered));
     Ok(statements)
 }
 
-fn lower_invocation_statements(
-    invocation: &Invocation,
+fn lower_exec_statements(
+    exec: &Exec,
     symbols: &SymbolRegistry,
     ctx: &mut BlockLoweringContext,
 ) -> Result<Vec<MirStatement>, CodegenError> {
+    // Validate builtin function arguments before transforming them
+    validate_builtin_exec(exec, symbols)?;
+
     let mut statements = Vec::new();
-    let mut invocation = invocation.clone();
-    for arg in &mut invocation.args {
+    let mut exec = exec.clone();
+    for arg in &mut exec.args {
         ctx.ensure_function_arg(arg, &mut statements)?;
     }
-    let lowered = lower_invocation(&invocation, symbols)?;
-    if let Some(result) = &invocation.result {
+    let lowered = lower_exec(&exec, symbols)?;
+    if let Some(result) = &exec.result {
         ctx.bind(result);
     }
-    statements.push(MirStatement::Invocation(lowered));
+    statements.push(MirStatement::Exec(lowered));
     Ok(statements)
 }
 
@@ -416,26 +419,71 @@ fn function_env_allocation(
     })
 }
 
-fn lower_apply(apply: &Apply, symbols: &SymbolRegistry) -> Result<MirApply, CodegenError> {
+fn lower_apply(apply: &Apply, symbols: &SymbolRegistry) -> Result<MirStruct, CodegenError> {
     let variadic = compute_variadic_call_info(&apply.of, apply.args.len(), apply.span, symbols)?;
-    Ok(MirApply {
-        apply: apply.clone(),
+    Ok(MirStruct {
+        value: apply.clone(),
         variadic,
     })
 }
 
-fn lower_invocation(
-    invocation: &Invocation,
-    symbols: &SymbolRegistry,
-) -> Result<MirInvocation, CodegenError> {
-    let variadic = compute_variadic_call_info(
-        &invocation.of,
-        invocation.args.len(),
-        invocation.span,
-        symbols,
-    )?;
-    Ok(MirInvocation {
-        invocation: invocation.clone(),
+fn validate_builtin_exec(exec: &Exec, symbols: &SymbolRegistry) -> Result<(), CodegenError> {
+    let name = exec.of.as_str();
+
+    // Validate printf continuation
+    if name == "printf" {
+        if exec.args.len() < 2 {
+            return Err(CodegenError::new(
+                "printf requires a format string and a continuation",
+                exec.span,
+            ));
+        }
+
+        let continuation_arg = &exec.args[exec.args.len() - 1];
+        if let Some(sig) = symbols.get_function(&continuation_arg.name) {
+            if !sig.params.is_empty() {
+                return Err(CodegenError::new(
+                    "printf continuation must accept no arguments",
+                    continuation_arg.span,
+                ));
+            }
+        }
+    }
+
+    // Validate sprintf continuation
+    if name == "sprintf" {
+        if exec.args.len() < 2 {
+            return Err(CodegenError::new(
+                "sprintf requires a format string and a continuation",
+                exec.span,
+            ));
+        }
+
+        let continuation_arg = &exec.args[exec.args.len() - 1];
+        if let Some(sig) = symbols.get_function(&continuation_arg.name) {
+            if sig.params.is_empty() {
+                return Err(CodegenError::new(
+                    "sprintf continuation must accept at least one string argument",
+                    continuation_arg.span,
+                ));
+            }
+            if sig.params[0] != TypeRef::Str {
+                return Err(CodegenError::new(
+                    "sprintf continuation must accept a string argument",
+                    continuation_arg.span,
+                ));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn lower_exec(exec: &Exec, symbols: &SymbolRegistry) -> Result<MirExec, CodegenError> {
+    validate_builtin_exec(exec, symbols)?;
+    let variadic = compute_variadic_call_info(&exec.of, exec.args.len(), exec.span, symbols)?;
+    Ok(MirExec {
+        exec: exec.clone(),
         variadic,
     })
 }
@@ -445,7 +493,7 @@ fn compute_variadic_call_info(
     args_len: usize,
     span: Span,
     symbols: &SymbolRegistry,
-) -> Result<Option<MirVariadicCallInfo>, CodegenError> {
+) -> Result<Option<MirVariadicExecInfo>, CodegenError> {
     let sig = match symbols.get_function(of) {
         Some(sig) => sig,
         None => return Ok(None),
@@ -482,7 +530,7 @@ fn compute_variadic_call_info(
             span,
         ));
     }
-    Ok(Some(MirVariadicCallInfo {
+    Ok(Some(MirVariadicExecInfo {
         variadic_param_index: variadic_idx,
         prefix_len: prefix_required,
         suffix_len: suffix_required,
@@ -531,19 +579,19 @@ fn compute_release_plan(
     let last_tail_call_idx = block
         .items
         .iter()
-        .rposition(|item| matches!(item, BlockItem::Invocation(inv) if inv.result.is_none()));
+        .rposition(|item| matches!(item, BlockItem::Exec(inv) if inv.result.is_none()));
     if let Some(idx) = last_tail_call_idx {
-        if let BlockItem::Invocation(invocation) = &block.items[idx] {
+        if let BlockItem::Exec(exec) = &block.items[idx] {
             let captured = captured_closure_params(&block.items, &closure_params);
             let mut releases = Vec::new();
             for param in &closure_params {
                 if captured.contains(param) {
                     continue;
                 }
-                if should_release_closure_param(param, invocation) {
+                if should_release_closure_param(param, exec) {
                     releases.push(ReleaseEnv {
                         name: param.clone(),
-                        span: invocation.span,
+                        span: exec.span,
                     });
                 }
             }
@@ -592,15 +640,15 @@ fn compute_deep_copy_plan(
                     }
                 }
             }
-            BlockItem::Invocation(invocation) => {
-                if closure_params.contains(&invocation.of) {
-                    *usage_counts.entry(invocation.of.clone()).or_insert(0) += 1;
+            BlockItem::Exec(exec) => {
+                if closure_params.contains(&exec.of) {
+                    *usage_counts.entry(exec.of.clone()).or_insert(0) += 1;
                     usage_indices
-                        .entry(invocation.of.clone())
+                        .entry(exec.of.clone())
                         .or_insert_with(Vec::new)
                         .push(item_idx);
                 }
-                for arg in &invocation.args {
+                for arg in &exec.args {
                     if closure_params.contains(&arg.name) {
                         *usage_counts.entry(arg.name.clone()).or_insert(0) += 1;
                         usage_indices
@@ -661,16 +709,16 @@ fn captured_closure_params(items: &[BlockItem], closure_params: &[String]) -> Ha
                     }
                 }
             }
-            BlockItem::Invocation(invocation) => {
-                if closure_names.contains(invocation.of.as_str()) {
-                    captured.insert(invocation.of.clone());
+            BlockItem::Exec(exec) => {
+                if closure_names.contains(exec.of.as_str()) {
+                    captured.insert(exec.of.clone());
                 }
-                for arg in &invocation.args {
+                for arg in &exec.args {
                     if closure_names.contains(arg.name.as_str()) {
                         captured.insert(arg.name.clone());
                     }
                 }
-                if let Some(result) = &invocation.result {
+                if let Some(result) = &exec.result {
                     if closure_names.contains(result.as_str()) {
                         captured.insert(result.clone());
                     }
@@ -683,11 +731,11 @@ fn captured_closure_params(items: &[BlockItem], closure_params: &[String]) -> Ha
     captured
 }
 
-fn should_release_closure_param(param_name: &str, invocation: &Invocation) -> bool {
-    if invocation.of == param_name {
+fn should_release_closure_param(param_name: &str, exec: &Exec) -> bool {
+    if exec.of == param_name {
         return false;
     }
-    !invocation.args.iter().any(|arg| arg.name == param_name)
+    !exec.args.iter().any(|arg| arg.name == param_name)
 }
 
 fn is_closure_param(ty: &crate::compiler::ast::TypeRef, symbols: &SymbolRegistry) -> bool {
