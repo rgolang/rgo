@@ -1,12 +1,10 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
-use crate::compiler::ast;
 use crate::compiler::error::{CompileError, CompileErrorCode};
 use crate::compiler::hir;
-use crate::compiler::hir::{
-    Apply, Arg, Block, BlockItem, Exec, Function, IntLiteral, SigItem, SigKind, StrLiteral,
-};
+use crate::compiler::hir::{Apply, Arg, Block, BlockItem, Exec, Function, IntLiteral, StrLiteral};
+pub use crate::compiler::hir::{SigItem, SigKind};
 use crate::compiler::runtime::env_metadata_size;
 use crate::compiler::span::Span;
 use crate::compiler::symbol::{FunctionSig, SymbolRegistry};
@@ -43,7 +41,7 @@ pub struct FunctionId(pub usize);
 
 #[derive(Clone, Debug)]
 pub struct MirFunction {
-    pub id: FunctionId,
+    pub id: FunctionId,       // TODO: use the id to register in symbols
     pub name: String,         // For debugging only
     pub params: Vec<SigItem>, // TODO: deprecate params, use input
     pub input: Vec<Type>,     // TODO: rename to params once done
@@ -111,13 +109,7 @@ impl fmt::Display for MirFunction {
             let rendered = self
                 .params
                 .iter()
-                .map(|param| {
-                    format!(
-                        "{}: {}",
-                        param.name,
-                        format_type(&hir::hir_type_ref_to_ast_type_ref(&param.ty.kind))
-                    )
-                })
+                .map(|param| format!("{}: {}", param.name, format_type(&param.ty.kind)))
                 .collect::<Vec<_>>()
                 .join(", ");
             rendered
@@ -135,24 +127,9 @@ pub(crate) fn register_function_signature(
     function: &Function,
     symbols: &mut SymbolRegistry,
 ) -> Result<(), CompileError> {
-    let params = function
-        .sig
-        .items
-        .iter()
-        .map(|item| ast::SigItem {
-            name: Some(item.name.clone()),
-            ty: ast::SigType {
-                kind: hir::hir_type_ref_to_ast_type_ref(&item.ty.kind),
-                span: item.ty.span,
-            },
-            is_variadic: item.is_variadic,
-            span: item.span,
-        })
-        .collect();
-
     let sig = FunctionSig {
         name: function.name.clone(),
-        params,
+        params: function.sig.items.clone(),
         span: function.span,
     };
     symbols.declare_function(sig)?;
@@ -183,23 +160,10 @@ fn register_type_def(
     name: &str,
     kind: &SigKind,
     span: Span,
-    generics: &[String],
+    _generics: &[String],
     symbols: &mut SymbolRegistry,
 ) -> Result<(), CompileError> {
-    let term = hir::hir_type_ref_to_ast_type_ref(kind);
-    symbols.install_type(
-        name.to_string(),
-        term.clone(),
-        span,
-        Vec::new(),
-        generics.to_vec(),
-    )?;
-    let normalized = symbols.normalize_top_level_type(term);
-    let variadic = symbols
-        .get_type_info(name)
-        .map(|info| info.variadic.clone())
-        .unwrap_or_default();
-    symbols.update_type(name, normalized, variadic)?;
+    symbols.install_type(name.to_string(), kind.clone(), span, Vec::new())?;
     Ok(())
 }
 
@@ -599,7 +563,7 @@ fn validate_builtin_exec(exec: &Exec, symbols: &SymbolRegistry) -> Result<(), Co
                     continuation_arg.span,
                 ));
             }
-            if sig.params[0].ty.kind.clone() != ast::SigKind::Str {
+            if sig.params[0].ty.kind != SigKind::Str {
                 return Err(CompileError::new(
                     CompileErrorCode::Codegen,
                     "sprintf continuation must accept a string argument",
@@ -673,21 +637,21 @@ fn compute_variadic_call_info(
     }))
 }
 
-fn env_size_bytes(params: &[ast::SigItem], symbols: &SymbolRegistry) -> usize {
+fn env_size_bytes(params: &[SigItem], symbols: &SymbolRegistry) -> usize {
     params
         .iter()
         .map(|ty| bytes_for_type(&ty.ty.kind, symbols))
         .sum()
 }
 
-fn env_pointer_count(params: &[ast::SigItem], symbols: &SymbolRegistry) -> usize {
+fn env_pointer_count(params: &[SigItem], symbols: &SymbolRegistry) -> usize {
     params
         .iter()
         .map(|ty| pointer_slots_for_type(&ty.ty.kind, symbols))
         .sum()
 }
 
-fn bytes_for_type(ty: &ast::SigKind, symbols: &SymbolRegistry) -> usize {
+fn bytes_for_type(ty: &SigKind, symbols: &SymbolRegistry) -> usize {
     let mut visited = HashSet::new();
     if is_closure_type(ty, symbols, &mut visited) {
         16
@@ -696,7 +660,7 @@ fn bytes_for_type(ty: &ast::SigKind, symbols: &SymbolRegistry) -> usize {
     }
 }
 
-fn pointer_slots_for_type(ty: &ast::SigKind, symbols: &SymbolRegistry) -> usize {
+fn pointer_slots_for_type(ty: &SigKind, symbols: &SymbolRegistry) -> usize {
     let mut visited = HashSet::new();
     if is_closure_type(ty, symbols, &mut visited) {
         1
@@ -831,9 +795,7 @@ fn compute_deep_copy_plan(
 fn closure_param_names(params: &[SigItem], symbols: &SymbolRegistry) -> Vec<String> {
     params
         .iter()
-        .filter(|param| {
-            is_closure_param(&hir::hir_type_ref_to_ast_type_ref(&param.ty.kind), symbols)
-        })
+        .filter(|param| is_closure_param(&param.ty.kind, symbols))
         .map(|param| param.name.clone())
         .collect()
 }
@@ -887,23 +849,16 @@ fn should_release_closure_param(param_name: &str, exec: &Exec) -> bool {
     !exec.args.iter().any(|arg| arg.name == param_name)
 }
 
-fn is_closure_param(ty: &ast::SigKind, symbols: &SymbolRegistry) -> bool {
+fn is_closure_param(ty: &SigKind, symbols: &SymbolRegistry) -> bool {
     let mut visited = HashSet::new();
     is_closure_type(ty, symbols, &mut visited)
 }
 
-fn is_closure_type(
-    ty: &ast::SigKind,
-    symbols: &SymbolRegistry,
-    visited: &mut HashSet<String>,
-) -> bool {
+fn is_closure_type(ty: &SigKind, symbols: &SymbolRegistry, visited: &mut HashSet<String>) -> bool {
     match ty {
-        ast::SigKind::Int
-        | ast::SigKind::Str
-        | ast::SigKind::CompileTimeInt
-        | ast::SigKind::CompileTimeStr => false,
-        ast::SigKind::Tuple(_) => true,
-        ast::SigKind::Ident(ident) => {
+        SigKind::Int | SigKind::Str | SigKind::CompileTimeInt | SigKind::CompileTimeStr => false,
+        SigKind::Tuple(_) => true,
+        SigKind::Ident(ident) => {
             let name = &ident.name;
             if visited.contains(name) {
                 return true;
@@ -916,12 +871,12 @@ fn is_closure_type(
             }
             false
         }
-        ast::SigKind::GenericInst { .. } => {
+        SigKind::GenericInst { .. } => {
             let mut expand_visited = HashSet::new();
             let expanded = expand_alias_chain(ty, symbols, &mut expand_visited);
             is_closure_type(&expanded, symbols, visited)
         }
-        ast::SigKind::Generic(_) => false,
+        SigKind::Generic(_) => false,
     }
 }
 
@@ -947,13 +902,13 @@ fn escape_literal(value: &str) -> String {
         .join("")
 }
 
-pub fn format_type(ty: &ast::SigKind) -> String {
+pub fn format_type(ty: &SigKind) -> String {
     match ty {
-        ast::SigKind::Int => "int".to_string(),
-        ast::SigKind::Str => "str".to_string(),
-        ast::SigKind::CompileTimeInt => "int!".to_string(),
-        ast::SigKind::CompileTimeStr => "str!".to_string(),
-        ast::SigKind::Tuple(params) => {
+        SigKind::Int => "int".to_string(),
+        SigKind::Str => "str".to_string(),
+        SigKind::CompileTimeInt => "int!".to_string(),
+        SigKind::CompileTimeStr => "str!".to_string(),
+        SigKind::Tuple(params) => {
             let inner = params
                 .items
                 .iter()
@@ -961,15 +916,15 @@ pub fn format_type(ty: &ast::SigKind) -> String {
                 .collect::<Vec<_>>();
             format!("({})", inner.join(", "))
         }
-        ast::SigKind::Ident(ident) => ident.name.clone(),
-        ast::SigKind::GenericInst { name, args } => format!(
+        SigKind::Ident(ident) => ident.name.clone(),
+        SigKind::GenericInst { name, args } => format!(
             "{}<{}>",
             name,
             args.iter()
-                .map(|arg| format_type(&arg.kind))
+                .map(|arg| format_type(&arg))
                 .collect::<Vec<_>>()
                 .join(", ")
         ),
-        ast::SigKind::Generic(name) => name.clone(),
+        SigKind::Generic(name) => name.clone(),
     }
 }

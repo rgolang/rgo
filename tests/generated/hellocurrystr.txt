@@ -41,7 +41,17 @@
                             "n",
                         ),
                         ty: SigType {
-                            kind: Str,
+                            kind: Ident(
+                                SigIdent {
+                                    name: "str",
+                                    has_bang: false,
+                                    span: Span {
+                                        line: 6,
+                                        column: 9,
+                                        offset: 37,
+                                    },
+                                },
+                            ),
                             span: Span {
                                 line: 6,
                                 column: 9,
@@ -60,7 +70,17 @@
                             "s",
                         ),
                         ty: SigType {
-                            kind: Str,
+                            kind: Ident(
+                                SigIdent {
+                                    name: "str",
+                                    has_bang: false,
+                                    span: Span {
+                                        line: 6,
+                                        column: 16,
+                                        offset: 44,
+                                    },
+                                },
+                            ),
                             span: Span {
                                 line: 6,
                                 column: 16,

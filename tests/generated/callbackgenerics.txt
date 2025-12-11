@@ -173,7 +173,17 @@
                             "n",
                         ),
                         ty: SigType {
-                            kind: Str,
+                            kind: Ident(
+                                SigIdent {
+                                    name: "str",
+                                    has_bang: false,
+                                    span: Span {
+                                        line: 8,
+                                        column: 12,
+                                        offset: 65,
+                                    },
+                                },
+                            ),
                             span: Span {
                                 line: 8,
                                 column: 12,
@@ -298,7 +308,17 @@
                             "n",
                         ),
                         ty: SigType {
-                            kind: Str,
+                            kind: Ident(
+                                SigIdent {
+                                    name: "str",
+                                    has_bang: false,
+                                    span: Span {
+                                        line: 11,
+                                        column: 12,
+                                        offset: 135,
+                                    },
+                                },
+                            ),
                             span: Span {
                                 line: 11,
                                 column: 12,

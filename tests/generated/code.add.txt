@@ -48,7 +48,17 @@
                                         "n",
                                     ),
                                     ty: SigType {
-                                        kind: Int,
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "int",
+                                                has_bang: false,
+                                                span: Span {
+                                                    line: 4,
+                                                    column: 15,
+                                                    offset: 28,
+                                                },
+                                            },
+                                        ),
                                         span: Span {
                                             line: 4,
                                             column: 15,

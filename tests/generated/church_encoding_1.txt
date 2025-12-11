@@ -55,7 +55,17 @@
                                         SigItem {
                                             name: None,
                                             ty: SigType {
-                                                kind: Int,
+                                                kind: Ident(
+                                                    SigIdent {
+                                                        name: "int",
+                                                        has_bang: false,
+                                                        span: Span {
+                                                            line: 7,
+                                                            column: 11,
+                                                            offset: 45,
+                                                        },
+                                                    },
+                                                ),
                                                 span: Span {
                                                     line: 0,
                                                     column: 0,
@@ -78,7 +88,17 @@
                                                             SigItem {
                                                                 name: None,
                                                                 ty: SigType {
-                                                                    kind: Int,
+                                                                    kind: Ident(
+                                                                        SigIdent {
+                                                                            name: "int",
+                                                                            has_bang: false,
+                                                                            span: Span {
+                                                                                line: 7,
+                                                                                column: 17,
+                                                                                offset: 51,
+                                                                            },
+                                                                        },
+                                                                    ),
                                                                     span: Span {
                                                                         line: 0,
                                                                         column: 0,
@@ -139,7 +159,17 @@
                             "x",
                         ),
                         ty: SigType {
-                            kind: Int,
+                            kind: Ident(
+                                SigIdent {
+                                    name: "int",
+                                    has_bang: false,
+                                    span: Span {
+                                        line: 7,
+                                        column: 27,
+                                        offset: 61,
+                                    },
+                                },
+                            ),
                             span: Span {
                                 line: 7,
                                 column: 27,
@@ -164,7 +194,17 @@
                                         SigItem {
                                             name: None,
                                             ty: SigType {
-                                                kind: Int,
+                                                kind: Ident(
+                                                    SigIdent {
+                                                        name: "int",
+                                                        has_bang: false,
+                                                        span: Span {
+                                                            line: 7,
+                                                            column: 37,
+                                                            offset: 71,
+                                                        },
+                                                    },
+                                                ),
                                                 span: Span {
                                                     line: 0,
                                                     column: 0,
@@ -275,7 +315,17 @@
                                         "x",
                                     ),
                                     ty: SigType {
-                                        kind: Int,
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "int",
+                                                has_bang: false,
+                                                span: Span {
+                                                    line: 10,
+                                                    column: 9,
+                                                    offset: 101,
+                                                },
+                                            },
+                                        ),
                                         span: Span {
                                             line: 10,
                                             column: 9,
@@ -300,7 +350,17 @@
                                                     SigItem {
                                                         name: None,
                                                         ty: SigType {
-                                                            kind: Int,
+                                                            kind: Ident(
+                                                                SigIdent {
+                                                                    name: "int",
+                                                                    has_bang: false,
+                                                                    span: Span {
+                                                                        line: 10,
+                                                                        column: 18,
+                                                                        offset: 110,
+                                                                    },
+                                                                },
+                                                            ),
                                                             span: Span {
                                                                 line: 0,
                                                                 column: 0,
@@ -422,7 +482,17 @@
                                         "x",
                                     ),
                                     ty: SigType {
-                                        kind: Int,
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "int",
+                                                has_bang: false,
+                                                span: Span {
+                                                    line: 12,
+                                                    column: 11,
+                                                    offset: 146,
+                                                },
+                                            },
+                                        ),
                                         span: Span {
                                             line: 12,
                                             column: 11,

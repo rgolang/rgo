@@ -47,7 +47,17 @@
                     SigItem {
                         name: None,
                         ty: SigType {
-                            kind: Int,
+                            kind: Ident(
+                                SigIdent {
+                                    name: "int",
+                                    has_bang: false,
+                                    span: Span {
+                                        line: 7,
+                                        column: 13,
+                                        offset: 49,
+                                    },
+                                },
+                            ),
                             span: Span {
                                 line: 0,
                                 column: 0,
@@ -164,7 +174,17 @@
                                         SigItem {
                                             name: None,
                                             ty: SigType {
-                                                kind: Int,
+                                                kind: Ident(
+                                                    SigIdent {
+                                                        name: "int",
+                                                        has_bang: false,
+                                                        span: Span {
+                                                            line: 8,
+                                                            column: 16,
+                                                            offset: 87,
+                                                        },
+                                                    },
+                                                ),
                                                 span: Span {
                                                     line: 0,
                                                     column: 0,
@@ -338,7 +358,17 @@
                                 name: "arr",
                                 args: [
                                     SigType {
-                                        kind: Str,
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "str",
+                                                has_bang: false,
+                                                span: Span {
+                                                    line: 11,
+                                                    column: 24,
+                                                    offset: 158,
+                                                },
+                                            },
+                                        ),
                                         span: Span {
                                             line: 11,
                                             column: 24,
@@ -371,7 +401,17 @@
                                         SigItem {
                                             name: None,
                                             ty: SigType {
-                                                kind: Int,
+                                                kind: Ident(
+                                                    SigIdent {
+                                                        name: "int",
+                                                        has_bang: false,
+                                                        span: Span {
+                                                            line: 11,
+                                                            column: 39,
+                                                            offset: 173,
+                                                        },
+                                                    },
+                                                ),
                                                 span: Span {
                                                     line: 0,
                                                     column: 0,
@@ -392,7 +432,17 @@
                                                     name: "at",
                                                     args: [
                                                         SigType {
-                                                            kind: Str,
+                                                            kind: Ident(
+                                                                SigIdent {
+                                                                    name: "str",
+                                                                    has_bang: false,
+                                                                    span: Span {
+                                                                        line: 11,
+                                                                        column: 51,
+                                                                        offset: 185,
+                                                                    },
+                                                                },
+                                                            ),
                                                             span: Span {
                                                                 line: 11,
                                                                 column: 51,
@@ -530,7 +580,17 @@
                                         "len",
                                     ),
                                     ty: SigType {
-                                        kind: Int,
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "int",
+                                                has_bang: false,
+                                                span: Span {
+                                                    line: 14,
+                                                    column: 28,
+                                                    offset: 237,
+                                                },
+                                            },
+                                        ),
                                         span: Span {
                                             line: 14,
                                             column: 28,
@@ -553,7 +613,17 @@
                                             name: "at",
                                             args: [
                                                 SigType {
-                                                    kind: Str,
+                                                    kind: Ident(
+                                                        SigIdent {
+                                                            name: "str",
+                                                            has_bang: false,
+                                                            span: Span {
+                                                                line: 14,
+                                                                column: 40,
+                                                                offset: 249,
+                                                            },
+                                                        },
+                                                    ),
                                                     span: Span {
                                                         line: 14,
                                                         column: 40,
@@ -608,7 +678,17 @@
                                                     "v",
                                                 ),
                                                 ty: SigType {
-                                                    kind: Str,
+                                                    kind: Ident(
+                                                        SigIdent {
+                                                            name: "str",
+                                                            has_bang: false,
+                                                            span: Span {
+                                                                line: 16,
+                                                                column: 8,
+                                                                offset: 272,
+                                                            },
+                                                        },
+                                                    ),
                                                     span: Span {
                                                         line: 16,
                                                         column: 8,

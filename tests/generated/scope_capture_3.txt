@@ -60,7 +60,17 @@
                                         "x",
                                     ),
                                     ty: SigType {
-                                        kind: Int,
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "int",
+                                                has_bang: false,
+                                                span: Span {
+                                                    line: 8,
+                                                    column: 9,
+                                                    offset: 52,
+                                                },
+                                            },
+                                        ),
                                         span: Span {
                                             line: 8,
                                             column: 9,
@@ -160,7 +170,17 @@
                                                             SigItem {
                                                                 name: None,
                                                                 ty: SigType {
-                                                                    kind: Int,
+                                                                    kind: Ident(
+                                                                        SigIdent {
+                                                                            name: "int",
+                                                                            has_bang: false,
+                                                                            span: Span {
+                                                                                line: 8,
+                                                                                column: 21,
+                                                                                offset: 64,
+                                                                            },
+                                                                        },
+                                                                    ),
                                                                     span: Span {
                                                                         line: 0,
                                                                         column: 0,

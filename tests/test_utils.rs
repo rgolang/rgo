@@ -1,9 +1,7 @@
 use std::fmt::Write;
 
-use compiler::compiler::ast;
 use compiler::compiler::hir;
 use compiler::compiler::hir::{Apply, Arg, Block, BlockItem, Function, SigItem};
-use compiler::compiler::span::Span;
 pub fn render_normalized_rgo(items: &[BlockItem]) -> String {
     let mut out = String::new();
     for (i, item) in items.iter().enumerate() {
@@ -79,12 +77,7 @@ fn write_block_item(item: &BlockItem, out: &mut String, indent: usize) {
             generics,
             ..
         } => {
-            let ast_kind = hir::hir_type_ref_to_ast_type_ref(kind);
-            let ty = ast::SigType {
-                kind: ast_kind,
-                span: Span::unknown(),
-            };
-            let type_str = format_type_ref(&ty);
+            let type_str = format_hir_sig_kind(kind);
             if generics.is_empty() {
                 write!(out, "{}: {}", name, type_str).unwrap();
             } else {
@@ -116,10 +109,7 @@ fn format_param_list(params: &[SigItem]) -> String {
     let entries: Vec<String> = params
         .iter()
         .map(|param| {
-            let ty = format_type_ref(&ast::SigType {
-                kind: hir::hir_type_ref_to_ast_type_ref(&param.ty.kind),
-                span: Span::unknown(),
-            });
+            let ty = format_hir_type_ref(&param.ty);
             let name_label = if param.is_variadic {
                 format!("...{}", param.name)
             } else {
@@ -135,31 +125,41 @@ fn format_param_list(params: &[SigItem]) -> String {
     format!("({})", entries.join(", "))
 }
 
-fn format_type_ref(ty: &ast::SigType) -> String {
-    match &ty.kind {
-        ast::SigKind::Int => "int".to_string(),
-        ast::SigKind::Str => "str".to_string(),
-        ast::SigKind::CompileTimeInt => "int!".to_string(),
-        ast::SigKind::CompileTimeStr => "str!".to_string(),
-        ast::SigKind::Ident(ident) => ident.name.clone(),
-        ast::SigKind::GenericInst { name, args } => format!(
+fn format_hir_type_ref(ty: &hir::SigType) -> String {
+    format_hir_sig_kind(&ty.kind)
+}
+
+fn format_hir_sig_kind(kind: &hir::SigKind) -> String {
+    match kind {
+        hir::SigKind::Int => "int".to_string(),
+        hir::SigKind::Str => "str".to_string(),
+        hir::SigKind::CompileTimeInt => "int!".to_string(),
+        hir::SigKind::CompileTimeStr => "str!".to_string(),
+        hir::SigKind::Tuple(inner) => {
+            let entries = inner
+                .items
+                .iter()
+                .map(|item| format_hir_type_ref(&item.ty))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("({})", entries)
+        }
+        hir::SigKind::Ident(ident) => {
+            if ident.has_bang {
+                format!("{}!", ident.name)
+            } else {
+                ident.name.clone()
+            }
+        }
+        hir::SigKind::Generic(name) => name.clone(),
+        hir::SigKind::GenericInst { name, args } => format!(
             "{}<{}>",
             name,
             args.iter()
-                .map(format_type_ref)
+                .map(format_hir_sig_kind)
                 .collect::<Vec<_>>()
                 .join(", ")
         ),
-        ast::SigKind::Tuple(inner) => format!(
-            "({})",
-            inner
-                .items
-                .iter()
-                .map(|item| format_type_ref(&item.ty))
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
-        ast::SigKind::Generic(name) => name.clone(),
     }
 }
 

@@ -556,26 +556,9 @@ impl<R: BufRead> Parser<R> {
                         span,
                     });
                 }
-                if matches!(self.peek_token()?.kind, TokenKind::Bang) {
-                    if name == "str" {
-                        self.bump()?; // consume '!'
-                        return Ok(ast::SigType {
-                            kind: SigKind::CompileTimeStr,
-                            span,
-                        });
-                    }
-                    if name == "int" {
-                        self.bump()?; // consume '!'
-                        return Ok(ast::SigType {
-                            kind: SigKind::CompileTimeInt,
-                            span,
-                        });
-                    }
-                    return Err(CompileError::new(
-                        CompileErrorCode::Parse,
-                        "unexpected '!'",
-                        span,
-                    ));
+                let has_bang = matches!(self.peek_token()?.kind, TokenKind::Bang);
+                if has_bang {
+                    self.bump()?; // consume '!'
                 }
 
                 if matches!(self.peek_token()?.kind, TokenKind::AngleOpen) {
@@ -605,17 +588,12 @@ impl<R: BufRead> Parser<R> {
                     //         CompileError::new(CompileErrorCode::Parse, format!("unknown type '{}'", name), span).into()
                     //     );
                     // }
-                    if name == "str" {
-                        return Ok(ast::SigType {
-                            kind: SigKind::Str,
+                    if has_bang {
+                        return Err(CompileError::new(
+                            CompileErrorCode::Parse,
+                            "unexpected '!'",
                             span,
-                        });
-                    }
-                    if name == "int" {
-                        return Ok(ast::SigType {
-                            kind: SigKind::Int,
-                            span,
-                        });
+                        ));
                     }
                     return Ok(ast::SigType {
                         kind: SigKind::GenericInst { name, args },
@@ -641,22 +619,10 @@ impl<R: BufRead> Parser<R> {
                 //     return Ok(ast::SigType { kind: ty, span });
                 // }
                 // return Err(CompileError::new(CompileErrorCode::Parse, format!("unknown type '{}'", name), span).into());
-                if name == "str" {
-                    return Ok(ast::SigType {
-                        kind: SigKind::Str,
-                        span,
-                    });
-                }
-                if name == "int" {
-                    return Ok(ast::SigType {
-                        kind: SigKind::Int,
-                        span,
-                    });
-                }
                 Ok(ast::SigType {
                     kind: SigKind::Ident(SigIdent {
                         name,
-                        has_bang: false,
+                        has_bang: has_bang,
                         span,
                     }),
                     span,

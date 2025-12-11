@@ -31,7 +31,17 @@
                     SigItem {
                         name: None,
                         ty: SigType {
-                            kind: Int,
+                            kind: Ident(
+                                SigIdent {
+                                    name: "int",
+                                    has_bang: false,
+                                    span: Span {
+                                        line: 5,
+                                        column: 11,
+                                        offset: 33,
+                                    },
+                                },
+                            ),
                             span: Span {
                                 line: 0,
                                 column: 0,

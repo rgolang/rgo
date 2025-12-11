@@ -100,7 +100,7 @@ fn generate_artifacts(source: &str) -> Result<GeneratedArtifacts, String> {
     let cursor = Cursor::new(source.as_bytes());
     let lexer = Lexer::new(cursor);
     let mut parser = Parser::new(lexer);
-    let mut scope = hir::Scope::new();
+    let mut ctx = hir::Context::new();
 
     let mut block_items = Vec::new();
     let mut lowerer = hir::Lowerer::new();
@@ -108,15 +108,12 @@ fn generate_artifacts(source: &str) -> Result<GeneratedArtifacts, String> {
 
     while let Some(item) = parser.next().map_err(|e| e.to_string())? {
         block_items.push(item.clone());
-        lowerer
-            .consume(item, &mut scope)
-            .map_err(|e| e.to_string())?;
+        lowerer.consume(item, &mut ctx).map_err(|e| e.to_string())?;
         while let Some(lowered) = lowerer.produce() {
             hir_block_items.push(lowered.clone());
         }
     }
 
-    lowerer.finish().map_err(|e| e.to_string())?;
     while let Some(lowered) = lowerer.produce() {
         hir_block_items.push(lowered.clone());
     }

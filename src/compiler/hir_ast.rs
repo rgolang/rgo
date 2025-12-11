@@ -1,4 +1,5 @@
-pub use crate::compiler::hir_scope::{ConstantValue, Scope, ScopeItem};
+use crate::compiler::ast;
+pub use crate::compiler::hir_context::{ConstantValue, Context, ContextEntry};
 use crate::compiler::span::Span;
 
 #[derive(Debug, Clone)]
@@ -68,6 +69,76 @@ pub enum SigKind {
         args: Vec<SigKind>, // TODO: in ast this is SigType, not sure it matters
     },
     Generic(String), // TODO: Should we keep generics in hir? types are easy to normalize
+}
+
+impl SigKind {
+    pub fn tuple<I>(items: I) -> SigKind
+    where
+        I: IntoIterator<Item = SigKind>,
+    {
+        let sig_items = items
+            .into_iter()
+            .map(|kind| SigItem {
+                name: String::new(),
+                ty: SigType {
+                    kind,
+                    span: Span::unknown(),
+                },
+                is_variadic: false,
+                span: Span::unknown(),
+            })
+            .collect();
+        SigKind::Tuple(Signature {
+            items: sig_items,
+            span: Span::unknown(),
+        })
+    }
+}
+
+impl From<&ast::SigType> for SigType {
+    fn from(ast_sig_type: &ast::SigType) -> Self {
+        SigType {
+            kind: SigKind::from(&ast_sig_type.kind),
+            span: ast_sig_type.span,
+        }
+    }
+}
+
+impl From<&ast::SigItem> for SigItem {
+    fn from(ast_item: &ast::SigItem) -> Self {
+        SigItem {
+            name: ast_item.name.clone().unwrap_or_default(),
+            ty: SigType::from(&ast_item.ty),
+            is_variadic: ast_item.is_variadic,
+            span: ast_item.span,
+        }
+    }
+}
+
+impl From<&ast::Signature> for Signature {
+    fn from(ast_signature: &ast::Signature) -> Self {
+        Signature {
+            items: ast_signature.items.iter().map(SigItem::from).collect(),
+            span: ast_signature.span,
+        }
+    }
+}
+
+impl From<&ast::SigKind> for SigKind {
+    fn from(ast_kind: &ast::SigKind) -> Self {
+        match ast_kind {
+            ast::SigKind::Tuple(signature) => SigKind::Tuple(Signature::from(signature)),
+            ast::SigKind::Ident(ident) => SigKind::Ident(SigIdent {
+                name: ident.name.clone(),
+                has_bang: ident.has_bang,
+            }),
+            ast::SigKind::GenericInst { name, args } => SigKind::GenericInst {
+                name: name.clone(),
+                args: args.iter().map(|arg| SigKind::from(&arg.kind)).collect(),
+            },
+            ast::SigKind::Generic(name) => SigKind::Generic(name.clone()),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

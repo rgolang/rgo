@@ -2,32 +2,20 @@ use crate::compiler::ast;
 use crate::compiler::builtins;
 use crate::compiler::error::{CompileError, CompileErrorCode};
 pub use crate::compiler::hir_ast::*;
-use crate::compiler::hir_scope as scope;
+use crate::compiler::hir_context as ctx;
 use crate::compiler::span::Span;
 use std::collections::{HashMap, HashSet, VecDeque};
 
-fn ast_signature_to_hir_signature(params: &[ast::SigItem], span: Span) -> Signature {
-    Signature {
-        items: params
-            .iter()
-            .map(|item| SigItem {
-                name: item.name.clone().unwrap_or_default(),
-                ty: SigType {
-                    kind: ast_type_ref_to_hir_type_ref(&item.ty.kind),
-                    span: item.ty.span,
-                },
-                span: item.span,
-                is_variadic: item.is_variadic,
-            })
-            .collect(),
-        span,
-    }
+fn ast_signature_to_hir_signature(params: &ast::Signature, span: Span) -> Signature {
+    let mut signature = Signature::from(params);
+    signature.span = span;
+    signature
 }
 
 fn lower_block(
     block: ast::Block,
     nested: &mut Vec<Function>,
-    scope: &mut scope::Scope,
+    ctx: &mut ctx::Context,
     builtin_imports: &mut HashSet<String>,
 ) -> Result<Block, CompileError> {
     let len = block.items.len();
@@ -52,16 +40,15 @@ fn lower_block(
                 };
                 let callback_term = ast::Term::Lambda(lambda);
                 let term_span = term.span();
-                let exec_term = append_scope_capture_arg(term, callback_term, term_span)?;
-                let lowered_items =
-                    lower_exec_stmt(exec_term, nested, scope, builtin_imports)?;
+                let exec_term = append_ctx_capture_arg(term, callback_term, term_span)?;
+                let lowered_items = lower_exec_stmt(exec_term, nested, ctx, builtin_imports)?;
                 items.extend(lowered_items);
             }
             ast::BlockItem::Ident(term) => {
                 items.extend(lower_exec_stmt(
                     ast::Term::Ident(term),
                     nested,
-                    scope,
+                    ctx,
                     builtin_imports,
                 )?);
             }
@@ -69,23 +56,19 @@ fn lower_block(
                 items.extend(lower_exec_stmt(
                     ast::Term::Lambda(lambda),
                     nested,
-                    scope,
+                    ctx,
                     builtin_imports,
                 )?);
             }
-            ast::BlockItem::FunctionDef {
-                name,
-                lambda,
-                span,
-            } => {
-                let renamed = scope.new_name_for(&name);
-                insert_alias(scope, &name, &renamed, span)?;
+            ast::BlockItem::FunctionDef { name, lambda, span } => {
+                let renamed = ctx.new_name_for(&name);
+                insert_alias(ctx, &name, &renamed, span)?;
                 let nested_item = ast::BlockItem::FunctionDef {
                     name: renamed.clone(),
                     lambda,
                     span,
                 };
-                let (function, extra) = lower_function(nested_item, scope, builtin_imports)?;
+                let (function, extra) = lower_function(nested_item, ctx, builtin_imports)?;
                 nested.extend(extra);
                 nested.push(function.clone());
                 items.push(BlockItem::FunctionDef(function));
@@ -102,9 +85,9 @@ fn lower_block(
                     value: literal.value,
                     span,
                 }));
-                scope.insert(
+                ctx.insert(
                     &name_clone,
-                    scope::ScopeItem::Value {
+                    ctx::ContextEntry::Value {
                         ty: SigKind::Str,
                         span,
                         constant: ConstantValue::Str(literal_value),
@@ -123,9 +106,9 @@ fn lower_block(
                     value: literal.value,
                     span,
                 }));
-                scope.insert(
+                ctx.insert(
                     &name_clone,
-                    scope::ScopeItem::Value {
+                    ctx::ContextEntry::Value {
                         ty: SigKind::Int,
                         span,
                         constant: ConstantValue::Int(literal_value),
@@ -134,8 +117,8 @@ fn lower_block(
             }
             ast::BlockItem::IdentDef { name, ident, span } => {
                 if ident.args.is_empty() {
-                    let target = resolve_function_name(&ident.name, scope);
-                    insert_alias(scope, &name, &target, span)?;
+                    let target = resolve_function_name(&ident.name, ctx);
+                    insert_alias(ctx, &name, &target, span)?;
                     idx += 1;
                     continue;
                 }
@@ -145,31 +128,31 @@ fn lower_block(
                     ident,
                     nested,
                     &mut lowered_items,
-                    scope,
+                    ctx,
                     builtin_imports,
                 )?;
-                let result_type =
-                    if let Some(signature) = resolve_target_signature(&apply.of, scope) {
-                        let remaining_items = signature
-                            .items
-                            .iter()
-                            .skip(apply.args.len())
-                            .cloned()
-                            .collect::<Vec<_>>();
-                        SigKind::Tuple(Signature {
-                            items: remaining_items,
-                            span: Span::unknown(),
-                        })
-                    } else {
-                        return Err(CompileError::new(
-                            CompileErrorCode::Resolve,
-                            "could not resolve target",
-                            span,
-                        ));
-                    };
+                let result_type = if let Some(signature) = resolve_target_signature(&apply.of, ctx)
+                {
+                    let remaining_items = signature
+                        .items
+                        .iter()
+                        .skip(apply.args.len())
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    SigKind::Tuple(Signature {
+                        items: remaining_items,
+                        span: Span::unknown(),
+                    })
+                } else {
+                    return Err(CompileError::new(
+                        CompileErrorCode::Resolve,
+                        "could not resolve target",
+                        span,
+                    ));
+                };
                 items.extend(lowered_items);
                 items.push(BlockItem::ApplyDef(apply));
-                scope.insert_type(&name, result_type, span, false)?;
+                ctx.insert_type(&name, result_type, span, false)?;
             }
             ast::BlockItem::Import { name, span } => {
                 let name_clone = name.clone();
@@ -177,7 +160,7 @@ fn lower_block(
                     name: name_clone.clone(),
                     span,
                 });
-                let recorded = builtins::register_import_scope(&name, span, scope)?;
+                let recorded = builtins::register_import(&name, span, ctx)?;
                 builtin_imports.extend(recorded);
             }
             ast::BlockItem::SigDef {
@@ -186,7 +169,7 @@ fn lower_block(
                 span,
                 generics,
             } => {
-                let sig_def = lower_sig_def(name, term, span, generics, scope)?;
+                let sig_def = lower_sig_def(name, term, span, generics, ctx)?;
                 items.push(sig_def);
             }
         }
@@ -204,12 +187,12 @@ fn lower_sig_def(
     term: ast::SigKind,
     span: Span,
     generics: Vec<String>,
-    scope: &mut scope::Scope,
+    ctx: &mut ctx::Context,
 ) -> Result<BlockItem, CompileError> {
     let generics_for_block = generics.clone();
-    scope.insert_type(&name, ast_type_ref_to_hir_type_ref(&term), span, false)?;
-    let kind = match scope.get(&name) {
-        Some(scope::ScopeItem::Type { ty, .. }) => ty.clone(),
+    ctx.insert_type(&name, SigKind::from(&term), span, false)?;
+    let kind = match ctx.get(&name) {
+        Some(ctx::ContextEntry::Type { ty, .. }) => ty.clone(),
         _ => {
             return Err(CompileError::new(
                 CompileErrorCode::Internal,
@@ -241,44 +224,30 @@ impl Lowerer {
         }
     }
 
-    pub fn consume(
-        &mut self,
-        item: ast::BlockItem,
-        scope: &mut scope::Scope,
-    ) -> Result<(), CompileError> {
-        self.process_item(item, scope)?;
-        Ok(())
-    }
-
     pub fn produce(&mut self) -> Option<BlockItem> {
         self.ready.pop_front()
     }
 
-    pub fn finish(&mut self) -> Result<(), CompileError> {
-        Ok(())
-    }
-
-    fn process_item(
+    pub fn consume(
         &mut self,
         stmt: ast::BlockItem,
-        scope: &mut scope::Scope,
+        ctx: &mut ctx::Context,
     ) -> Result<(), CompileError> {
         match stmt {
             ast::BlockItem::Import { name, span } => {
-                let name_clone = name.clone();
                 self.enqueue_block_item(
                     BlockItem::Import {
-                        name: name_clone.clone(),
+                        name: name.clone(),
                         span,
                     },
-                    scope,
+                    ctx,
                 );
-                let recorded = builtins::register_import_scope(&name, span, scope)?;
+                let recorded = builtins::register_import(&name, span, ctx)?; // TODO: builtin instead of registering can simply return the value that can be used to register.
                 self.builtin_imports.extend(recorded);
             }
             ast::BlockItem::FunctionDef { .. } => {
-                let (function, mut extra) = lower_function(stmt, scope, &mut self.builtin_imports)?;
-                self.enqueue_block_item(BlockItem::FunctionDef(function), scope);
+                let (function, mut extra) = lower_function(stmt, ctx, &mut self.builtin_imports)?;
+                self.enqueue_block_item(BlockItem::FunctionDef(function), ctx);
                 self.buffered_functions.append(&mut extra);
                 self.emit_buffered_functions();
             }
@@ -293,13 +262,13 @@ impl Lowerer {
                     value: literal.value,
                     span,
                 };
-                self.enqueue_block_item(BlockItem::StrDef(literal_item), scope);
-                scope.insert(
+                self.enqueue_block_item(BlockItem::StrDef(literal_item), ctx);
+                ctx.insert(
                     &name,
-                    scope::ScopeItem::Value {
+                    ctx::ContextEntry::Value {
                         ty: SigKind::Str,
                         span,
-                        constant: scope::ConstantValue::Str(value),
+                        constant: ctx::ConstantValue::Str(value),
                     },
                 )?;
             }
@@ -314,10 +283,10 @@ impl Lowerer {
                     value,
                     span,
                 };
-                self.enqueue_block_item(BlockItem::IntDef(literal_item), scope);
-                scope.insert(
+                self.enqueue_block_item(BlockItem::IntDef(literal_item), ctx);
+                ctx.insert(
                     &name,
-                    scope::ScopeItem::Value {
+                    ctx::ContextEntry::Value {
                         ty: SigKind::Int,
                         span,
                         constant: ConstantValue::Int(value),
@@ -330,37 +299,37 @@ impl Lowerer {
                 span,
                 generics,
             } => {
-                let sig_def = lower_sig_def(name, term, span, generics, scope)?;
-                self.enqueue_block_item(sig_def, scope);
+                let sig_def = lower_sig_def(name, term, span, generics, ctx)?;
+                self.enqueue_block_item(sig_def, ctx);
             }
             ast::BlockItem::Ident(term) => {
                 let lowered_items = lower_exec_stmt(
                     ast::Term::Ident(term),
                     &mut self.buffered_functions,
-                    scope,
+                    ctx,
                     &mut self.builtin_imports,
                 )?;
                 self.emit_buffered_functions();
                 for item in lowered_items {
-                    self.enqueue_block_item(item, scope);
+                    self.enqueue_block_item(item, ctx);
                 }
             }
             ast::BlockItem::Lambda(lambda) => {
                 let lowered_items = lower_exec_stmt(
                     ast::Term::Lambda(lambda),
                     &mut self.buffered_functions,
-                    scope,
+                    ctx,
                     &mut self.builtin_imports,
                 )?;
                 self.emit_buffered_functions();
                 for item in lowered_items {
-                    self.enqueue_block_item(item, scope);
+                    self.enqueue_block_item(item, ctx);
                 }
             }
             ast::BlockItem::IdentDef { name, ident, span } => {
                 if ident.args.is_empty() {
-                    let target = resolve_function_name(&ident.name, scope);
-                    insert_alias(scope, &name, &target, span)?;
+                    let target = resolve_function_name(&ident.name, ctx);
+                    insert_alias(ctx, &name, &target, span)?;
                 } else {
                     let mut lowered_items = Vec::new();
                     let apply = lower_ident_as_apply(
@@ -368,11 +337,11 @@ impl Lowerer {
                         ident,
                         &mut self.buffered_functions,
                         &mut lowered_items,
-                        scope,
+                        ctx,
                         &mut self.builtin_imports,
                     )?;
                     let result_type =
-                        if let Some(signature) = resolve_target_signature(&apply.of, scope) {
+                        if let Some(signature) = resolve_target_signature(&apply.of, ctx) {
                             let remaining_items = signature
                                 .items
                                 .iter()
@@ -392,10 +361,10 @@ impl Lowerer {
                         };
                     self.emit_buffered_functions();
                     for item in lowered_items {
-                        self.enqueue_block_item(item, scope);
+                        self.enqueue_block_item(item, ctx);
                     }
-                    self.enqueue_block_item(BlockItem::ApplyDef(apply), scope);
-                    scope.insert_type(&name, result_type, span, false)?;
+                    self.enqueue_block_item(BlockItem::ApplyDef(apply), ctx);
+                    ctx.insert_type(&name, result_type, span, false)?;
                 }
             }
             ast::BlockItem::ScopeCapture {
@@ -412,16 +381,16 @@ impl Lowerer {
                 };
                 let callback_term = ast::Term::Lambda(lambda);
                 let term_span = term.span();
-                let exec_term = append_scope_capture_arg(term, callback_term, term_span)?;
+                let exec_term = append_ctx_capture_arg(term, callback_term, term_span)?;
                 let lowered_items = lower_exec_stmt(
                     exec_term,
                     &mut self.buffered_functions,
-                    scope,
+                    ctx,
                     &mut self.builtin_imports,
                 )?;
                 self.emit_buffered_functions();
                 for item in lowered_items {
-                    self.enqueue_block_item(item, scope);
+                    self.enqueue_block_item(item, ctx);
                 }
             }
         }
@@ -435,16 +404,16 @@ impl Lowerer {
         }
     }
 
-    fn enqueue_block_item(&mut self, mut item: BlockItem, scope: &mut scope::Scope) {
+    fn enqueue_block_item(&mut self, mut item: BlockItem, ctx: &mut ctx::Context) {
         let mut prefix = Vec::new();
         match &mut item {
             BlockItem::Exec(exec) => {
-                rewrite_args(&mut exec.args, &mut prefix, exec.span, scope);
-                rewrite_function_target(&mut exec.of, &mut prefix, exec.span, scope);
+                rewrite_args(&mut exec.args, &mut prefix, exec.span, ctx);
+                rewrite_function_target(&mut exec.of, &mut prefix, exec.span, ctx);
             }
             BlockItem::ApplyDef(apply) => {
-                rewrite_args(&mut apply.args, &mut prefix, apply.span, scope);
-                rewrite_function_target(&mut apply.of, &mut prefix, apply.span, scope);
+                rewrite_args(&mut apply.args, &mut prefix, apply.span, ctx);
+                rewrite_function_target(&mut apply.of, &mut prefix, apply.span, ctx);
             }
             _ => {}
         }
@@ -458,7 +427,7 @@ impl Lowerer {
 // TODO: we could just call lower_lambda here, it's identical.
 pub fn lower_function(
     item: ast::BlockItem,
-    outer_scope: &mut scope::Scope,
+    outer_ctx: &mut ctx::Context,
     builtin_imports: &mut HashSet<String>,
 ) -> Result<(Function, Vec<Function>), CompileError> {
     let (name, ast_lambda, span) = match item {
@@ -466,51 +435,39 @@ pub fn lower_function(
         _ => unreachable!("lower_function expects function definitions"), // TODO: not ideal, can pass name, lambda and span separately and avoid this check
     };
 
-    outer_scope.insert_func(
+    outer_ctx.insert_func(
         &name,
-        ast_signature_to_hir_signature(&ast_lambda.params.items, span),
+        ast_signature_to_hir_signature(&ast_lambda.params, span),
         span,
         true,
     )?;
 
-    let mut scope = outer_scope.enter(&name);
+    let mut ctx = outer_ctx.enter(&name);
 
-    let params = lower_params(ast_lambda.params.clone(), &mut scope)?; // TODO: can accept scope and reg the params directly
+    let params = lower_params(ast_lambda.params.clone(), &mut ctx)?; // TODO: can accept ctx and reg the params directly
     let mut nested = Vec::new();
 
     // TODO: How can lower_block function if it hasn't hasn't figured out the captured params?
-    let body = lower_block(ast_lambda.body, &mut nested, &mut scope, builtin_imports)?; // TODO: scope should already be aware of the builtin_imports
+    let body = lower_block(ast_lambda.body, &mut nested, &mut ctx, builtin_imports)?; // TODO: ctx should already be aware of the builtin_imports
 
-    let normalized_body = normalize_block(body, &mut scope); // TODO: either scope or normalize_block can return the captured params
+    let normalized_body = normalize_block(body, &mut ctx); // TODO: either ctx or normalize_block can return the captured params
 
     // TODO: So it collects the params from the body and compares them to the params from the lambda.
-    let nested_capture_params: Vec<scope::CaptureParam> = Vec::new();
-    let capture_params = collect_capture_params(
-        &normalized_body,
-        &params,
-        &mut scope,
-        &nested_capture_params,
-    )?;
+    let nested_capture_params: Vec<ctx::CaptureParam> = Vec::new();
+    let capture_params =
+        collect_capture_params(&normalized_body, &params, &mut ctx, &nested_capture_params)?;
 
     let capture_sig_items: Vec<SigItem> = capture_params
         .iter()
-        .map(|capture| SigItem {
-            name: capture.name.clone(),
-            ty: SigType {
-                kind: ast_type_ref_to_hir_type_ref(&capture.ty.ty.kind),
-                span: capture.ty.ty.span,
-            },
-            span: capture.span,
-            is_variadic: capture.ty.is_variadic,
-        })
+        .map(|capture| capture.ty.clone())
         .collect();
 
     let mut all_params = capture_sig_items.clone();
     all_params.extend(params);
 
     if !capture_sig_items.is_empty() {
-        outer_scope.register_function_with_captures(&name, &capture_sig_items)?;
-        outer_scope.record_function_captures(&name, capture_params.clone());
+        outer_ctx.register_function_with_captures(&name, &capture_sig_items)?;
+        outer_ctx.record_function_captures(&name, capture_params.clone());
     }
 
     Ok((
@@ -527,10 +484,7 @@ pub fn lower_function(
     ))
 }
 
-fn lower_params(
-    sig: ast::Signature,
-    scope: &mut scope::Scope,
-) -> Result<Vec<SigItem>, CompileError> {
+fn lower_params(sig: ast::Signature, ctx: &mut ctx::Context) -> Result<Vec<SigItem>, CompileError> {
     let mut used = HashSet::<String>::new();
     let mut counter = 0;
 
@@ -559,11 +513,11 @@ fn lower_params(
             }
         };
 
-        let hir_kind = ast_type_ref_to_hir_type_ref(&item.ty.kind);
+        let hir_kind = SigKind::from(&item.ty.kind);
 
-        scope.insert(
+        ctx.insert(
             &name,
-            scope::ScopeItem::Type {
+            ctx::ContextEntry::Type {
                 ty: hir_kind.clone(),
                 span: item.span,
                 is_signature: false,
@@ -584,7 +538,7 @@ fn lower_params(
     Ok(result)
 }
 
-fn append_scope_capture_arg(
+fn append_ctx_capture_arg(
     term: ast::Term,
     callback: ast::Term,
     span: Span,
@@ -600,7 +554,7 @@ fn append_scope_capture_arg(
         }
         _other => Err(CompileError::new(
             CompileErrorCode::Parse,
-            "scope capture target must be callable",
+            "ctx capture target must be callable",
             span,
         )),
     }
@@ -609,9 +563,9 @@ fn append_scope_capture_arg(
 fn collect_capture_params(
     block: &Block,
     params: &[SigItem],
-    outer_scope: &scope::Scope,
-    nested_captures: &[scope::CaptureParam],
-) -> Result<Vec<scope::CaptureParam>, CompileError> {
+    outer_ctx: &ctx::Context,
+    nested_captures: &[ctx::CaptureParam],
+) -> Result<Vec<ctx::CaptureParam>, CompileError> {
     let locals = gather_local_definitions(block, params);
     let mut captures = Vec::new();
     let mut seen = HashSet::new();
@@ -619,25 +573,19 @@ fn collect_capture_params(
     for item in &block.items {
         match item {
             BlockItem::Exec(Exec { of, args, .. }) => {
-                record_name_capture(of, &locals, outer_scope, &mut captures, &mut seen);
-                record_arg_captures(args, &locals, outer_scope, &mut captures, &mut seen)?;
+                record_name_capture(of, &locals, outer_ctx, &mut captures, &mut seen);
+                record_arg_captures(args, &locals, outer_ctx, &mut captures, &mut seen)?;
             }
             BlockItem::ApplyDef(Apply { of, args, .. }) => {
-                record_name_capture(of, &locals, outer_scope, &mut captures, &mut seen);
-                record_arg_captures(args, &locals, outer_scope, &mut captures, &mut seen)?;
+                record_name_capture(of, &locals, outer_ctx, &mut captures, &mut seen);
+                record_arg_captures(args, &locals, outer_ctx, &mut captures, &mut seen)?;
             }
             _ => {}
         }
     }
 
     for capture in nested_captures {
-        record_name_capture(
-            &capture.name,
-            &locals,
-            outer_scope,
-            &mut captures,
-            &mut seen,
-        );
+        record_name_capture(&capture.name, &locals, outer_ctx, &mut captures, &mut seen);
     }
 
     return Ok(captures);
@@ -674,8 +622,8 @@ fn gather_local_definitions(block: &Block, params: &[SigItem]) -> HashSet<String
 fn record_arg_captures(
     args: &[Arg],
     locals: &HashSet<String>,
-    outer_scope: &scope::Scope,
-    captures: &mut Vec<scope::CaptureParam>,
+    outer_ctx: &ctx::Context,
+    captures: &mut Vec<ctx::CaptureParam>,
     seen: &mut HashSet<String>,
 ) -> Result<(), CompileError> {
     for arg in args {
@@ -683,26 +631,26 @@ fn record_arg_captures(
         if locals.contains(name) || seen.contains(name) {
             continue;
         }
-        if let Some(scope_item) = outer_scope.get(name) {
-            if is_scope_item_signature(scope_item) {
+        if let Some(ctx_item) = outer_ctx.get(name) {
+            if is_ctx_item_signature(ctx_item) {
                 continue;
             }
-            let (ty, span) = match scope_item {
-                scope::ScopeItem::Type { ty, span, .. } => (ty, span),
-                scope::ScopeItem::Value { ty, span, .. } => (ty, span),
+            let (kind, span) = match ctx_item {
+                ctx::ContextEntry::Type { ty, span, .. } => (ty, span),
+                ctx::ContextEntry::Value { ty, span, .. } => (ty, span),
             };
-            let ast_typ = ast::SigItem {
-                name: Some(name.clone()),
-                ty: ast::SigType {
-                    kind: hir_type_ref_to_ast_type_ref(ty),
-                    span: *span,
-                },
-                is_variadic: false,
-                span: *span,
-            };
-            captures.push(scope::CaptureParam {
+            // TODO: too much cloning
+            captures.push(ctx::CaptureParam {
                 name: name.clone(),
-                ty: ast_typ,
+                ty: SigItem {
+                    name: name.clone(),
+                    ty: SigType {
+                        kind: kind.clone(),
+                        span: span.clone(),
+                    },
+                    is_variadic: false, // TODO: No idea if actually false,
+                    span: span.clone(),
+                },
                 span: *span,
             });
 
@@ -715,36 +663,35 @@ fn record_arg_captures(
 fn record_name_capture(
     name: &str,
     locals: &HashSet<String>,
-    outer_scope: &scope::Scope,
-    captures: &mut Vec<scope::CaptureParam>,
+    outer_ctx: &ctx::Context,
+    captures: &mut Vec<ctx::CaptureParam>,
     seen: &mut HashSet<String>,
 ) {
     if locals.contains(name) || seen.contains(name) {
         return;
     }
-    if let Some(entry) = outer_scope.get(name) {
-        if is_scope_item_signature(entry) {
+    if let Some(entry) = outer_ctx.get(name) {
+        if is_ctx_item_signature(entry) {
             return;
         }
-        let (ty, span) = match entry {
-            scope::ScopeItem::Type { ty, span, .. } | scope::ScopeItem::Value { ty, span, .. } => {
-                (ty, span)
-            }
+        let (kind, span) = match entry {
+            ctx::ContextEntry::Type { ty, span, .. }
+            | ctx::ContextEntry::Value { ty, span, .. } => (ty, span),
         };
 
         let captured_name = name.to_string();
-        let ast_typ = ast::SigItem {
-            name: Some(captured_name.clone()),
-            ty: ast::SigType {
-                kind: hir_type_ref_to_ast_type_ref(ty),
-                span: *span,
-            },
-            is_variadic: false,
-            span: *span,
-        };
-        captures.push(scope::CaptureParam {
+        // TODO: too much cloning
+        captures.push(ctx::CaptureParam {
             name: captured_name.clone(),
-            ty: ast_typ,
+            ty: SigItem {
+                name: captured_name.clone(),
+                ty: SigType {
+                    kind: kind.clone(),
+                    span: span.clone(),
+                },
+                is_variadic: false, // TODO: No idea if actually false,
+                span: span.clone(),
+            },
             span: *span,
         });
 
@@ -752,10 +699,11 @@ fn record_name_capture(
     }
 }
 
-fn is_scope_item_signature(entry: &scope::ScopeItem) -> bool {
+// TODO: this function is suspicious, maybe remove it?
+fn is_ctx_item_signature(entry: &ctx::ContextEntry) -> bool {
     matches!(
         entry,
-        scope::ScopeItem::Type {
+        ctx::ContextEntry::Type {
             is_signature: true,
             ..
         }
@@ -765,27 +713,17 @@ fn is_scope_item_signature(entry: &scope::ScopeItem) -> bool {
 fn lower_exec_stmt(
     term: ast::Term,
     nested: &mut Vec<Function>,
-    scope: &mut scope::Scope,
+    ctx: &mut ctx::Context,
     builtin_imports: &mut HashSet<String>,
 ) -> Result<Vec<BlockItem>, CompileError> {
     let mut items = Vec::new();
     let exec = match term {
-        ast::Term::Ident(ident) => lower_ident_as_exec(
-            None,
-            ident,
-            nested,
-            &mut items,
-            scope,
-            builtin_imports,
-        )?,
-        ast::Term::Lambda(lambda) => lower_lambda_as_exec(
-            None,
-            lambda,
-            nested,
-            &mut items,
-            scope,
-            builtin_imports,
-        )?,
+        ast::Term::Ident(ident) => {
+            lower_ident_as_exec(None, ident, nested, &mut items, ctx, builtin_imports)?
+        }
+        ast::Term::Lambda(lambda) => {
+            lower_lambda_as_exec(None, lambda, nested, &mut items, ctx, builtin_imports)?
+        }
         other => unreachable!("expected exec term, got {:?}", other),
     };
     items.push(BlockItem::Exec(exec));
@@ -797,11 +735,11 @@ fn lower_ident_as_exec(
     ast::Ident { name, args, span }: ast::Ident,
     nested: &mut Vec<Function>,
     items: &mut Vec<BlockItem>,
-    scope: &mut scope::Scope,
+    ctx: &mut ctx::Context,
     builtin_imports: &mut HashSet<String>,
 ) -> Result<Exec, CompileError> {
-    let resolved_name = resolve_function_name(&name, scope);
-    let sig = resolve_target_signature(&resolved_name, scope);
+    let resolved_name = resolve_function_name(&name, ctx);
+    let sig = resolve_target_signature(&resolved_name, ctx);
     let builtin_expectations = builtin_arg_expectations(&resolved_name, args.len());
     let args = lower_terms_to_args(
         args,
@@ -809,7 +747,7 @@ fn lower_ident_as_exec(
         builtin_expectations.as_deref(),
         nested,
         items,
-        scope,
+        ctx,
         builtin_imports,
     )?;
     Ok(Exec {
@@ -829,20 +767,12 @@ fn lower_ident_as_apply(
     }: ast::Ident,
     nested: &mut Vec<Function>,
     items: &mut Vec<BlockItem>,
-    scope: &mut scope::Scope,
+    ctx: &mut ctx::Context,
     builtin_imports: &mut HashSet<String>,
 ) -> Result<Apply, CompileError> {
-    let resolved_target = resolve_function_name(&target, scope);
-    let sig = resolve_target_signature(&resolved_target, scope);
-    let args = lower_terms_to_args(
-        args,
-        sig,
-        None,
-        nested,
-        items,
-        scope,
-        builtin_imports,
-    )?;
+    let resolved_target = resolve_function_name(&target, ctx);
+    let sig = resolve_target_signature(&resolved_target, ctx);
+    let args = lower_terms_to_args(args, sig, None, nested, items, ctx, builtin_imports)?;
     Ok(Apply {
         name,
         of: resolved_target,
@@ -861,10 +791,10 @@ fn lower_lambda_as_exec(
     }: ast::Lambda,
     nested: &mut Vec<Function>,
     items: &mut Vec<BlockItem>,
-    scope: &mut scope::Scope,
+    ctx: &mut ctx::Context,
     builtin_imports: &mut HashSet<String>,
 ) -> Result<Exec, CompileError> {
-    let fn_name = scope.new_name();
+    let fn_name = ctx.new_name();
 
     let nested_item = ast::BlockItem::FunctionDef {
         name: fn_name.clone(),
@@ -877,20 +807,12 @@ fn lower_lambda_as_exec(
         span,
     };
 
-    let (lf, extra) = lower_function(nested_item, scope, builtin_imports)?;
+    let (lf, extra) = lower_function(nested_item, ctx, builtin_imports)?;
 
     nested.extend(extra);
     nested.push(lf);
 
-    let lowered_args = lower_terms_to_args(
-        args,
-        None,
-        None,
-        nested,
-        items,
-        scope,
-        builtin_imports,
-    )?;
+    let lowered_args = lower_terms_to_args(args, None, None, nested, items, ctx, builtin_imports)?;
     Ok(Exec {
         of: fn_name,
         args: lowered_args,
@@ -902,17 +824,17 @@ fn lower_lambda_as_exec(
 fn lower_terms_to_args(
     terms: Vec<ast::Term>,
     expected: Option<Signature>,
-    builtin_expectations: Option<&[Option<ast::SigKind>]>,
+    builtin_expectations: Option<&[Option<SigKind>]>,
     nested: &mut Vec<Function>,
     items: &mut Vec<BlockItem>,
-    scope: &mut scope::Scope,
+    ctx: &mut ctx::Context,
     builtin_imports: &mut HashSet<String>,
 ) -> Result<Vec<Arg>, CompileError> {
-    let expected_ast_kinds = expected.map(|signature| {
+    let expected_hir_kinds = expected.map(|signature| {
         signature
             .items
             .iter()
-            .map(|item| hir_type_ref_to_ast_type_ref(&item.ty.kind))
+            .map(|item| item.ty.kind.clone())
             .collect::<Vec<_>>()
     });
 
@@ -920,17 +842,17 @@ fn lower_terms_to_args(
         .into_iter()
         .enumerate()
         .map(|(idx, term)| {
-            let expected_ty = expected_ast_kinds.as_ref().and_then(|kinds| kinds.get(idx));
+            let expected_ty = expected_hir_kinds.as_ref().and_then(|kinds| kinds.get(idx));
             let builtin_expected_ty = builtin_expectations
                 .and_then(|expect| expect.get(idx))
                 .and_then(|opt| opt.as_ref());
             let term = wrap_builtin_exec_in_lambda(
                 term,
                 expected_ty.or(builtin_expected_ty),
-                scope,
+                ctx,
                 builtin_imports,
             );
-            lower_term_to_arg(term, nested, items, scope, builtin_imports)
+            lower_term_to_arg(term, nested, items, ctx, builtin_imports)
         })
         .collect()
 }
@@ -939,14 +861,14 @@ fn lower_term_to_arg(
     term: ast::Term,
     nested: &mut Vec<Function>,
     items: &mut Vec<BlockItem>,
-    scope: &mut scope::Scope,
+    ctx: &mut ctx::Context,
     builtin_imports: &mut HashSet<String>,
 ) -> Result<Arg, CompileError> {
     match term {
         ast::Term::Ident(ast_ident) => {
             if ast_ident.args.is_empty() {
                 return Ok(Arg {
-                    name: resolve_function_name(&ast_ident.name, scope),
+                    name: resolve_function_name(&ast_ident.name, ctx),
                     span: ast_ident.span,
                 });
             }
@@ -956,12 +878,12 @@ fn lower_term_to_arg(
                 None,
                 nested,
                 items,
-                scope,
+                ctx,
                 builtin_imports,
             )?;
-            let temp_name = scope.new_name_for(&ast_ident.name);
+            let temp_name = ctx.new_name_for(&ast_ident.name);
             items.push(BlockItem::Exec(Exec {
-                of: resolve_function_name(&ast_ident.name, scope),
+                of: resolve_function_name(&ast_ident.name, ctx),
                 args,
                 span: ast_ident.span,
                 result: Some(temp_name.clone()),
@@ -972,7 +894,7 @@ fn lower_term_to_arg(
             })
         }
         ast::Term::Int(literal) => {
-            let temp_name = scope.new_name();
+            let temp_name = ctx.new_name();
             items.push(BlockItem::IntDef(IntLiteral {
                 name: temp_name.clone(),
                 value: literal.value,
@@ -984,7 +906,7 @@ fn lower_term_to_arg(
             })
         }
         ast::Term::String(literal) => {
-            let temp_name = scope.new_name();
+            let temp_name = ctx.new_name();
             items.push(BlockItem::StrDef(StrLiteral {
                 name: temp_name.clone(),
                 value: literal.value,
@@ -996,14 +918,14 @@ fn lower_term_to_arg(
             })
         }
         ast::Term::Lambda(lambda) => {
-            let temp_name = scope.new_name();
+            let temp_name = ctx.new_name();
             let span = lambda.span;
             let exec = lower_lambda_as_exec(
                 Some(temp_name.clone()),
                 lambda,
                 nested,
                 items,
-                scope,
+                ctx,
                 builtin_imports,
             )?;
             items.push(BlockItem::Exec(exec));
@@ -1017,12 +939,11 @@ fn lower_term_to_arg(
 
 fn wrap_builtin_exec_in_lambda(
     term: ast::Term,
-    expected: Option<&ast::SigKind>,
-    scope: &scope::Scope,
+    expected: Option<&SigKind>,
+    ctx: &ctx::Context,
     builtin_imports: &HashSet<String>,
 ) -> ast::Term {
-    let expected_hir = expected.map(|ty| ast_type_ref_to_hir_type_ref(ty));
-    if expected_is_function(expected_hir.as_ref(), scope) {
+    if expected_is_function(expected, ctx) {
         if let ast::Term::Ident(ast_ident) = term {
             if builtin_imports.contains(&ast_ident.name) {
                 let span = ast_ident.span;
@@ -1046,32 +967,32 @@ fn wrap_builtin_exec_in_lambda(
     term
 }
 
-fn builtin_arg_expectations(name: &str, arg_count: usize) -> Option<Vec<Option<ast::SigKind>>> {
+fn builtin_arg_expectations(name: &str, arg_count: usize) -> Option<Vec<Option<SigKind>>> {
     if name == "printf" && arg_count > 0 {
         let mut expectations = vec![None; arg_count];
-        expectations[arg_count - 1] = Some(ast::SigKind::Tuple(ast::Signature::from_kinds(
-            Vec::new(),
-            Span::unknown(),
-        )));
+        expectations[arg_count - 1] = Some(SigKind::Tuple(Signature {
+            items: Vec::new(),
+            span: Span::unknown(),
+        }));
         return Some(expectations);
     }
     None
 }
 
-fn expected_is_function(expected: Option<&SigKind>, scope: &scope::Scope) -> bool {
+fn expected_is_function(expected: Option<&SigKind>, ctx: &ctx::Context) -> bool {
     expected
         .and_then(|ty| {
             let mut visited = HashSet::new();
-            signature_from_sig_kind(ty, scope, &mut visited)
+            signature_from_sig_kind(ty, ctx, &mut visited)
         })
         .is_some()
 }
 
-fn resolve_function_name(name: &str, scope: &scope::Scope) -> String {
+fn resolve_function_name(name: &str, ctx: &ctx::Context) -> String {
     let mut current = name.to_string();
     let mut seen = HashSet::new();
     while seen.insert(current.clone()) {
-        if let Some(next) = alias_target(&current, scope) {
+        if let Some(next) = alias_target(&current, ctx) {
             current = next;
             continue;
         }
@@ -1080,8 +1001,11 @@ fn resolve_function_name(name: &str, scope: &scope::Scope) -> String {
     current
 }
 
-fn alias_target(name: &str, scope: &scope::Scope) -> Option<String> {
-    if let Some(scope::ScopeItem::Type { ty, is_signature, .. }) = scope.get(name) {
+fn alias_target(name: &str, ctx: &ctx::Context) -> Option<String> {
+    if let Some(ctx::ContextEntry::Type {
+        ty, is_signature, ..
+    }) = ctx.get(name)
+    {
         if *is_signature {
             if let SigKind::Ident(ident) = ty {
                 return Some(ident.name.clone());
@@ -1092,12 +1016,12 @@ fn alias_target(name: &str, scope: &scope::Scope) -> Option<String> {
 }
 
 fn insert_alias(
-    scope: &mut scope::Scope,
+    ctx: &mut ctx::Context,
     alias: &str,
     target: &str,
     span: Span,
 ) -> Result<(), CompileError> {
-    scope.insert_type(
+    ctx.insert_type(
         alias,
         SigKind::Ident(SigIdent {
             name: target.to_string(),
@@ -1108,8 +1032,8 @@ fn insert_alias(
     )
 }
 
-fn normalize_block(mut block: Block, scope: &mut scope::Scope) -> Block {
-    let mut items = rewrite_block_captures(block.items, scope);
+fn normalize_block(mut block: Block, ctx: &mut ctx::Context) -> Block {
+    let mut items = rewrite_block_captures(block.items, ctx);
 
     loop {
         let use_sites = compute_use_sites(&items);
@@ -1131,139 +1055,31 @@ fn normalize_block(mut block: Block, scope: &mut scope::Scope) -> Block {
     block
 }
 
-// TODO: Probably should not need this
-pub fn ast_type_ref_to_hir_type_ref(ty: &ast::SigKind) -> SigKind {
-    match ty {
-        ast::SigKind::Int => SigKind::Int,
-        ast::SigKind::Str => SigKind::Str,
-        ast::SigKind::CompileTimeInt => SigKind::CompileTimeInt,
-        ast::SigKind::CompileTimeStr => SigKind::CompileTimeStr,
-
-        ast::SigKind::Tuple(sig) => SigKind::Tuple(Signature {
-            items: sig
-                .items
-                .iter()
-                .map(|item| SigItem {
-                    name: item.name.clone().unwrap_or_default(),
-                    ty: SigType {
-                        kind: ast_type_ref_to_hir_type_ref(&item.ty.kind),
-                        span: Span::unknown(),
-                    },
-                    span: Span::unknown(),
-                    is_variadic: false,
-                })
-                .collect(),
-            span: Span::unknown(),
-        }),
-
-        ast::SigKind::Ident(ident) => SigKind::Ident(SigIdent {
-            name: ident.name.clone(),
-            has_bang: ident.has_bang,
-        }),
-
-        ast::SigKind::GenericInst { name, args } => SigKind::GenericInst {
-            name: name.clone(),
-            args: args
-                .iter()
-                .map(|arg| ast_type_ref_to_hir_type_ref(&arg.kind))
-                .collect(),
-        },
-
-        ast::SigKind::Generic(name) => SigKind::Generic(name.clone()),
-    }
-}
-
-// TOOD: should also be removed
-
-pub fn hir_type_ref_to_ast_type_ref(ty: &SigKind) -> ast::SigKind {
-    match ty {
-        SigKind::Int => ast::SigKind::Int,
-        SigKind::Str => ast::SigKind::Str,
-        SigKind::CompileTimeInt => ast::SigKind::CompileTimeInt,
-        SigKind::CompileTimeStr => ast::SigKind::CompileTimeStr,
-
-        // ----- Tuple -----
-        SigKind::Tuple(sig) => {
-            let sig_items: Vec<ast::SigItem> = sig
-                .items
-                .iter()
-                .map(|hir_item| {
-                    let kind = hir_type_ref_to_ast_type_ref(&hir_item.ty.kind);
-
-                    ast::SigItem {
-                        name: Some(hir_item.name.clone()),
-                        ty: ast::SigType {
-                            kind,
-                            span: Span::unknown(), // TODO: improve span
-                        },
-                        is_variadic: hir_item.is_variadic, // preserve variadic marker too
-                        span: Span::unknown(),             // TODO
-                    }
-                })
-                .collect();
-
-            ast::SigKind::Tuple(ast::Signature {
-                items: sig_items,
-                span: Span::unknown(), // TODO if you track tuple span
-            })
-        }
-
-        // ----- Alias -----
-        SigKind::Ident(ident) => ast::SigKind::Ident(ast::SigIdent {
-            name: ident.name.clone(),
-            has_bang: false,
-            span: Span::unknown(),
-        }),
-
-        // ----- GenericInst -----
-        SigKind::GenericInst { name, args } => {
-            let arg_types: Vec<ast::SigType> = args
-                .iter()
-                .map(|arg| {
-                    let kind = hir_type_ref_to_ast_type_ref(arg);
-                    ast::SigType {
-                        kind,
-                        span: Span::unknown(), // TODO
-                    }
-                })
-                .collect();
-
-            ast::SigKind::GenericInst {
-                name: name.clone(),
-                args: arg_types,
-            }
-        }
-
-        // ----- Generic -----
-        SigKind::Generic(name) => ast::SigKind::Generic(name.clone()),
-    }
-}
-
-fn resolve_target_signature(target: &str, scope: &scope::Scope) -> Option<Signature> {
-    if let Some(entry) = scope.get(target) {
+fn resolve_target_signature(target: &str, ctx: &ctx::Context) -> Option<Signature> {
+    if let Some(entry) = ctx.get(target) {
         let mut visited = HashSet::new();
-        if let Some(signature) = signature_from_scope_item(entry, scope, &mut visited) {
+        if let Some(signature) = signature_from_ctx_item(entry, ctx, &mut visited) {
             return Some(signature);
         }
     }
     None
 }
 
-fn signature_from_scope_item(
-    entry: &scope::ScopeItem,
-    scope: &scope::Scope,
+fn signature_from_ctx_item(
+    entry: &ctx::ContextEntry,
+    ctx: &ctx::Context,
     visited: &mut HashSet<String>,
 ) -> Option<Signature> {
     match entry {
-        scope::ScopeItem::Type { ty, .. } | scope::ScopeItem::Value { ty, .. } => {
-            signature_from_sig_kind(ty, scope, visited)
+        ctx::ContextEntry::Type { ty, .. } | ctx::ContextEntry::Value { ty, .. } => {
+            signature_from_sig_kind(ty, ctx, visited)
         }
     }
 }
 
 fn signature_from_sig_kind(
     kind: &SigKind,
-    scope: &scope::Scope,
+    ctx: &ctx::Context,
     visited: &mut HashSet<String>,
 ) -> Option<Signature> {
     match kind {
@@ -1273,9 +1089,9 @@ fn signature_from_sig_kind(
             if !visited.insert(name.clone()) {
                 return None;
             }
-            let result = scope
+            let result = ctx
                 .get(name)
-                .and_then(|entry| signature_from_scope_item(entry, scope, visited));
+                .and_then(|entry| signature_from_ctx_item(entry, ctx, visited)); // TODO: This recusion is not required, it's already normalized in ctx
             visited.remove(name);
             result
         }
@@ -1283,13 +1099,13 @@ fn signature_from_sig_kind(
     }
 }
 
-fn rewrite_block_captures(items: Vec<BlockItem>, scope: &mut scope::Scope) -> Vec<BlockItem> {
+fn rewrite_block_captures(items: Vec<BlockItem>, ctx: &mut ctx::Context) -> Vec<BlockItem> {
     let mut rewritten = Vec::new();
 
     for mut item in items {
         if let BlockItem::FunctionDef(function) = &mut item {
             function.body = Block {
-                items: rewrite_block_captures(function.body.items.clone(), scope),
+                items: rewrite_block_captures(function.body.items.clone(), ctx),
                 span: function.body.span,
             };
         }
@@ -1297,12 +1113,12 @@ fn rewrite_block_captures(items: Vec<BlockItem>, scope: &mut scope::Scope) -> Ve
         let mut prefix = Vec::new();
         match &mut item {
             BlockItem::Exec(exec) => {
-                rewrite_args(&mut exec.args, &mut prefix, exec.span, scope);
-                rewrite_function_target(&mut exec.of, &mut prefix, exec.span, scope);
+                rewrite_args(&mut exec.args, &mut prefix, exec.span, ctx);
+                rewrite_function_target(&mut exec.of, &mut prefix, exec.span, ctx);
             }
             BlockItem::ApplyDef(apply) => {
-                rewrite_args(&mut apply.args, &mut prefix, apply.span, scope);
-                rewrite_function_target(&mut apply.of, &mut prefix, apply.span, scope);
+                rewrite_args(&mut apply.args, &mut prefix, apply.span, ctx);
+                rewrite_function_target(&mut apply.of, &mut prefix, apply.span, ctx);
             }
             _ => {}
         }
@@ -1314,14 +1130,9 @@ fn rewrite_block_captures(items: Vec<BlockItem>, scope: &mut scope::Scope) -> Ve
     rewritten
 }
 
-fn rewrite_args(
-    args: &mut [Arg],
-    prefix: &mut Vec<BlockItem>,
-    span: Span,
-    scope: &mut scope::Scope,
-) {
+fn rewrite_args(args: &mut [Arg], prefix: &mut Vec<BlockItem>, span: Span, ctx: &mut ctx::Context) {
     for arg in args.iter_mut() {
-        rewrite_function_target(&mut arg.name, prefix, span, scope);
+        rewrite_function_target(&mut arg.name, prefix, span, ctx);
     }
 }
 
@@ -1329,12 +1140,12 @@ fn rewrite_function_target(
     target: &mut String,
     prefix: &mut Vec<BlockItem>,
     span: Span,
-    scope: &mut scope::Scope,
+    ctx: &mut ctx::Context,
 ) {
     // TODO: ABC:, this is our target
-    if let Some(captures) = scope.function_captures(target) {
+    if let Some(captures) = ctx.function_captures(target) {
         let capture_defs = captures.to_vec();
-        let temp_name = scope.new_name_for(&target);
+        let temp_name = ctx.new_name_for(&target);
         let capture_args: Vec<Arg> = capture_defs
             .iter()
             .map(|capture| Arg {

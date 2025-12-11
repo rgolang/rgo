@@ -24,7 +24,17 @@
                             "x",
                         ),
                         ty: SigType {
-                            kind: Int,
+                            kind: Ident(
+                                SigIdent {
+                                    name: "int",
+                                    has_bang: false,
+                                    span: Span {
+                                        line: 4,
+                                        column: 4,
+                                        offset: 20,
+                                    },
+                                },
+                            ),
                             span: Span {
                                 line: 4,
                                 column: 4,

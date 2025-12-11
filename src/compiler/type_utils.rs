@@ -1,19 +1,17 @@
 use std::collections::HashSet;
 
-use crate::compiler::ast;
-use crate::compiler::span::Span;
+use crate::compiler::hir;
 use crate::compiler::symbol::SymbolRegistry;
 
 // TODO: This is already handled by the resolution, duplicate logic here.
 pub fn expand_alias_chain(
-    kind: &ast::SigKind, // TODO: should be the type here
+    kind: &hir::SigKind, // TODO: should be the type here
     symbols: &SymbolRegistry,
     visited: &mut HashSet<String>,
-) -> ast::SigKind {
-    let span = Span::unknown(); // TODO: because not passing SigType, can't get span
+) -> hir::SigKind {
     match kind {
         // -------- IDENT --------
-        ast::SigKind::Ident(ident) => {
+        hir::SigKind::Ident(ident) => {
             let name = &ident.name;
 
             if visited.contains(name) {
@@ -34,19 +32,16 @@ pub fn expand_alias_chain(
         }
 
         // -------- GENERIC INST --------
-        ast::SigKind::GenericInst { name, args } => {
+        hir::SigKind::GenericInst { name, args } => {
             let expanded_args: Vec<_> = args
                 .iter()
-                .map(|arg| expand_alias_chain(&arg.kind, symbols, visited))
+                .map(|arg| expand_alias_chain(arg, symbols, visited))
                 .collect();
 
             if visited.contains(name) {
-                return ast::SigKind::GenericInst {
+                return hir::SigKind::GenericInst {
                     name: name.clone(),
-                    args: expanded_args
-                        .into_iter()
-                        .map(|kind| ast::SigType { kind, span: span })
-                        .collect(),
+                    args: expanded_args,
                 };
             }
 
@@ -54,79 +49,28 @@ pub fn expand_alias_chain(
                 visited.insert(name.clone());
 
                 // substitute_generics takes SigKind target + args
-                let substituted = substitute_generics(&info.target, &info.generics, &expanded_args);
-
-                let expanded = expand_alias_chain(&substituted, symbols, visited);
+                let expanded = expand_alias_chain(&info.target, symbols, visited);
 
                 visited.remove(name);
                 expanded
             } else {
-                ast::SigKind::GenericInst {
+                hir::SigKind::GenericInst {
                     name: name.clone(),
-                    args: expanded_args
-                        .into_iter()
-                        .map(|kind| ast::SigType { kind, span: span })
-                        .collect(),
+                    args: expanded_args,
                 }
             }
         }
 
         // -------- TUPLE SIGNATURE --------
-        ast::SigKind::Tuple(sig) => {
-            let mut new_items = Vec::new();
-
-            for item in &sig.items {
-                // Expand inside the SigItem.ty.kind
-                let new_kind = expand_alias_chain(&item.ty.kind, symbols, visited);
-
-                new_items.push(ast::SigItem {
-                    name: item.name.clone(),
-                    ty: ast::SigType {
-                        kind: new_kind,
-                        span: item.ty.span,
-                    },
-                    is_variadic: item.is_variadic,
-                    span: item.span,
-                });
-            }
-
-            ast::SigKind::Tuple(ast::Signature {
-                items: new_items,
-                span: sig.span,
-            })
-        }
-
-        // -------- GENERIC, ETC. --------
-        other => other.clone(),
-    }
-}
-
-fn substitute_generics(
-    ty: &ast::SigKind,
-    generics: &[String],
-    values: &[ast::SigKind],
-) -> ast::SigKind {
-    match ty {
-        // --- Generic parameter ---
-        ast::SigKind::Generic(name) => {
-            if let Some(idx) = generics.iter().position(|g| g == name) {
-                return values[idx].clone();
-            }
-            ty.clone()
-        }
-
-        // --- Tuple Signature: (items...) ---
-        ast::SigKind::Tuple(sig) => {
-            let new_items = sig
+        hir::SigKind::Tuple(sig) => {
+            let new_items: Vec<hir::SigItem> = sig
                 .items
                 .iter()
                 .map(|item| {
-                    // Substitute inside the type of each SigItem
-                    let new_kind = substitute_generics(&item.ty.kind, generics, values);
-
-                    ast::SigItem {
+                    let new_kind = expand_alias_chain(&item.ty.kind, symbols, visited);
+                    hir::SigItem {
                         name: item.name.clone(),
-                        ty: ast::SigType {
+                        ty: hir::SigType {
                             kind: new_kind,
                             span: item.ty.span,
                         },
@@ -136,32 +80,13 @@ fn substitute_generics(
                 })
                 .collect();
 
-            ast::SigKind::Tuple(ast::Signature {
+            hir::SigKind::Tuple(hir::Signature {
                 items: new_items,
                 span: sig.span,
             })
         }
 
-        // --- Generic Instantiation: Foo<T, X> ---
-        ast::SigKind::GenericInst { name, args } => {
-            let new_args = args
-                .iter()
-                .map(|arg| {
-                    let new_kind = substitute_generics(&arg.kind, generics, values);
-                    ast::SigType {
-                        kind: new_kind,
-                        span: arg.span,
-                    }
-                })
-                .collect();
-
-            ast::SigKind::GenericInst {
-                name: name.clone(),
-                args: new_args,
-            }
-        }
-
-        // --- All other kinds ---
+        // -------- GENERIC, ETC. --------
         other => other.clone(),
     }
 }

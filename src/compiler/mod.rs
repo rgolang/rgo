@@ -7,7 +7,7 @@ pub mod context;
 pub mod error;
 pub mod hir;
 pub mod hir_ast;
-pub mod hir_scope;
+pub mod hir_context;
 pub mod lexer;
 pub mod mir;
 pub mod parser;
@@ -37,7 +37,7 @@ pub fn compile<R: BufRead, W: Write>(input: R, out: &mut W) -> Result<(), Compil
     let lexer = Lexer::new(input);
     let mut parser = Parser::new(lexer);
     let mut symbols = SymbolRegistry::new();
-    let mut scope = hir::Scope::new();
+    let mut scope_ctx = hir::Context::new();
 
     // Codegen context holds global data + extern references.
     let mut ctx = codegen::CodegenContext::new();
@@ -48,13 +48,12 @@ pub fn compile<R: BufRead, W: Write>(input: R, out: &mut W) -> Result<(), Compil
     let mut lowerer = Lowerer::new();
     let mut lowered_items = Vec::new();
     while let Some(item) = parser.next()? {
-        lowerer.consume(item, &mut scope)?;
+        lowerer.consume(item, &mut scope_ctx)?;
         while let Some(lowered) = lowerer.produce() {
             lowered_items.push(lowered);
         }
     }
 
-    lowerer.finish()?;
     while let Some(lowered) = lowerer.produce() {
         lowered_items.push(lowered);
     }

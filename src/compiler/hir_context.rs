@@ -1,4 +1,3 @@
-use crate::compiler::ast;
 use crate::compiler::error::{CompileError, CompileErrorCode};
 use crate::compiler::hir::{SigItem, SigKind, Signature};
 use crate::compiler::span::Span;
@@ -7,21 +6,21 @@ use std::collections::HashMap;
 #[derive(Clone)]
 pub struct CaptureParam {
     pub name: String,
-    pub ty: ast::SigItem,
+    pub ty: SigItem,
     pub span: Span,
 }
 
-pub struct Scope {
-    pub counter: usize,                    // counter for new_name
-    pub ns: String,                        // namespace string (e.g. "_foo_foo")
-    pub outer: HashMap<String, ScopeItem>, // inherited
-    pub inner: HashMap<String, ScopeItem>, // current scope
+pub struct Context {
+    pub counter: usize,                       // counter for new_name
+    pub ns: String,                           // namespace string (e.g. "_foo_foo")
+    pub outer: HashMap<String, ContextEntry>, // inherited
+    pub inner: HashMap<String, ContextEntry>, // current scope
     pub captures: HashMap<String, Vec<CaptureParam>>,
 }
 
-impl Scope {
+impl Context {
     pub fn new() -> Self {
-        Scope {
+        Context {
             counter: 0,
             ns: String::new(),
             outer: HashMap::new(),
@@ -30,7 +29,7 @@ impl Scope {
         }
     }
 
-    pub fn enter(&self, name: &str) -> Scope {
+    pub fn enter(&self, name: &str) -> Context {
         // build new namespace
         let new_ns = if self.ns.is_empty() {
             format!("_{}", name)
@@ -44,7 +43,7 @@ impl Scope {
             new_outer.insert(k.clone(), v.clone());
         }
 
-        Scope {
+        Context {
             counter: 0,
             ns: new_ns,
             outer: new_outer,
@@ -53,7 +52,7 @@ impl Scope {
         }
     }
 
-    pub fn insert(&mut self, name: &str, entry: ScopeItem) -> Result<(), CompileError> {
+    pub fn insert(&mut self, name: &str, entry: ContextEntry) -> Result<(), CompileError> {
         if self.inner.contains_key(name) {
             return Err(CompileError::new(
                 CompileErrorCode::Resolve,
@@ -74,7 +73,7 @@ impl Scope {
     ) -> Result<(), CompileError> {
         self.insert(
             name,
-            ScopeItem::Type {
+            ContextEntry::Type {
                 ty,
                 span,
                 is_signature,
@@ -92,11 +91,11 @@ impl Scope {
         self.insert_type(name, SigKind::Tuple(sig), span, is_signature)
     }
 
-    pub fn get(&self, name: &str) -> Option<&ScopeItem> {
+    pub fn get(&self, name: &str) -> Option<&ContextEntry> {
         self.inner.get(name).or_else(|| self.outer.get(name))
     }
 
-    pub fn get_mut(&mut self, name: &str) -> Option<&mut ScopeItem> {
+    pub fn get_mut(&mut self, name: &str) -> Option<&mut ContextEntry> {
         if let Some(entry) = self.inner.get_mut(name) {
             Some(entry)
         } else {
@@ -124,12 +123,12 @@ impl Scope {
             return Ok(());
         }
 
-        let scope_item = self
+        let ctx_entry = self
             .inner
             .get_mut(name)
             .or_else(|| self.outer.get_mut(name));
 
-        let scope_item = match scope_item {
+        let ctx_entry = match ctx_entry {
             Some(entry) => entry,
             None => {
                 return Err(CompileError::new(
@@ -140,8 +139,8 @@ impl Scope {
             }
         };
 
-        match scope_item {
-            ScopeItem::Type { ty, .. } => match ty {
+        match ctx_entry {
+            ContextEntry::Type { ty, .. } => match ty {
                 SigKind::Tuple(signature) => {
                     signature.items.splice(0..0, captures.iter().cloned());
                     Ok(())
@@ -179,7 +178,7 @@ pub enum ConstantValue {
 }
 
 #[derive(Clone)]
-pub enum ScopeItem {
+pub enum ContextEntry {
     // TODO: Doesn't need to be an enum, can simply be a struct with an optional constant value
     Type {
         ty: SigKind, // e.g. int, str, foo<T>, (int, str)
@@ -194,11 +193,11 @@ pub enum ScopeItem {
     },
 }
 
-impl ScopeItem {
+impl ContextEntry {
     pub fn span(&self) -> Span {
         match self {
-            ScopeItem::Type { span, .. } => *span,
-            ScopeItem::Value { span, .. } => *span,
+            ContextEntry::Type { span, .. } => *span,
+            ContextEntry::Value { span, .. } => *span,
         }
     }
 }

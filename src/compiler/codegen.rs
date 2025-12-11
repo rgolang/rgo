@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::io::Write;
 
 use crate::compiler::error::{CompileError, CompileErrorCode};
-use crate::compiler::hir::{Arg, Exec, SigItem};
+use crate::compiler::hir::{Arg, Exec, SigItem, SigKind, Signature};
 use crate::compiler::mir;
 use crate::compiler::mir::{
     DeepCopy, MirEnvAllocation, MirFunction, MirFunctionBinding, MirStatement, MirVariadicExecInfo,
@@ -16,7 +16,6 @@ use crate::compiler::span::Span;
 use crate::compiler::symbol::{FunctionSig, SymbolRegistry};
 use crate::compiler::type_utils::expand_alias_chain;
 use crate::compiler::ENTRY_FUNCTION_NAME;
-use crate::compiler::{ast, hir};
 
 const WORD_SIZE: usize = 8;
 
@@ -693,7 +692,7 @@ enum ValueKind {
 struct Binding {
     offset: i32,
     kind: ValueKind,
-    continuation_params: Vec<ast::SigKind>,
+    continuation_params: Vec<SigKind>,
     env_size: usize,
 }
 
@@ -735,11 +734,9 @@ impl FrameLayout {
     ) -> Result<(), CompileError> {
         let name = &param.name;
         let ty = &param.ty;
-        let kind = resolved_type_kind(&hir::hir_type_ref_to_ast_type_ref(&ty.kind), symbols);
+        let kind = resolved_type_kind(&ty.kind, symbols);
         let continuation_params = match kind {
-            ValueKind::Closure => {
-                continuation_params_for_type(&hir::hir_type_ref_to_ast_type_ref(&ty.kind), symbols)
-            }
+            ValueKind::Closure => continuation_params_for_type(&ty.kind, symbols),
             ValueKind::Word => Vec::new(),
         };
         let env_size = if kind == ValueKind::Closure {
@@ -759,7 +756,7 @@ impl FrameLayout {
         name: &str,
         span: Span,
         kind: ValueKind,
-        continuation_params: Vec<ast::SigKind>,
+        continuation_params: Vec<SigKind>,
         env_size: usize,
     ) -> Result<(), CompileError> {
         if self.bindings.contains_key(name) {
@@ -809,13 +806,13 @@ fn mir_statement_binding_info<'a>(stmt: &'a MirStatement) -> Option<(&'a str, Sp
 
 #[derive(Clone, Debug)]
 struct ClosureState {
-    remaining: Vec<ast::SigKind>,
+    remaining: Vec<SigKind>,
     env_size: usize,
     has_variadic: bool,
 }
 
 impl ClosureState {
-    fn new(params: Vec<ast::SigKind>, env_size: usize, has_variadic: bool) -> Self {
+    fn new(params: Vec<SigKind>, env_size: usize, has_variadic: bool) -> Self {
         Self {
             remaining: params,
             env_size,
@@ -823,7 +820,7 @@ impl ClosureState {
         }
     }
 
-    fn remaining(&self) -> &[ast::SigKind] {
+    fn remaining(&self) -> &[SigKind] {
         &self.remaining
     }
 
@@ -941,8 +938,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                     CompileError::new(CompileErrorCode::Codegen, "missing binding", param.span)
                 })?
                 .clone();
-            let required =
-                slots_for_type(&hir::hir_type_ref_to_ast_type_ref(&ty.kind), self.symbols);
+            let required = slots_for_type(&ty.kind, self.symbols);
             if slot + required > ARG_REGS.len() {
                 return Err(CompileError::new(
                     CompileErrorCode::Codegen,
@@ -954,7 +950,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                     self.mir.span,
                 ));
             }
-            match resolved_type_kind(&hir::hir_type_ref_to_ast_type_ref(&ty.kind), self.symbols) {
+            match resolved_type_kind(&ty.kind, self.symbols) {
                 ValueKind::Word => {
                     let reg = ARG_REGS[slot];
                     writeln!(
@@ -1411,7 +1407,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         }
 
         self.ctx.add_extern(name);
-        let placeholder: Vec<ast::SigKind> = std::iter::repeat(ast::SigKind::Int)
+        let placeholder: Vec<SigKind> = std::iter::repeat(SigKind::Int)
             .take(exec.args.len())
             .collect();
         self.prepare_call_args(&exec.args, &placeholder)?;
@@ -1514,9 +1510,9 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         }
 
         let mut params = Vec::with_capacity(call_args.len());
-        params.push(ast::SigKind::Str);
+        params.push(SigKind::Str);
         for _ in 1..call_args.len() {
-            params.push(ast::SigKind::Int);
+            params.push(SigKind::Int);
         }
 
         self.prepare_call_args(call_args, &params)?;
@@ -1599,7 +1595,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             ));
         }
 
-        let params = vec![ast::SigKind::Str, ast::SigKind::Int];
+        let params = vec![SigKind::Str, SigKind::Int];
         self.prepare_call_args(call_args, &params)?;
 
         self.emit_mmap(FMT_BUFFER_SIZE)?;
@@ -1704,7 +1700,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         )?;
 
         // Prepare call arguments (string in rdi)
-        let params = vec![ast::SigKind::Str];
+        let params = vec![SigKind::Str];
         self.prepare_call_args(call_args, &params)?;
         self.move_args_to_registers(&params)?;
 
@@ -1762,7 +1758,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             ));
         }
 
-        let param_types = vec![ast::SigKind::Str];
+        let param_types = vec![SigKind::Str];
         self.emit_libc_wrapper_exec("puts", args, &param_types, span, false, |_| Ok(()))
     }
 
@@ -1781,7 +1777,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
         let arg = &args[0];
         let value = self.emit_arg_value(arg)?;
-        self.ensure_value_matches(&value, &ast::SigKind::Int, arg.span)?;
+        self.ensure_value_matches(&value, &SigKind::Int, arg.span)?;
 
         match value {
             ExprValue::Word => {
@@ -1809,7 +1805,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         &mut self,
         libc_name: &str,
         args: &[Arg],
-        param_types: &[ast::SigKind],
+        param_types: &[SigKind],
         span: Span,
         is_variadic: bool,
         mut return_handler: F,
@@ -2101,11 +2097,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn prepare_call_args(
-        &mut self,
-        args: &[Arg],
-        params: &[ast::SigKind],
-    ) -> Result<(), CompileError> {
+    fn prepare_call_args(&mut self, args: &[Arg], params: &[SigKind]) -> Result<(), CompileError> {
         let total_slots: usize = params
             .iter()
             .map(|ty| slots_for_type(ty, self.symbols))
@@ -2131,7 +2123,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
     fn push_exec_layout(
         &mut self,
         layout: &[ExecArgKind],
-        params: &[ast::SigKind],
+        params: &[SigKind],
         callee: &str,
         span: Span,
     ) -> Result<(), CompileError> {
@@ -2168,7 +2160,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
     fn push_variadic_call_args(
         &mut self,
         args: &[Arg],
-        params: &[ast::SigKind],
+        params: &[SigKind],
         callee: &str,
         span: Span,
         layout: &MirVariadicExecInfo,
@@ -2214,7 +2206,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
     fn emit_variadic_array_arg(
         &mut self,
         callee: &str,
-        param_ty: &ast::SigKind,
+        param_ty: &SigKind,
         args: &[Arg],
         span: Span,
     ) -> Result<ExprValue, CompileError> {
@@ -2352,7 +2344,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn move_args_to_registers(&mut self, params: &[ast::SigKind]) -> Result<(), CompileError> {
+    fn move_args_to_registers(&mut self, params: &[SigKind]) -> Result<(), CompileError> {
         let mut slot = 0usize;
         for ty in params {
             match resolved_type_kind(ty, self.symbols) {
@@ -2625,7 +2617,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
     fn ensure_value_matches(
         &self,
         value: &ExprValue,
-        ty: &ast::SigKind,
+        ty: &SigKind,
         span: Span,
     ) -> Result<(), CompileError> {
         match (value, resolved_type_kind(ty, self.symbols)) {
@@ -2636,13 +2628,11 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 "expected a closure value",
                 span,
             )),
-            (ExprValue::Closure(_), ValueKind::Word) => {
-                Err(CompileError::new(
-                    CompileErrorCode::Codegen,
-                    "expected a scalar value",
-                    span,
-                ))
-            }
+            (ExprValue::Closure(_), ValueKind::Word) => Err(CompileError::new(
+                CompileErrorCode::Codegen,
+                "expected a scalar value",
+                span,
+            )),
         }
     }
 
@@ -2685,7 +2675,7 @@ fn emit_closure_wrapper<W: Write>(
     let total_slots: usize = mir
         .params
         .iter()
-        .map(|p| slots_for_type(&hir::hir_type_ref_to_ast_type_ref(&p.ty.kind), symbols))
+        .map(|p| slots_for_type(&p.ty.kind, symbols))
         .sum();
     if total_slots > ARG_REGS.len() {
         return Err(CompileError::new(
@@ -2711,11 +2701,7 @@ fn emit_closure_wrapper<W: Write>(
     )?;
     writeln!(out, "    push rbx ; preserve base register")?;
     writeln!(out, "    mov rbx, rdi ; rdi points to env_end when invoked")?;
-    let param_types: Vec<ast::SigKind> = mir
-        .params
-        .iter()
-        .map(|p| hir::hir_type_ref_to_ast_type_ref(&p.ty.kind).clone())
-        .collect();
+    let param_types: Vec<SigKind> = mir.params.iter().map(|p| p.ty.kind.clone()).collect();
     let env_size = env_size_bytes(&param_types, symbols);
     if env_size > 0 {
         writeln!(out, "    sub rbx, {} ; compute env base", env_size)?;
@@ -2723,7 +2709,7 @@ fn emit_closure_wrapper<W: Write>(
     let mut reg_slot = 0usize;
     let mut saved_regs: Vec<&str> = Vec::new();
     for (idx, param) in mir.params.iter().enumerate() {
-        match resolved_type_kind(&hir::hir_type_ref_to_ast_type_ref(&param.ty.kind), symbols) {
+        match resolved_type_kind(&param.ty.kind, symbols) {
             ValueKind::Word => {
                 let offset = env_offset(&mir.params, idx, symbols);
                 let reg = ARG_REGS[reg_slot];
@@ -2791,16 +2777,19 @@ fn emit_closure_wrapper<W: Write>(
 fn closure_wrapper_label(name: &str) -> String {
     format!("{}_closure_entry", name)
 }
+fn signature_kinds(sig: &Signature) -> Vec<SigKind> {
+    sig.items.iter().map(|item| item.ty.kind.clone()).collect()
+}
 
 fn env_offset(params: &[SigItem], idx: usize, symbols: &SymbolRegistry) -> usize {
     params
         .iter()
         .take(idx)
-        .map(|p| bytes_for_type(&hir::hir_type_ref_to_ast_type_ref(&p.ty.kind), symbols))
+        .map(|p| bytes_for_type(&p.ty.kind, symbols))
         .sum()
 }
 
-fn remaining_suffix_sizes(params: &[ast::SigKind], symbols: &SymbolRegistry) -> Vec<usize> {
+fn remaining_suffix_sizes(params: &[SigKind], symbols: &SymbolRegistry) -> Vec<usize> {
     let mut sizes = Vec::with_capacity(params.len());
     let mut acc = 0;
     for param in params.iter().rev() {
@@ -2818,7 +2807,7 @@ fn align_to(value: usize, align: usize) -> usize {
     ((value + align - 1) / align) * align
 }
 
-fn slots_for_type(ty: &ast::SigKind, symbols: &SymbolRegistry) -> usize {
+fn slots_for_type(ty: &SigKind, symbols: &SymbolRegistry) -> usize {
     match resolved_type_kind(ty, symbols) {
         ValueKind::Word => 1,
         ValueKind::Closure => 2,
@@ -2827,18 +2816,18 @@ fn slots_for_type(ty: &ast::SigKind, symbols: &SymbolRegistry) -> usize {
 
 // TODO: Remove this usage, replace it with other one
 
-fn bytes_for_type(ty: &ast::SigKind, symbols: &SymbolRegistry) -> usize {
+fn bytes_for_type(ty: &SigKind, symbols: &SymbolRegistry) -> usize {
     match resolved_type_kind(ty, symbols) {
         ValueKind::Word => WORD_SIZE,
         ValueKind::Closure => WORD_SIZE * 2,
     }
 }
 
-fn env_size_bytes(params: &[ast::SigKind], symbols: &SymbolRegistry) -> usize {
+fn env_size_bytes(params: &[SigKind], symbols: &SymbolRegistry) -> usize {
     params.iter().map(|ty| bytes_for_type(ty, symbols)).sum()
 }
 
-fn env_pointer_offsets(params: &[ast::SigKind], symbols: &SymbolRegistry) -> Vec<usize> {
+fn env_pointer_offsets(params: &[SigKind], symbols: &SymbolRegistry) -> Vec<usize> {
     let mut offsets = Vec::new();
     let mut current = 0usize;
     for ty in params {
@@ -2853,24 +2842,23 @@ fn env_pointer_offsets(params: &[ast::SigKind], symbols: &SymbolRegistry) -> Vec
     offsets
 }
 
-fn resolved_type_kind(ty: &ast::SigKind, symbols: &SymbolRegistry) -> ValueKind {
+fn resolved_type_kind(ty: &SigKind, symbols: &SymbolRegistry) -> ValueKind {
     let mut visited = HashSet::new();
     resolved_type_kind_inner(ty, symbols, &mut visited)
 }
 
 // TODO: This is a good place to start the refactor
 fn resolved_type_kind_inner(
-    ty: &ast::SigKind,
+    ty: &SigKind,
     symbols: &SymbolRegistry,
     visited: &mut HashSet<String>,
 ) -> ValueKind {
     match ty {
-        ast::SigKind::Int
-        | ast::SigKind::Str
-        | ast::SigKind::CompileTimeInt
-        | ast::SigKind::CompileTimeStr => ValueKind::Word,
-        ast::SigKind::Tuple(_) => ValueKind::Closure,
-        ast::SigKind::Ident(ident) => {
+        SigKind::Int | SigKind::Str | SigKind::CompileTimeInt | SigKind::CompileTimeStr => {
+            ValueKind::Word
+        }
+        SigKind::Tuple(_) => ValueKind::Closure,
+        SigKind::Ident(ident) => {
             let name = &ident.name;
             if visited.contains(name) {
                 ValueKind::Closure
@@ -2883,7 +2871,7 @@ fn resolved_type_kind_inner(
                 ValueKind::Word
             }
         }
-        ast::SigKind::GenericInst { name, .. } => {
+        SigKind::GenericInst { name, .. } => {
             if visited.contains(name) {
                 ValueKind::Closure
             } else if let Some(info) = symbols.get_type_info(name) {
@@ -2895,23 +2883,23 @@ fn resolved_type_kind_inner(
                 ValueKind::Word
             }
         }
-        ast::SigKind::Generic(_) => ValueKind::Word,
+        SigKind::Generic(_) => ValueKind::Word,
     }
 }
 
-fn continuation_params_for_type(ty: &ast::SigKind, symbols: &SymbolRegistry) -> Vec<ast::SigKind> {
+fn continuation_params_for_type(ty: &SigKind, symbols: &SymbolRegistry) -> Vec<SigKind> {
     let mut visited = HashSet::new();
     continuation_params_for_type_inner(ty, symbols, &mut visited)
 }
 
 fn continuation_params_for_type_inner(
-    ty: &ast::SigKind,
+    ty: &SigKind,
     symbols: &SymbolRegistry,
     visited: &mut HashSet<String>,
-) -> Vec<ast::SigKind> {
+) -> Vec<SigKind> {
     match ty {
-        ast::SigKind::Tuple(params) => params.kinds(),
-        ast::SigKind::Ident(ident) => {
+        SigKind::Tuple(params) => signature_kinds(params),
+        SigKind::Ident(ident) => {
             let name = &ident.name;
             if visited.contains(name) {
                 Vec::new()
@@ -2924,7 +2912,7 @@ fn continuation_params_for_type_inner(
                 Vec::new()
             }
         }
-        ast::SigKind::GenericInst { name, .. } => {
+        SigKind::GenericInst { name, .. } => {
             if visited.contains(name) {
                 Vec::new()
             } else if let Some(info) = symbols.get_type_info(name) {
@@ -2936,23 +2924,23 @@ fn continuation_params_for_type_inner(
                 Vec::new()
             }
         }
-        ast::SigKind::Generic(_) => Vec::new(),
+        SigKind::Generic(_) => Vec::new(),
         _ => Vec::new(),
     }
 }
 
-fn variadic_element_type(ty: &ast::SigKind, symbols: &SymbolRegistry) -> Option<ast::SigKind> {
+fn variadic_element_type(ty: &SigKind, symbols: &SymbolRegistry) -> Option<SigKind> {
     let mut visited = HashSet::new();
     let expanded = expand_alias_chain(ty, symbols, &mut visited);
-    let mut current_params = if let ast::SigKind::Tuple(params) = expanded {
-        params.kinds()
+    let mut current_params = if let SigKind::Tuple(params) = expanded {
+        signature_kinds(&params)
     } else {
         return None;
     };
     loop {
         if current_params.len() == 1 {
-            if let ast::SigKind::Tuple(inner) = &current_params[0] {
-                current_params = inner.kinds();
+            if let SigKind::Tuple(inner) = &current_params[0] {
+                current_params = signature_kinds(inner);
                 continue;
             }
         }
@@ -2962,12 +2950,12 @@ fn variadic_element_type(ty: &ast::SigKind, symbols: &SymbolRegistry) -> Option<
         let nth_type = current_params[1].clone();
         let mut visited = HashSet::new();
         let nth_expanded = expand_alias_chain(&nth_type, symbols, &mut visited);
-        if let ast::SigKind::Tuple(nth_params) = nth_expanded {
-            let nth_items = nth_params.kinds();
+        if let SigKind::Tuple(nth_params) = nth_expanded {
+            let nth_items = signature_kinds(&nth_params);
             if nth_items.len() > 2 {
                 let mut visited = HashSet::new();
                 let one_expanded = expand_alias_chain(&nth_items[2], symbols, &mut visited);
-                if let ast::SigKind::Tuple(one_params) = one_expanded {
+                if let SigKind::Tuple(one_params) = one_expanded {
                     return one_params.items.get(0).map(|item| item.ty.kind.clone());
                 }
             }
@@ -2993,7 +2981,7 @@ fn variadic_element_type(ty: &ast::SigKind, symbols: &SymbolRegistry) -> Option<
 //     ctx: &mut CodegenContext,
 //     out: &mut W,
 //     libc_function_name: &str,
-//     param_types: &[ast::SigKind],
+//     param_types: &[SigKind],
 //     symbols: &SymbolRegistry,
 // ) -> Result<(), CompileError> {
 //     let wrapper_label = format!("rgo_{}", libc_function_name);

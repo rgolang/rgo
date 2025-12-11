@@ -62,16 +62,10 @@ impl BlockItem {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SigKind {
-    Int,              // TODO: ast doesn't have str or int type
-    Str,              // TODO: ast doesn't have str or int type
-    CompileTimeInt,   // TODO: ast doesn't have str or int type
-    CompileTimeStr,   // TODO: ast doesn't have str or int type
-    Ident(SigIdent),  // `foo`, `str!`, `list`
+    Ident(SigIdent),                                  // `foo`, `str!`, `list`
     Tuple(Signature), // Nested tuple signature: `(int, b:int, tail:list)`
-
-    // Generic instantiation: `arr<int, list>`
-    GenericInst { name: String, args: Vec<SigType> },
-    Generic(String), // Unbound generic type parameter: `T`
+    GenericInst { name: String, args: Vec<SigType> }, // Generic instantiation: `arr<int, list>`
+    Generic(String),  // Unbound generic type parameter: `T`
 }
 
 impl SigKind {

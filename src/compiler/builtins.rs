@@ -1,25 +1,27 @@
-use crate::compiler::ast;
 use crate::compiler::error::CompileError;
 use crate::compiler::hir;
-use crate::compiler::hir_scope::{ConstantValue, ScopeItem};
+use crate::compiler::hir_context::{ConstantValue, ContextEntry};
 use crate::compiler::span::Span;
 use crate::compiler::symbol::{FunctionSig, SymbolRegistry};
 
-pub fn register_import_scope(
+pub fn register_import(
     import_path: &str,
     span: Span,
-    scope: &mut hir::Scope,
+    ctx: &mut hir::Context,
 ) -> Result<Vec<String>, CompileError> {
     let name = extract_import_name(import_path);
-    let spec = builtin_import_spec(name);
+    let spec = builtin_import_spec(name, span);
+    for ty in &spec.types {
+        ctx.insert_type(&ty.name, ty.ty.kind.clone(), span, false)?;
+    }
     for function in &spec.functions {
-        register_function_in_scope(function, span, scope)?;
+        register_function(function, span, ctx)?;
     }
     for value in &spec.values {
-        scope.insert(
+        ctx.insert(
             value.name,
-            ScopeItem::Value {
-                ty: hir::ast_type_ref_to_hir_type_ref(&value.ty),
+            ContextEntry::Value {
+                ty: value.ty.clone(),
                 span,
                 constant: placeholder_constant(&value.ty),
             },
@@ -34,7 +36,7 @@ pub fn register_import_symbols(
     symbols: &mut SymbolRegistry,
 ) -> Result<(), CompileError> {
     let name = extract_import_name(import_path);
-    let spec = builtin_import_spec(name);
+    let spec = builtin_import_spec(name, span);
     for recorded in &spec.recorded_names {
         symbols.record_builtin_import(recorded);
     }
@@ -57,36 +59,60 @@ fn extract_import_name(import_path: &str) -> &str {
 
 struct BuiltinFunctionDef {
     name: &'static str,
-    params: Vec<ast::SigKind>,
+    params: Vec<hir::SigKind>,
 }
 
 struct BuiltinValueDef {
     name: &'static str,
-    ty: ast::SigKind,
+    ty: hir::SigKind,
 }
 
 struct BuiltinSpec {
     recorded_names: Vec<String>,
     functions: Vec<BuiltinFunctionDef>,
     values: Vec<BuiltinValueDef>,
+    types: Vec<hir::SigItem>,
 }
 
-fn builtin_import_spec(name: &str) -> BuiltinSpec {
+fn builtin_import_spec(name: &str, span: Span) -> BuiltinSpec {
     let mut recorded_names = vec![name.to_string()];
     if name == "puts" {
         recorded_names.push("rgo_puts".to_string());
     }
     let mut functions = Vec::new();
     let mut values = Vec::new();
+    let mut types = Vec::new();
 
     match name {
+        "int" => {
+            types.push(hir::SigItem {
+                name: "int".into(),
+                ty: hir::SigType {
+                    kind: hir::SigKind::Int,
+                    span,
+                },
+                span,
+                is_variadic: false,
+            });
+        }
+        "str" => {
+            types.push(hir::SigItem {
+                name: "str".into(),
+                ty: hir::SigType {
+                    kind: hir::SigKind::Str,
+                    span,
+                },
+                span,
+                is_variadic: false,
+            });
+        }
         "add" => {
             functions.push(BuiltinFunctionDef {
                 name: "add",
                 params: vec![
-                    ast::SigKind::Int,
-                    ast::SigKind::Int,
-                    ast::SigKind::tuple([ast::SigKind::Int]),
+                    hir::SigKind::Int,
+                    hir::SigKind::Int,
+                    hir::SigKind::tuple([hir::SigKind::Int]),
                 ],
             });
         }
@@ -94,9 +120,9 @@ fn builtin_import_spec(name: &str) -> BuiltinSpec {
             functions.push(BuiltinFunctionDef {
                 name: "sub",
                 params: vec![
-                    ast::SigKind::Int,
-                    ast::SigKind::Int,
-                    ast::SigKind::tuple([ast::SigKind::Int]),
+                    hir::SigKind::Int,
+                    hir::SigKind::Int,
+                    hir::SigKind::tuple([hir::SigKind::Int]),
                 ],
             });
         }
@@ -104,9 +130,9 @@ fn builtin_import_spec(name: &str) -> BuiltinSpec {
             functions.push(BuiltinFunctionDef {
                 name: "mul",
                 params: vec![
-                    ast::SigKind::Int,
-                    ast::SigKind::Int,
-                    ast::SigKind::tuple([ast::SigKind::Int]),
+                    hir::SigKind::Int,
+                    hir::SigKind::Int,
+                    hir::SigKind::tuple([hir::SigKind::Int]),
                 ],
             });
         }
@@ -114,9 +140,9 @@ fn builtin_import_spec(name: &str) -> BuiltinSpec {
             functions.push(BuiltinFunctionDef {
                 name: "div",
                 params: vec![
-                    ast::SigKind::Int,
-                    ast::SigKind::Int,
-                    ast::SigKind::tuple([ast::SigKind::Int]),
+                    hir::SigKind::Int,
+                    hir::SigKind::Int,
+                    hir::SigKind::tuple([hir::SigKind::Int]),
                 ],
             });
         }
@@ -124,10 +150,10 @@ fn builtin_import_spec(name: &str) -> BuiltinSpec {
             functions.push(BuiltinFunctionDef {
                 name: "eq",
                 params: vec![
-                    ast::SigKind::Int,
-                    ast::SigKind::Int,
-                    ast::SigKind::tuple([]),
-                    ast::SigKind::tuple([]),
+                    hir::SigKind::Int,
+                    hir::SigKind::Int,
+                    hir::SigKind::tuple([]),
+                    hir::SigKind::tuple([]),
                 ],
             });
         }
@@ -135,24 +161,24 @@ fn builtin_import_spec(name: &str) -> BuiltinSpec {
             functions.push(BuiltinFunctionDef {
                 name: "fmt",
                 params: vec![
-                    ast::SigKind::Str,
-                    ast::SigKind::Int,
-                    ast::SigKind::tuple([ast::SigKind::Str]),
+                    hir::SigKind::Str,
+                    hir::SigKind::Int,
+                    hir::SigKind::tuple([hir::SigKind::Str]),
                 ],
             });
             functions.push(BuiltinFunctionDef {
                 name: "write",
-                params: vec![ast::SigKind::Str, ast::SigKind::tuple([])],
+                params: vec![hir::SigKind::Str, hir::SigKind::tuple([])],
             });
         }
         "eqi" => {
             functions.push(BuiltinFunctionDef {
                 name: "eqi",
                 params: vec![
-                    ast::SigKind::Int,
-                    ast::SigKind::Int,
-                    ast::SigKind::tuple([]),
-                    ast::SigKind::tuple([]),
+                    hir::SigKind::Int,
+                    hir::SigKind::Int,
+                    hir::SigKind::tuple([]),
+                    hir::SigKind::tuple([]),
                 ],
             });
         }
@@ -160,10 +186,10 @@ fn builtin_import_spec(name: &str) -> BuiltinSpec {
             functions.push(BuiltinFunctionDef {
                 name: "lt",
                 params: vec![
-                    ast::SigKind::Int,
-                    ast::SigKind::Int,
-                    ast::SigKind::tuple([]),
-                    ast::SigKind::tuple([]),
+                    hir::SigKind::Int,
+                    hir::SigKind::Int,
+                    hir::SigKind::tuple([]),
+                    hir::SigKind::tuple([]),
                 ],
             });
         }
@@ -171,10 +197,10 @@ fn builtin_import_spec(name: &str) -> BuiltinSpec {
             functions.push(BuiltinFunctionDef {
                 name: "gt",
                 params: vec![
-                    ast::SigKind::Int,
-                    ast::SigKind::Int,
-                    ast::SigKind::tuple([]),
-                    ast::SigKind::tuple([]),
+                    hir::SigKind::Int,
+                    hir::SigKind::Int,
+                    hir::SigKind::tuple([]),
+                    hir::SigKind::tuple([]),
                 ],
             });
         }
@@ -182,47 +208,47 @@ fn builtin_import_spec(name: &str) -> BuiltinSpec {
             functions.push(BuiltinFunctionDef {
                 name: "eqs",
                 params: vec![
-                    ast::SigKind::Str,
-                    ast::SigKind::Str,
-                    ast::SigKind::tuple([]),
-                    ast::SigKind::tuple([]),
+                    hir::SigKind::Str,
+                    hir::SigKind::Str,
+                    hir::SigKind::tuple([]),
+                    hir::SigKind::tuple([]),
                 ],
             });
         }
         "itoa" => {
             functions.push(BuiltinFunctionDef {
                 name: "itoa",
-                params: vec![ast::SigKind::Int, ast::SigKind::tuple([ast::SigKind::Str])],
+                params: vec![hir::SigKind::Int, hir::SigKind::tuple([hir::SigKind::Str])],
             });
         }
         "stdout" => {
             values.push(BuiltinValueDef {
                 name: "stdout",
-                ty: ast::SigKind::Str,
+                ty: hir::SigKind::Str,
             });
         }
         "write" => {
             functions.push(BuiltinFunctionDef {
                 name: "write",
-                params: vec![ast::SigKind::Str, ast::SigKind::tuple([])],
+                params: vec![hir::SigKind::Str, hir::SigKind::tuple([])],
             });
         }
         "puts" => {
             functions.push(BuiltinFunctionDef {
                 name: "rgo_puts",
-                params: vec![ast::SigKind::Str, ast::SigKind::tuple([])],
+                params: vec![hir::SigKind::Str, hir::SigKind::tuple([])],
             });
         }
         "rgo_write" => {
             functions.push(BuiltinFunctionDef {
                 name: "rgo_write",
-                params: vec![ast::SigKind::Str, ast::SigKind::tuple([])],
+                params: vec![hir::SigKind::Str, hir::SigKind::tuple([])],
             });
         }
         "exit" => {
             functions.push(BuiltinFunctionDef {
                 name: "exit",
-                params: vec![ast::SigKind::Int],
+                params: vec![hir::SigKind::Int],
             });
         }
         "printf" | "sprintf" => {}
@@ -233,33 +259,34 @@ fn builtin_import_spec(name: &str) -> BuiltinSpec {
         recorded_names,
         functions,
         values,
+        types,
     }
 }
 
-fn register_function_in_scope(
+fn register_function(
     def: &BuiltinFunctionDef,
     span: Span,
-    scope: &mut hir::Scope,
+    ctx: &mut hir::Context,
 ) -> Result<(), CompileError> {
-    let ast_sig_items = build_ast_sig_items(&def.params);
-    let hir_sig_items = ast_sig_items
+    let hir_sig_items = def
+        .params
         .iter()
         .enumerate()
-        .map(|(idx, item)| hir::SigItem {
-            name: item.name.clone().unwrap_or_else(|| format!("_{}", idx)),
+        .map(|(idx, kind)| hir::SigItem {
+            name: format!("_{}", idx),
             ty: hir::SigType {
-                kind: hir::ast_type_ref_to_hir_type_ref(&item.ty.kind),
-                span: item.ty.span,
+                kind: kind.clone(),
+                span: Span::unknown(),
             },
-            is_variadic: item.is_variadic,
-            span: item.span,
+            is_variadic: false,
+            span: Span::unknown(),
         })
         .collect();
     let hir_sig = hir::Signature {
         items: hir_sig_items,
         span,
     };
-    scope.insert_func(def.name, hir_sig, span, true)?;
+    ctx.insert_func(def.name, hir_sig, span, true)?;
     Ok(())
 }
 
@@ -271,21 +298,20 @@ fn register_function_in_symbols(
     if symbols.get_function(def.name).is_some() {
         return Ok(());
     }
-    let ast_sig_items = build_ast_sig_items(&def.params);
     symbols.declare_function(FunctionSig {
         name: def.name.to_string(),
-        params: ast_sig_items,
+        params: builtin_sig_items(&def.params),
         span,
     })?;
     Ok(())
 }
 
-fn build_ast_sig_items(params: &[ast::SigKind]) -> Vec<ast::SigItem> {
+fn builtin_sig_items(params: &[hir::SigKind]) -> Vec<hir::SigItem> {
     params
         .iter()
-        .map(|kind| ast::SigItem {
-            name: None,
-            ty: ast::SigType {
+        .map(|kind| hir::SigItem {
+            name: String::new(),
+            ty: hir::SigType {
                 kind: kind.clone(),
                 span: Span::unknown(),
             },
@@ -295,9 +321,9 @@ fn build_ast_sig_items(params: &[ast::SigKind]) -> Vec<ast::SigItem> {
         .collect()
 }
 
-fn placeholder_constant(kind: &ast::SigKind) -> ConstantValue {
+fn placeholder_constant(kind: &hir::SigKind) -> ConstantValue {
     match kind {
-        ast::SigKind::Str | ast::SigKind::CompileTimeStr => ConstantValue::Str(String::new()),
+        hir::SigKind::Str | hir::SigKind::CompileTimeStr => ConstantValue::Str(String::new()),
         _ => ConstantValue::Int(0),
     }
 }

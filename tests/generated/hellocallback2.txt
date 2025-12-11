@@ -39,7 +39,17 @@
                                         SigItem {
                                             name: None,
                                             ty: SigType {
-                                                kind: Str,
+                                                kind: Ident(
+                                                    SigIdent {
+                                                        name: "str",
+                                                        has_bang: false,
+                                                        span: Span {
+                                                            line: 5,
+                                                            column: 10,
+                                                            offset: 32,
+                                                        },
+                                                    },
+                                                ),
                                                 span: Span {
                                                     line: 0,
                                                     column: 0,
@@ -200,7 +210,17 @@
                             "n",
                         ),
                         ty: SigType {
-                            kind: Str,
+                            kind: Ident(
+                                SigIdent {
+                                    name: "str",
+                                    has_bang: false,
+                                    span: Span {
+                                        line: 8,
+                                        column: 11,
+                                        offset: 75,
+                                    },
+                                },
+                            ),
                             span: Span {
                                 line: 8,
                                 column: 11,

@@ -41,7 +41,17 @@
                             "fmt",
                         ),
                         ty: SigType {
-                            kind: Str,
+                            kind: Ident(
+                                SigIdent {
+                                    name: "str",
+                                    has_bang: false,
+                                    span: Span {
+                                        line: 6,
+                                        column: 22,
+                                        offset: 50,
+                                    },
+                                },
+                            ),
                             span: Span {
                                 line: 6,
                                 column: 22,
@@ -60,7 +70,17 @@
                             "value",
                         ),
                         ty: SigType {
-                            kind: CompileTimeInt,
+                            kind: Ident(
+                                SigIdent {
+                                    name: "int",
+                                    has_bang: true,
+                                    span: Span {
+                                        line: 6,
+                                        column: 34,
+                                        offset: 62,
+                                    },
+                                },
+                            ),
                             span: Span {
                                 line: 6,
                                 column: 34,
@@ -169,7 +189,17 @@
                             "fmt",
                         ),
                         ty: SigType {
-                            kind: CompileTimeStr,
+                            kind: Ident(
+                                SigIdent {
+                                    name: "str",
+                                    has_bang: true,
+                                    span: Span {
+                                        line: 9,
+                                        column: 18,
+                                        offset: 121,
+                                    },
+                                },
+                            ),
                             span: Span {
                                 line: 9,
                                 column: 18,
@@ -188,7 +218,17 @@
                             "value",
                         ),
                         ty: SigType {
-                            kind: CompileTimeInt,
+                            kind: Ident(
+                                SigIdent {
+                                    name: "int",
+                                    has_bang: true,
+                                    span: Span {
+                                        line: 9,
+                                        column: 31,
+                                        offset: 134,
+                                    },
+                                },
+                            ),
                             span: Span {
                                 line: 9,
                                 column: 31,
