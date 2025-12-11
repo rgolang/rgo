@@ -1,8 +1,38 @@
 bits 64
 default rel
 section .text
-global __lambda_0
-__lambda_0:
+global __0_2
+__0_2:
+    push rbp ; save caller frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov rax, 0 ; load literal integer
+    mov [rbp-16], rax ; save evaluated scalar in frame
+    mov rax, [rbp-16] ; load scalar from frame
+    mov rdi, rax ; pass exit code
+    leave ; unwind before exit
+    mov rax, 60 ; exit syscall
+    syscall ; exit program
+__0_2_closure_entry:
+    push rbp ; save caller frame pointer
+    mov rbp, rsp ; establish wrapper frame
+    sub rsp, 16 ; reserve space for env metadata scratch
+    mov [rbp-8], rdi ; stash env_end pointer for release
+    push rbx ; preserve base register
+    mov rbx, rdi ; rdi points to env_end when invoked
+    mov rdx, [rbp-8] ; load saved env_end pointer
+    mov rcx, [rdx] ; read env size metadata
+    mov rsi, [rdx+8] ; read heap size metadata
+    mov rbx, rdx ; env_end pointer for release
+    sub rbx, rcx ; compute env base pointer
+    mov rdi, rbx ; munmap base pointer
+    mov rax, 11 ; munmap syscall
+    syscall ; release wrapper closure environment
+    pop rbx ; restore saved base register
+    leave ; epilogue: restore rbp of caller
+    jmp __0_2 ; jump into actual function
+global _0
+_0:
     push rbp ; save caller frame pointer
     mov rbp, rsp ; establish new frame base
     sub rsp, 48 ; reserve stack space for locals
@@ -21,7 +51,7 @@ __lambda_0:
     mov qword [rdx], 0 ; env size metadata
     mov qword [rdx+8], 24 ; heap size metadata
     mov qword [rdx+16], 0 ; pointer count metadata
-    mov rax, __lambda_1_closure_entry ; load wrapper entry point
+    mov rax, __0_2_closure_entry ; load wrapper entry point
     sub rsp, 24 ; allocate temporary stack for closure state
     mov [rsp], rax ; save closure code pointer temporarily
     mov [rsp+8], rdx ; save closure env_end pointer temporarily
@@ -52,7 +82,7 @@ __lambda_0:
     mov rdi, rdx ; pass env_end pointer to continuation
     leave ; unwind before jumping
     jmp rax ; jump into continuation
-__lambda_0_closure_entry:
+_0_closure_entry:
     push rbp ; save caller frame pointer
     mov rbp, rsp ; establish wrapper frame
     sub rsp, 16 ; reserve space for env metadata scratch
@@ -73,37 +103,7 @@ __lambda_0_closure_entry:
     pop rdi ; restore parameter register
     pop rbx ; restore saved base register
     leave ; epilogue: restore rbp of caller
-    jmp __lambda_0 ; jump into actual function
-global __lambda_1
-__lambda_1:
-    push rbp ; save caller frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov rax, 0 ; load literal integer
-    mov [rbp-16], rax ; save evaluated scalar in frame
-    mov rax, [rbp-16] ; load scalar from frame
-    mov rdi, rax ; pass exit code
-    leave ; unwind before exit
-    mov rax, 60 ; exit syscall
-    syscall ; exit program
-__lambda_1_closure_entry:
-    push rbp ; save caller frame pointer
-    mov rbp, rsp ; establish wrapper frame
-    sub rsp, 16 ; reserve space for env metadata scratch
-    mov [rbp-8], rdi ; stash env_end pointer for release
-    push rbx ; preserve base register
-    mov rbx, rdi ; rdi points to env_end when invoked
-    mov rdx, [rbp-8] ; load saved env_end pointer
-    mov rcx, [rdx] ; read env size metadata
-    mov rsi, [rdx+8] ; read heap size metadata
-    mov rbx, rdx ; env_end pointer for release
-    sub rbx, rcx ; compute env base pointer
-    mov rdi, rbx ; munmap base pointer
-    mov rax, 11 ; munmap syscall
-    syscall ; release wrapper closure environment
-    pop rbx ; restore saved base register
-    leave ; epilogue: restore rbp of caller
-    jmp __lambda_1 ; jump into actual function
+    jmp _0 ; jump into actual function
 global _start
 _start:
     push rbp ; save caller frame pointer
@@ -115,7 +115,7 @@ _start:
     push rax ; stack arg: scalar
     pop rdi ; restore scalar arg into register
     leave ; unwind before named jump
-    jmp __lambda_0 ; jump to fully applied function
+    jmp _0 ; jump to fully applied function
 extern fflush
 extern printf
 extern stdout

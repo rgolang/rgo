@@ -1,3 +1,7 @@
+@/eqi
+@/write
+@/printf
+@/exit
 true: (x:(), y:()){
     x()
 }
@@ -10,30 +14,27 @@ if: (cond:((), ()), yes:(), no:()){
     cond(yes, no)
 }
 
-_start: (){
-    __temp_0: __lambda_0()
-    __temp_4: __lambda_2()
-    if(true, __temp_0, __temp_4)
+__1_2: (){
+    __1___1_2_0: 0
+    exit(__1___1_2_0)
 }
 
-__lambda_0: (){
-    __temp_1: "works"
-    __temp_2: __lambda_1()
-    printf(__temp_1, __temp_2)
+_1: (){
+    __1_0: "works"
+    __1_1: __1_2()
+    printf(__1_0, __1_1)
 }
 
-__lambda_1: (){
-    __temp_3: 0
-    exit(__temp_3)
+__3_2: (){
+    __3___3_2_0: 0
+    exit(__3___3_2_0)
 }
 
-__lambda_2: (){
-    __temp_5: "doesn't work"
-    __temp_6: __lambda_3()
-    printf(__temp_5, __temp_6)
+_3: (){
+    __3_0: "doesn't work"
+    __3_1: __3_2()
+    printf(__3_0, __3_1)
 }
-
-__lambda_3: (){
-    __temp_7: 0
-    exit(__temp_7)
-}
+_0: _1()
+_2: _3()
+if(true, _0, _2)

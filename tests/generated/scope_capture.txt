@@ -6,7 +6,6 @@
             column: 1,
             offset: 0,
         },
-        is_libc: true,
     },
     Import {
         name: "/add",
@@ -15,7 +14,6 @@
             column: 1,
             offset: 9,
         },
-        is_libc: false,
     },
     Import {
         name: "/exit",
@@ -24,24 +22,39 @@
             column: 1,
             offset: 15,
         },
-        is_libc: true,
     },
     FunctionDef {
         name: "print_sum",
         lambda: Lambda {
-            params: Params {
+            params: Signature {
                 items: [
-                    NameAndType {
-                        name: "ok",
-                        ty: Type(
-                            [],
+                    SigItem {
+                        name: Some(
+                            "ok",
                         ),
+                        ty: SigType {
+                            kind: Tuple(
+                                Signature {
+                                    items: [],
+                                    span: Span {
+                                        line: 0,
+                                        column: 0,
+                                        offset: 0,
+                                    },
+                                },
+                            ),
+                            span: Span {
+                                line: 5,
+                                column: 16,
+                                offset: 38,
+                            },
+                        },
+                        is_variadic: false,
                         span: Span {
                             line: 5,
                             column: 13,
                             offset: 35,
                         },
-                        is_variadic: false,
                     },
                 ],
                 span: Span {
@@ -53,18 +66,80 @@
             body: Block {
                 items: [
                     ScopeCapture {
-                        params: Params {
+                        params: Signature {
                             items: [
-                                NameAndType {
-                                    name: "total",
-                                    ty: Int,
+                                SigItem {
+                                    name: Some(
+                                        "total",
+                                    ),
+                                    ty: SigType {
+                                        kind: Int,
+                                        span: Span {
+                                            line: 6,
+                                            column: 12,
+                                            offset: 54,
+                                        },
+                                    },
+                                    is_variadic: false,
                                     span: Span {
                                         line: 6,
                                         column: 6,
                                         offset: 48,
                                     },
-                                    is_variadic: false,
                                 },
+                            ],
+                            span: Span {
+                                line: 6,
+                                column: 5,
+                                offset: 47,
+                            },
+                        },
+                        continuation: Block {
+                            items: [
+                                Ident(
+                                    Ident {
+                                        name: "printf",
+                                        args: [
+                                            String(
+                                                StrLiteral {
+                                                    value: "sum is %d\n",
+                                                    span: Span {
+                                                        line: 7,
+                                                        column: 12,
+                                                        offset: 82,
+                                                    },
+                                                },
+                                            ),
+                                            Ident(
+                                                Ident {
+                                                    name: "total",
+                                                    args: [],
+                                                    span: Span {
+                                                        line: 7,
+                                                        column: 27,
+                                                        offset: 97,
+                                                    },
+                                                },
+                                            ),
+                                            Ident(
+                                                Ident {
+                                                    name: "ok",
+                                                    args: [],
+                                                    span: Span {
+                                                        line: 7,
+                                                        column: 34,
+                                                        offset: 104,
+                                                    },
+                                                },
+                                            ),
+                                        ],
+                                        span: Span {
+                                            line: 7,
+                                            column: 5,
+                                            offset: 75,
+                                        },
+                                    },
+                                ),
                             ],
                             span: Span {
                                 line: 6,
@@ -110,50 +185,6 @@
                             offset: 47,
                         },
                     },
-                    Ident(
-                        Ident {
-                            name: "printf",
-                            args: [
-                                String(
-                                    StrLiteral {
-                                        value: "sum is %d\n",
-                                        span: Span {
-                                            line: 7,
-                                            column: 12,
-                                            offset: 82,
-                                        },
-                                    },
-                                ),
-                                Ident(
-                                    Ident {
-                                        name: "total",
-                                        args: [],
-                                        span: Span {
-                                            line: 7,
-                                            column: 27,
-                                            offset: 97,
-                                        },
-                                    },
-                                ),
-                                Ident(
-                                    Ident {
-                                        name: "ok",
-                                        args: [],
-                                        span: Span {
-                                            line: 7,
-                                            column: 34,
-                                            offset: 104,
-                                        },
-                                    },
-                                ),
-                            ],
-                            span: Span {
-                                line: 7,
-                                column: 5,
-                                offset: 75,
-                            },
-                        },
-                    ),
                 ],
                 span: Span {
                     line: 5,
@@ -175,8 +206,39 @@
         },
     },
     ScopeCapture {
-        params: Params {
+        params: Signature {
             items: [],
+            span: Span {
+                line: 10,
+                column: 1,
+                offset: 111,
+            },
+        },
+        continuation: Block {
+            items: [
+                Ident(
+                    Ident {
+                        name: "exit",
+                        args: [
+                            Int(
+                                IntLiteral {
+                                    value: 0,
+                                    span: Span {
+                                        line: 11,
+                                        column: 6,
+                                        offset: 131,
+                                    },
+                                },
+                            ),
+                        ],
+                        span: Span {
+                            line: 11,
+                            column: 1,
+                            offset: 126,
+                        },
+                    },
+                ),
+            ],
             span: Span {
                 line: 10,
                 column: 1,
@@ -200,26 +262,4 @@
             offset: 111,
         },
     },
-    Ident(
-        Ident {
-            name: "exit",
-            args: [
-                Int(
-                    IntLiteral {
-                        value: 0,
-                        span: Span {
-                            line: 11,
-                            column: 6,
-                            offset: 131,
-                        },
-                    },
-                ),
-            ],
-            span: Span {
-                line: 11,
-                column: 1,
-                offset: 126,
-            },
-        },
-    ),
 ]

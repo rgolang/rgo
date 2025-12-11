@@ -6,7 +6,6 @@
             column: 1,
             offset: 0,
         },
-        is_libc: false,
     },
     Import {
         name: "/int",
@@ -15,7 +14,6 @@
             column: 1,
             offset: 6,
         },
-        is_libc: false,
     },
     Import {
         name: "/write",
@@ -24,7 +22,6 @@
             column: 1,
             offset: 12,
         },
-        is_libc: true,
     },
     Import {
         name: "/exit",
@@ -33,7 +30,6 @@
             column: 1,
             offset: 20,
         },
-        is_libc: true,
     },
     StrDef {
         name: "x",
@@ -54,19 +50,35 @@
     FunctionDef {
         name: "foo",
         lambda: Lambda {
-            params: Params {
+            params: Signature {
                 items: [
-                    NameAndType {
-                        name: "ok",
-                        ty: Type(
-                            [],
+                    SigItem {
+                        name: Some(
+                            "ok",
                         ),
+                        ty: SigType {
+                            kind: Tuple(
+                                Signature {
+                                    items: [],
+                                    span: Span {
+                                        line: 0,
+                                        column: 0,
+                                        offset: 0,
+                                    },
+                                },
+                            ),
+                            span: Span {
+                                line: 7,
+                                column: 10,
+                                offset: 57,
+                            },
+                        },
+                        is_variadic: false,
                         span: Span {
                             line: 7,
                             column: 7,
                             offset: 54,
                         },
-                        is_variadic: false,
                     },
                 ],
                 span: Span {

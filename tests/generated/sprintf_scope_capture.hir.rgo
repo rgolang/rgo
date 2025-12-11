@@ -1,26 +1,30 @@
+@/str
+@/int
+@/printf
+@/sprintf
+@/write
+@/add
+@/exit
 foo: (){
-    __temp_0: 1
-    __temp_1: 2
-    __temp_2: __lambda_0()
-    add(__temp_0, __temp_1, __temp_2)
+    _foo_0: 1
+    _foo_1: 2
+    _foo_2: _foo_3()
+    add(_foo_0, _foo_1, _foo_2)
 }
 
-__lambda_0: (x: int){
-    __temp_3: "result: %d"
-    __temp_4: __lambda_1()
-    sprintf(__temp_3, x, __temp_4)
+_foo__foo_3__foo__foo_3_2_1: (){
+    _foo__foo_3__foo__foo_3_2__foo__foo_3__foo__foo_3_2_1_0: 0
+    exit(_foo__foo_3__foo__foo_3_2__foo__foo_3__foo__foo_3_2_1_0)
 }
 
-__lambda_1: (s: str){
-    __temp_5: __lambda_2()
-    write(s, __temp_5)
+_foo__foo_3_2: (s: str){
+    _foo__foo_3__foo__foo_3_2_0: _foo__foo_3__foo__foo_3_2_1()
+    write(s, _foo__foo_3__foo__foo_3_2_0)
 }
 
-__lambda_2: (){
-    __temp_6: 0
-    exit(__temp_6)
+_foo_3: (x: int){
+    _foo__foo_3_0: "result: %d"
+    _foo__foo_3_1: _foo__foo_3_2()
+    sprintf(_foo__foo_3_0, x, _foo__foo_3_1)
 }
-
-_start: (){
-    foo()
-}
+foo()

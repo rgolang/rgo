@@ -1,45 +1,46 @@
-nil: (next:(int, ((int, list), ())), end:()){
+@/str
+@/int
+@/printf
+@/exit
+list: ((int, list), ())
+nil: (next:(int, list), end:()){
     end()
 }
 
-cons: (head: int, tail:((int, list), ()), next:(int, ((int, list), ())), end:()){
+cons: (head: int, tail: list, next:(int, list), end:()){
     next(head, tail)
 }
 
-iterate: (handler:(int, ()), arr:((int, list), ()), end:()){
-    __temp_0: __lambda_0(handler, end)
-    arr(__temp_0, end)
+iterate: (handler:(int, ()), arr: list, end:()){
+    _iterate_0: _iterate_1(handler, end)
+    arr(_iterate_0, end)
 }
 
-__lambda_0: (handler:(int, ()), end:(), head: int, tail:((int, list), ())){
-    __temp_1: iterate(handler, tail, end)
-    handler(head, __temp_1)
+_iterate_1: (handler:(int, ()), end:(), head: int, tail: list){
+    _iterate__iterate_1_iterate_0: iterate(handler, tail, end)
+    handler(head, _iterate__iterate_1_iterate_0)
 }
-
+_0: 1
+_1: 2
+_2: 3
+_3: 4
+_cons_4: cons(_3, nil)
+_cons_5: cons(_2, _cons_4)
+_cons_6: cons(_1, _cons_5)
+mylist: cons(_0, _cons_6)
 handler: (n: int, ok:()){
-    __temp_3: "%d, "
-    printf(__temp_3, n, ok)
+    _handler_0: "%d, "
+    printf(_handler_0, n, ok)
 }
 
 end: (){
-    __temp_4: "end\n"
-    __temp_5: __lambda_1()
-    printf(__temp_4, __temp_5)
+    _end_0: "end\n"
+    _end_1: _end_2()
+    printf(_end_0, _end_1)
 }
 
-__lambda_1: (){
-    __temp_6: 0
-    exit(__temp_6)
+_end_2: (){
+    _end__end_2_0: 0
+    exit(_end__end_2_0)
 }
-
-_start: (){
-    __temp_7: 1
-    __temp_8: 2
-    __temp_9: 3
-    __temp_10: 4
-    __temp_11: cons(__temp_10, nil)
-    __temp_12: cons(__temp_9, __temp_11)
-    __temp_13: cons(__temp_8, __temp_12)
-    mylist: cons(__temp_7, __temp_13)
-    iterate(handler, mylist, end)
-}
+iterate(handler, mylist, end)

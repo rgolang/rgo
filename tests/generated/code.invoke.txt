@@ -6,7 +6,6 @@
             column: 1,
             offset: 0,
         },
-        is_libc: true,
     },
     Import {
         name: "/exit",
@@ -15,12 +14,11 @@
             column: 1,
             offset: 8,
         },
-        is_libc: true,
     },
     FunctionDef {
         name: "foo",
         lambda: Lambda {
-            params: Params {
+            params: Signature {
                 items: [],
                 span: Span {
                     line: 4,
@@ -32,7 +30,7 @@
                 items: [
                     Lambda(
                         Lambda {
-                            params: Params {
+                            params: Signature {
                                 items: [],
                                 span: Span {
                                     line: 5,

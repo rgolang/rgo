@@ -1,11 +1,10 @@
+@/str
+@/exit
 foo: (...items:((int, (int, (), (str))))){
-    __temp_0: 0
-    exit(__temp_0)
+    _foo_0: 0
+    exit(_foo_0)
 }
-
-_start: (){
-    __temp_1: "a"
-    __temp_2: "b"
-    __temp_3: "c"
-    foo(__temp_1, __temp_2, __temp_3)
-}
+_0: "a"
+_1: "b"
+_2: "c"
+foo(_0, _1, _2)

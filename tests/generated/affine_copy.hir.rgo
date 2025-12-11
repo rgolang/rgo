@@ -1,28 +1,29 @@
+@/exit
+@/int
+@/add
+@/printf
 bar: (a: int, b: int, ok:(int)){
     add(a, b, ok)
 }
 
 foo: (ok:()){
-    __temp_0: 1
-    b: bar(__temp_0)
-    __temp_1: 2
-    __temp_2: 3
-    c2: b(__temp_2)
-    __temp_3: __lambda_0(ok)
-    b(__temp_1, __temp_3)
+    _foo_0: 1
+    b: bar(_foo_0)
+    _foo_1: 2
+    _foo_2: 3
+    c2: b(_foo_2)
+    _foo_3: _foo_4(ok)
+    b(_foo_1, _foo_3)
 }
 
-__lambda_0: (ok:(), x: int){
-    __temp_4: "got: %d"
-    printf(__temp_4, x, ok)
+_foo_4: (ok:(), x: int){
+    _foo__foo_4_0: "got: %d"
+    printf(_foo__foo_4_0, x, ok)
 }
 
-_start: (){
-    __temp_6: __lambda_1()
-    foo(__temp_6)
+_1: (){
+    __1_0: 0
+    exit(__1_0)
 }
-
-__lambda_1: (){
-    __temp_7: 0
-    exit(__temp_7)
-}
+_0: _1()
+foo(_0)

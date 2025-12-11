@@ -129,6 +129,14 @@ cons_closure_entry:
     pop rbx ; restore saved base register
     leave ; epilogue: restore rbp of caller
     jmp cons ; jump into actual function
+global _start
+_start:
+    push rbp ; save caller frame pointer
+    mov rbp, rsp ; establish new frame base
+    leave ; epilogue: restore rbp and rsp
+    mov rax, 60 ; exit syscall
+    xor rdi, rdi
+    syscall
 internal_release_env:
     push rbp ; prologue: save caller frame pointer
     mov rbp, rsp ; prologue: establish new frame

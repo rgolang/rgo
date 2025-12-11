@@ -1,28 +1,44 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::compiler::ast::TypeRef;
-use crate::compiler::error::ParseError;
+use crate::compiler::ast;
+use crate::compiler::error::{CompileError, CompileErrorCode};
 use crate::compiler::span::Span;
 
 #[derive(Debug, Clone)]
 pub struct FunctionSig {
     pub name: String,
-    pub params: Vec<TypeRef>,
-    pub is_variadic: Vec<bool>,
+    pub params: Vec<ast::SigItem>,
     pub span: Span,
+}
+
+impl FunctionSig {
+    pub fn param_kinds(&self) -> Vec<ast::SigKind> {
+        self.params
+            .iter()
+            .map(|item| item.ty.kind.clone())
+            .collect()
+    }
+
+    pub fn is_variadic(&self) -> bool {
+        self.params.iter().any(|item| item.is_variadic)
+    }
+
+    pub fn variadic_flags(&self) -> Vec<bool> {
+        self.params.iter().map(|item| item.is_variadic).collect()
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct CaptureParam {
     pub name: String,
-    pub ty: TypeRef,
+    pub ty: ast::SigItem,
     pub span: Span,
 }
 
 #[derive(Debug, Clone)]
 pub struct TypeInfo {
     pub name: String,
-    pub target: TypeRef,
+    pub target: ast::SigKind,
     pub span: Span,
     pub variadic: Vec<bool>,
     pub generics: Vec<String>,
@@ -33,13 +49,13 @@ pub struct SymbolRegistry {
     lambda_counter: usize,
     temp_counter: usize,
     type_counter: usize,
-    named_types: HashMap<TypeRef, String>,
+    named_types: HashMap<ast::SigKind, String>,
     functions: HashMap<String, FunctionSig>,
     types: HashMap<String, TypeInfo>,
-    values: HashMap<String, TypeRef>,
+    values: HashMap<String, ast::SigKind>,
     builtin_imports: HashSet<String>,
     captures: HashMap<String, Vec<CaptureParam>>,
-    type_variadics: HashMap<TypeRef, Vec<bool>>,
+    type_variadics: HashMap<ast::SigKind, Vec<bool>>,
 }
 
 impl SymbolRegistry {
@@ -58,7 +74,7 @@ impl SymbolRegistry {
         }
     }
 
-    pub fn register_function_capture(&mut self, name: String, captures: Vec<CaptureParam>) {
+    pub fn register_function_with_captures(&mut self, name: String, captures: Vec<CaptureParam>) {
         if let Some(sig) = self.functions.get_mut(&name) {
             let mut new_params = captures
                 .iter()
@@ -84,13 +100,10 @@ impl SymbolRegistry {
         &self.builtin_imports
     }
 
-    pub fn declare_function(&mut self, sig: FunctionSig) -> Result<(), ParseError> {
-        if self.functions.contains_key(&sig.name) {
-            return Err(ParseError::new(
-                format!("function '{}' already declared", sig.name),
-                sig.span,
-            ));
-        }
+    pub fn declare_function(&mut self, sig: FunctionSig) -> Result<(), CompileError> {
+        // if sig.name == "myexit" {
+        //     panic!("cannot declare a function with name 'myexit'");
+        // }
         self.functions.insert(sig.name.clone(), sig);
         Ok(())
     }
@@ -98,15 +111,14 @@ impl SymbolRegistry {
     pub fn update_function_signature(
         &mut self,
         name: &str,
-        params: Vec<TypeRef>,
-        is_variadic: Vec<bool>,
-    ) -> Result<(), ParseError> {
+        params: Vec<ast::SigItem>,
+    ) -> Result<(), CompileError> {
         if let Some(sig) = self.functions.get_mut(name) {
             sig.params = params;
-            sig.is_variadic = is_variadic;
             Ok(())
         } else {
-            Err(ParseError::new(
+            Err(CompileError::new(
+                CompileErrorCode::Parse,
                 format!("function '{}' not declared", name),
                 Span::unknown(),
             ))
@@ -116,17 +128,11 @@ impl SymbolRegistry {
     pub fn install_type(
         &mut self,
         name: String,
-        term: TypeRef,
+        term: ast::SigKind,
         span: Span,
         variadic: Vec<bool>,
         generics: Vec<String>,
-    ) -> Result<(), ParseError> {
-        if self.types.contains_key(&name) {
-            return Err(ParseError::new(
-                format!("type '{}' already declared", name),
-                span,
-            ));
-        }
+    ) -> Result<(), CompileError> {
         self.types.insert(
             name.clone(),
             TypeInfo {
@@ -138,21 +144,29 @@ impl SymbolRegistry {
             },
         );
         self.record_type_variadic(term.clone(), variadic.clone());
-        self.record_type_variadic(TypeRef::Alias(name.clone()), variadic);
+        self.record_type_variadic(
+            ast::SigKind::Ident(ast::SigIdent {
+                name: name.clone(),
+                has_bang: false,
+                span,
+            }),
+            variadic,
+        );
         Ok(())
     }
 
     pub fn declare_value(
         &mut self,
         name: String,
-        ty: TypeRef,
+        ty: ast::SigKind,
         span: Span,
-    ) -> Result<(), ParseError> {
+    ) -> Result<(), CompileError> {
         if self.values.contains_key(&name)
             || self.functions.contains_key(&name)
             || self.types.contains_key(&name)
         {
-            return Err(ParseError::new(
+            return Err(CompileError::new(
+                CompileErrorCode::Parse,
                 format!("symbol '{}' already declared", name),
                 span,
             ));
@@ -167,74 +181,144 @@ impl SymbolRegistry {
         name
     }
 
-    pub fn normalize_top_level_type(&mut self, ty: TypeRef) -> TypeRef {
+    pub fn normalize_top_level_type(&mut self, ty: ast::SigKind) -> ast::SigKind {
         match ty {
-            TypeRef::Type(params) => TypeRef::Type(
-                params
+            ast::SigKind::Tuple(sig) => {
+                let new_items = sig
+                    .items
                     .into_iter()
-                    .map(|param| self.normalize_nested_type(param))
-                    .collect(),
-            ),
+                    .map(|item| {
+                        let normalized_kind = self.normalize_nested_type(item.ty.kind);
+
+                        ast::SigItem {
+                            name: item.name,
+                            ty: ast::SigType {
+                                kind: normalized_kind,
+                                span: item.ty.span,
+                            },
+                            is_variadic: item.is_variadic,
+                            span: item.span,
+                        }
+                    })
+                    .collect();
+
+                ast::SigKind::Tuple(ast::Signature {
+                    items: new_items,
+                    span: sig.span,
+                })
+            }
+
             other => other,
         }
     }
 
-    fn normalize_nested_type(&mut self, ty: TypeRef) -> TypeRef {
+    fn normalize_nested_type(&mut self, ty: ast::SigKind) -> ast::SigKind {
         match ty {
-            TypeRef::Type(params) => {
-                let normalized_params = params
-                    .into_iter()
-                    .map(|param| self.normalize_nested_type(param))
-                    .collect::<Vec<_>>();
-                let normalized = TypeRef::Type(normalized_params);
+            ast::SigKind::Tuple(sig) => {
+                // Normalize each SigItem's type recursively
+                let mut new_items = Vec::with_capacity(sig.items.len());
+
+                for item in sig.items {
+                    let normalized_kind = self.normalize_nested_type(item.ty.kind);
+
+                    new_items.push(ast::SigItem {
+                        name: item.name,
+                        ty: ast::SigType {
+                            kind: normalized_kind,
+                            span: item.ty.span,
+                        },
+                        is_variadic: item.is_variadic,
+                        span: item.span,
+                    });
+                }
+
+                let normalized = ast::SigKind::Tuple(ast::Signature {
+                    items: new_items,
+                    span: sig.span,
+                });
+
+                // If it still contains generics → do NOT alias it.
                 if self.type_contains_generic(&normalized, &mut HashSet::new()) {
                     return normalized;
                 }
+
+                // Check if we already assigned a name to this normalized tuple
                 if let Some(name) = self.named_types.get(&normalized) {
-                    return TypeRef::Alias(name.clone());
+                    return ast::SigKind::Ident(ast::SigIdent {
+                        name: name.clone(),
+                        has_bang: false,
+                        span: Span::unknown(),
+                    });
                 }
+
+                // Create a fresh alias name for the tuple
                 let alias_name = self.fresh_type_name();
-                self.named_types
-                    .insert(normalized.clone(), alias_name.clone());
+
+                // Register alias → underlying tuple
                 let variadic = self
                     .get_type_variadic(&normalized)
                     .cloned()
                     .unwrap_or_default();
+
+                self.named_types
+                    .insert(normalized.clone(), alias_name.clone());
+
                 self.install_type(
                     alias_name.clone(),
                     normalized.clone(),
-                    Span::unknown(),
+                    Span::unknown(), // TODO
                     variadic,
-                    Vec::new(),
+                    Vec::new(), // no generic params
                 )
                 .expect("failed to register normalized type");
-                TypeRef::Alias(alias_name)
+
+                // Return the alias as a SigKind::Ident
+                ast::SigKind::Ident(ast::SigIdent {
+                    name: alias_name,
+                    has_bang: false,
+                    span: Span::unknown(),
+                })
             }
+
+            // non-tuple → identity
             other => other,
         }
     }
-
-    fn type_contains_generic(&self, ty: &TypeRef, visited: &mut HashSet<String>) -> bool {
+    fn type_contains_generic(&self, ty: &ast::SigKind, visited: &mut HashSet<String>) -> bool {
         match ty {
-            TypeRef::Generic(_) => true,
-            TypeRef::Type(params) => params
+            // --- Generic parameter directly present ---
+            ast::SigKind::Generic(_) => true,
+
+            // --- Tuple signature: recursively check each SigItem ---
+            ast::SigKind::Tuple(sig) => sig
+                .items
                 .iter()
-                .any(|param| self.type_contains_generic(param, visited)),
-            TypeRef::AliasInstance { args, .. } => args
+                .any(|item| self.type_contains_generic(&item.ty.kind, visited)),
+
+            // --- Generic instantiation: Foo<T, X> ---
+            ast::SigKind::GenericInst { args, .. } => args
                 .iter()
-                .any(|arg| self.type_contains_generic(arg, visited)),
-            TypeRef::Alias(name) => {
+                .any(|arg| self.type_contains_generic(&arg.kind, visited)),
+
+            // --- Identifier: resolve alias and check its target ---
+            ast::SigKind::Ident(ident) => {
+                let name = &ident.name;
+
                 if visited.contains(name) {
                     return false;
                 }
+
                 if let Some(info) = self.types.get(name) {
                     visited.insert(name.clone());
                     let result = self.type_contains_generic(&info.target, visited);
                     visited.remove(name);
                     return result;
                 }
+
                 false
             }
+
+            // --- All other kinds ---
             _ => false,
         }
     }
@@ -242,18 +326,26 @@ impl SymbolRegistry {
     pub fn update_type(
         &mut self,
         name: &str,
-        target: TypeRef,
+        target: ast::SigKind,
         variadic: Vec<bool>,
-    ) -> Result<(), ParseError> {
+    ) -> Result<(), CompileError> {
         if let Some(info) = self.types.get_mut(name) {
             let target_clone = target.clone();
             info.target = target;
             info.variadic = variadic.clone();
             self.record_type_variadic(target_clone, variadic.clone());
-            self.record_type_variadic(TypeRef::Alias(name.to_string()), variadic);
+            self.record_type_variadic(
+                ast::SigKind::Ident(ast::SigIdent {
+                    name: name.to_string(),
+                    has_bang: false,
+                    span: Span::unknown(),
+                }),
+                variadic,
+            );
             Ok(())
         } else {
-            Err(ParseError::new(
+            Err(CompileError::new(
+                CompileErrorCode::Parse,
                 format!("type '{}' not declared", name),
                 Span::unknown(),
             ))
@@ -272,28 +364,29 @@ impl SymbolRegistry {
         self.types.get_mut(name)
     }
 
-    pub fn get_value(&self, name: &str) -> Option<&TypeRef> {
+    pub fn get_value(&self, name: &str) -> Option<&ast::SigKind> {
         self.values.get(name)
     }
 
-    pub fn record_type_variadic(&mut self, ty: TypeRef, variadic: Vec<bool>) {
+    pub fn record_type_variadic(&mut self, ty: ast::SigKind, variadic: Vec<bool>) {
         self.type_variadics.insert(ty, variadic);
     }
 
-    pub fn get_type_variadic(&self, ty: &TypeRef) -> Option<&Vec<bool>> {
+    pub fn get_type_variadic(&self, ty: &ast::SigKind) -> Option<&Vec<bool>> {
         let mut visited = HashSet::new();
         self.get_type_variadic_inner(ty, &mut visited)
     }
 
     fn get_type_variadic_inner(
         &self,
-        ty: &TypeRef,
+        ty: &ast::SigKind,
         visited: &mut HashSet<String>,
     ) -> Option<&Vec<bool>> {
         if let Some(flags) = self.type_variadics.get(ty) {
             return Some(flags);
         }
-        if let TypeRef::Alias(name) = ty {
+        if let ast::SigKind::Ident(ident) = ty {
+            let name = &ident.name;
             if visited.contains(name) {
                 return None;
             }
@@ -306,7 +399,7 @@ impl SymbolRegistry {
                 visited.remove(name);
                 return result;
             }
-        } else if let TypeRef::AliasInstance { name, .. } = ty {
+        } else if let ast::SigKind::GenericInst { name, .. } = ty {
             if visited.contains(name) {
                 return None;
             }
@@ -321,15 +414,19 @@ impl SymbolRegistry {
         None
     }
 
-    pub fn resolve_type(&self, name: &str) -> Option<TypeRef> {
+    pub fn resolve_type(&self, name: &str) -> Option<ast::SigKind> {
         if name == "Int" || name == "int" {
-            return Some(TypeRef::Int);
+            return Some(ast::SigKind::Int);
         }
         if name == "Str" || name == "str" {
-            return Some(TypeRef::Str);
+            return Some(ast::SigKind::Str);
         }
-        if self.types.contains_key(name) {
-            return Some(TypeRef::Alias(name.to_string()));
+        if let Some(info) = self.types.get(name) {
+            return Some(ast::SigKind::Ident(ast::SigIdent {
+                name: name.to_string(),
+                has_bang: false,
+                span: info.span,
+            }));
         }
         None
     }

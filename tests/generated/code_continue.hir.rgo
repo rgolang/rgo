@@ -1,26 +1,28 @@
+@/str
+@/int
+@/exit
+@/printf
+@/add
 foo: (x: int, y: int, ok:(int)){
     add(x, y, ok)
 }
 
 run: (ok:()){
-    __temp_0: 1
-    __temp_1: 2
-    k: k
-    __temp_3: k(ok)
-    foo(__temp_0, __temp_1, __temp_3)
+    _run_0: 1
+    _run_1: 2
+    _run_k_2: _run_k_2
+    _run__run_k_2_3: _run_k_2(ok)
+    foo(_run_0, _run_1, _run__run_k_2_3)
 }
 
-k: (ok:(), x: int){
-    __temp_2: "number: %d"
-    printf(__temp_2, x, ok)
+_run_k_2: (ok:(), x: int){
+    _run__run_k_2_0: "number: %d"
+    printf(_run__run_k_2_0, x, ok)
 }
 
-_start: (){
-    __temp_4: __lambda_0()
-    run(__temp_4)
+_1: (){
+    __1_0: 0
+    exit(__1_0)
 }
-
-__lambda_0: (){
-    __temp_5: 0
-    exit(__temp_5)
-}
+_0: _1()
+run(_0)

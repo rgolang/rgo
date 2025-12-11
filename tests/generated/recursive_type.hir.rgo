@@ -1,25 +1,26 @@
-identity: (node:(int, tail)){
-    __temp_0: "unused\n"
-    __temp_1: __lambda_0()
-    printf(__temp_0, __temp_1)
+@/printf
+@/str
+@/exit
+tail: (int, tail)
+identity: (node: tail){
+    _identity_0: "unused\n"
+    _identity_1: _identity_2()
+    printf(_identity_0, _identity_1)
 }
 
-__lambda_0: (){
-    __temp_2: 0
-    exit(__temp_2)
+_identity_2: (){
+    _identity__identity_2_0: 0
+    exit(_identity__identity_2_0)
 }
 
 hello: (){
-    __temp_3: "hi\n"
-    __temp_4: __lambda_1()
-    printf(__temp_3, __temp_4)
+    _hello_0: "hi\n"
+    _hello_1: _hello_2()
+    printf(_hello_0, _hello_1)
 }
 
-__lambda_1: (){
-    __temp_5: 0
-    exit(__temp_5)
+_hello_2: (){
+    _hello__hello_2_0: 0
+    exit(_hello__hello_2_0)
 }
-
-_start: (){
-    hello()
-}
+hello()

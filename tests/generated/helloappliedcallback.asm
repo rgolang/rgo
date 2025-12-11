@@ -131,8 +131,8 @@ foo_closure_entry:
     pop rbx ; restore saved base register
     leave ; epilogue: restore rbp of caller
     jmp foo ; jump into actual function
-global __lambda_0
-__lambda_0:
+global _3
+_3:
     push rbp ; save caller frame pointer
     mov rbp, rsp ; establish new frame base
     sub rsp, 16 ; reserve stack space for locals
@@ -143,7 +143,7 @@ __lambda_0:
     leave ; unwind before exit
     mov rax, 60 ; exit syscall
     syscall ; exit program
-__lambda_0_closure_entry:
+_3_closure_entry:
     push rbp ; save caller frame pointer
     mov rbp, rsp ; establish wrapper frame
     sub rsp, 16 ; reserve space for env metadata scratch
@@ -160,7 +160,7 @@ __lambda_0_closure_entry:
     syscall ; release wrapper closure environment
     pop rbx ; restore saved base register
     leave ; epilogue: restore rbp of caller
-    jmp __lambda_0 ; jump into actual function
+    jmp _3 ; jump into actual function
 global _start
 _start:
     push rbp ; save caller frame pointer
@@ -229,7 +229,7 @@ _start:
     mov qword [rdx], 0 ; env size metadata
     mov qword [rdx+8], 24 ; heap size metadata
     mov qword [rdx+16], 0 ; pointer count metadata
-    mov rax, __lambda_0_closure_entry ; load wrapper entry point
+    mov rax, _3_closure_entry ; load wrapper entry point
     sub rsp, 24 ; allocate temporary stack for closure state
     mov [rsp], rax ; save closure code pointer temporarily
     mov [rsp+8], rdx ; save closure env_end pointer temporarily

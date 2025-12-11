@@ -1,18 +1,17 @@
+@/write
+@/exit
 bar: (v: str, ok:()){
     write(v, ok)
 }
-
+msg: "hi"
 foo: (msg: str){
-    __temp_0: __lambda_0()
-    bar(msg, __temp_0)
+    _foo_0: _foo_1()
+    bar(msg, _foo_0)
 }
 
-__lambda_0: (){
-    __temp_1: 0
-    exit(__temp_1)
+_foo_1: (){
+    _foo__foo_1_0: 0
+    exit(_foo__foo_1_0)
 }
-
-_start: (){
-    msg: "hi"
-    foo(msg)
-}
+_foo_0: foo(msg)
+_foo_0()

@@ -1,18 +1,17 @@
+@/write
+@/exit
 foo: (){
-    __lambda_0()
+    _foo_0()
 }
 
-__lambda_0: (){
-    __temp_0: "foo,"
-    __temp_1: __lambda_1()
-    write(__temp_0, __temp_1)
+_foo__foo_0_2: (){
+    _foo__foo_0__foo__foo_0_2_0: 0
+    exit(_foo__foo_0__foo__foo_0_2_0)
 }
 
-__lambda_1: (){
-    __temp_2: 0
-    exit(__temp_2)
+_foo_0: (){
+    _foo__foo_0_0: "foo,"
+    _foo__foo_0_1: _foo__foo_0_2()
+    write(_foo__foo_0_0, _foo__foo_0_1)
 }
-
-_start: (){
-    foo()
-}
+foo()

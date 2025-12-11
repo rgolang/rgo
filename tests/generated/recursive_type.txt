@@ -6,7 +6,6 @@
             column: 1,
             offset: 0,
         },
-        is_libc: true,
     },
     Import {
         name: "/str",
@@ -15,7 +14,6 @@
             column: 1,
             offset: 9,
         },
-        is_libc: false,
     },
     Import {
         name: "/exit",
@@ -24,18 +22,65 @@
             column: 1,
             offset: 15,
         },
-        is_libc: true,
     },
-    TypeDef {
+    SigDef {
         name: "tail",
-        term: Type(
-            [
-                Int,
-                Alias(
-                    "tail",
-                ),
-            ],
+        term: Tuple(
+            Signature {
+                items: [
+                    SigItem {
+                        name: None,
+                        ty: SigType {
+                            kind: Int,
+                            span: Span {
+                                line: 0,
+                                column: 0,
+                                offset: 0,
+                            },
+                        },
+                        is_variadic: false,
+                        span: Span {
+                            line: 0,
+                            column: 0,
+                            offset: 0,
+                        },
+                    },
+                    SigItem {
+                        name: None,
+                        ty: SigType {
+                            kind: Ident(
+                                SigIdent {
+                                    name: "tail",
+                                    has_bang: false,
+                                    span: Span {
+                                        line: 5,
+                                        column: 22,
+                                        offset: 44,
+                                    },
+                                },
+                            ),
+                            span: Span {
+                                line: 0,
+                                column: 0,
+                                offset: 0,
+                            },
+                        },
+                        is_variadic: false,
+                        span: Span {
+                            line: 0,
+                            column: 0,
+                            offset: 0,
+                        },
+                    },
+                ],
+                span: Span {
+                    line: 0,
+                    column: 0,
+                    offset: 0,
+                },
+            },
         ),
+        generics: [],
         span: Span {
             line: 5,
             column: 1,
@@ -45,19 +90,36 @@
     FunctionDef {
         name: "identity",
         lambda: Lambda {
-            params: Params {
+            params: Signature {
                 items: [
-                    NameAndType {
-                        name: "node",
-                        ty: Alias(
-                            "tail",
+                    SigItem {
+                        name: Some(
+                            "node",
                         ),
+                        ty: SigType {
+                            kind: Ident(
+                                SigIdent {
+                                    name: "tail",
+                                    has_bang: false,
+                                    span: Span {
+                                        line: 7,
+                                        column: 18,
+                                        offset: 68,
+                                    },
+                                },
+                            ),
+                            span: Span {
+                                line: 7,
+                                column: 18,
+                                offset: 68,
+                            },
+                        },
+                        is_variadic: false,
                         span: Span {
                             line: 7,
                             column: 12,
                             offset: 62,
                         },
-                        is_variadic: false,
                     },
                 ],
                 span: Span {
@@ -135,7 +197,7 @@
     FunctionDef {
         name: "hello",
         lambda: Lambda {
-            params: Params {
+            params: Signature {
                 items: [],
                 span: Span {
                     line: 11,

@@ -1,29 +1,29 @@
-_start: (){
-    __temp_0: 1
-    __temp_1: 1
-    __temp_2: __lambda_0()
-    __temp_6: __lambda_2()
-    eqi(__temp_0, __temp_1, __temp_2, __temp_6)
+@/eqi
+@/write
+@/exit
+__3_2: (){
+    __3___3_2_0: 0
+    exit(__3___3_2_0)
 }
 
-__lambda_0: (){
-    __temp_3: "true"
-    __temp_4: __lambda_1()
-    write(__temp_3, __temp_4)
+_3: (){
+    __3_0: "true"
+    __3_1: __3_2()
+    write(__3_0, __3_1)
 }
 
-__lambda_1: (){
-    __temp_5: 0
-    exit(__temp_5)
+__5_2: (){
+    __5___5_2_0: 0
+    exit(__5___5_2_0)
 }
 
-__lambda_2: (){
-    __temp_7: "false"
-    __temp_8: __lambda_3()
-    write(__temp_7, __temp_8)
+_5: (){
+    __5_0: "false"
+    __5_1: __5_2()
+    write(__5_0, __5_1)
 }
-
-__lambda_3: (){
-    __temp_9: 0
-    exit(__temp_9)
-}
+_0: 1
+_1: 1
+_2: _3()
+_4: _5()
+eqi(_0, _1, _2, _4)

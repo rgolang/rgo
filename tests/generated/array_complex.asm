@@ -1,36 +1,6 @@
 bits 64
 default rel
 section .text
-global __lambda_0
-__lambda_0:
-    push rbp ; save caller frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov rax, 0 ; load literal integer
-    mov [rbp-16], rax ; save evaluated scalar in frame
-    mov rax, [rbp-16] ; load scalar from frame
-    mov rdi, rax ; pass exit code
-    leave ; unwind before exit
-    mov rax, 60 ; exit syscall
-    syscall ; exit program
-__lambda_0_closure_entry:
-    push rbp ; save caller frame pointer
-    mov rbp, rsp ; establish wrapper frame
-    sub rsp, 16 ; reserve space for env metadata scratch
-    mov [rbp-8], rdi ; stash env_end pointer for release
-    push rbx ; preserve base register
-    mov rbx, rdi ; rdi points to env_end when invoked
-    mov rdx, [rbp-8] ; load saved env_end pointer
-    mov rcx, [rdx] ; read env size metadata
-    mov rsi, [rdx+8] ; read heap size metadata
-    mov rbx, rdx ; env_end pointer for release
-    sub rbx, rcx ; compute env base pointer
-    mov rdi, rbx ; munmap base pointer
-    mov rax, 11 ; munmap syscall
-    syscall ; release wrapper closure environment
-    pop rbx ; restore saved base register
-    leave ; epilogue: restore rbp of caller
-    jmp __lambda_0 ; jump into actual function
 global err
 err:
     push rbp ; save caller frame pointer
@@ -50,7 +20,7 @@ err:
     mov qword [rdx], 0 ; env size metadata
     mov qword [rdx+8], 24 ; heap size metadata
     mov qword [rdx+16], 0 ; pointer count metadata
-    mov rax, __lambda_0_closure_entry ; load wrapper entry point
+    mov rax, _err_2_closure_entry ; load wrapper entry point
     sub rsp, 24 ; allocate temporary stack for closure state
     mov [rsp], rax ; save closure code pointer temporarily
     mov [rsp+8], rdx ; save closure env_end pointer temporarily
@@ -102,6 +72,36 @@ err_closure_entry:
     pop rbx ; restore saved base register
     leave ; epilogue: restore rbp of caller
     jmp err ; jump into actual function
+global _err_2
+_err_2:
+    push rbp ; save caller frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov rax, 0 ; load literal integer
+    mov [rbp-16], rax ; save evaluated scalar in frame
+    mov rax, [rbp-16] ; load scalar from frame
+    mov rdi, rax ; pass exit code
+    leave ; unwind before exit
+    mov rax, 60 ; exit syscall
+    syscall ; exit program
+_err_2_closure_entry:
+    push rbp ; save caller frame pointer
+    mov rbp, rsp ; establish wrapper frame
+    sub rsp, 16 ; reserve space for env metadata scratch
+    mov [rbp-8], rdi ; stash env_end pointer for release
+    push rbx ; preserve base register
+    mov rbx, rdi ; rdi points to env_end when invoked
+    mov rdx, [rbp-8] ; load saved env_end pointer
+    mov rcx, [rdx] ; read env size metadata
+    mov rsi, [rdx+8] ; read heap size metadata
+    mov rbx, rdx ; env_end pointer for release
+    sub rbx, rcx ; compute env base pointer
+    mov rdi, rbx ; munmap base pointer
+    mov rax, 11 ; munmap syscall
+    syscall ; release wrapper closure environment
+    pop rbx ; restore saved base register
+    leave ; epilogue: restore rbp of caller
+    jmp _err_2 ; jump into actual function
 global array
 array:
     push rbp ; save caller frame pointer
@@ -159,8 +159,118 @@ array_closure_entry:
     pop rbx ; restore saved base register
     leave ; epilogue: restore rbp of caller
     jmp array ; jump into actual function
-global __lambda_1
-__lambda_1:
+global __4___4_1_2
+__4___4_1_2:
+    push rbp ; save caller frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov rax, 0 ; load literal integer
+    mov [rbp-16], rax ; save evaluated scalar in frame
+    mov rax, [rbp-16] ; load scalar from frame
+    mov rdi, rax ; pass exit code
+    leave ; unwind before exit
+    mov rax, 60 ; exit syscall
+    syscall ; exit program
+__4___4_1_2_closure_entry:
+    push rbp ; save caller frame pointer
+    mov rbp, rsp ; establish wrapper frame
+    sub rsp, 16 ; reserve space for env metadata scratch
+    mov [rbp-8], rdi ; stash env_end pointer for release
+    push rbx ; preserve base register
+    mov rbx, rdi ; rdi points to env_end when invoked
+    mov rdx, [rbp-8] ; load saved env_end pointer
+    mov rcx, [rdx] ; read env size metadata
+    mov rsi, [rdx+8] ; read heap size metadata
+    mov rbx, rdx ; env_end pointer for release
+    sub rbx, rcx ; compute env base pointer
+    mov rdi, rbx ; munmap base pointer
+    mov rax, 11 ; munmap syscall
+    syscall ; release wrapper closure environment
+    pop rbx ; restore saved base register
+    leave ; epilogue: restore rbp of caller
+    jmp __4___4_1_2 ; jump into actual function
+global __4_1
+__4_1:
+    push rbp ; save caller frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 64 ; reserve stack space for locals
+    mov [rbp-16], rdi ; store scalar arg in frame
+    mov [rbp-32], rsi ; store scalar arg in frame
+    lea rax, [rel str_literal_1] ; point to string literal
+    mov [rbp-48], rax ; save evaluated scalar in frame
+    mov rax, 9 ; mmap syscall
+    xor rdi, rdi ; addr = NULL hint
+    mov rsi, 24 ; length for allocation
+    mov rdx, 3 ; prot = read/write
+    mov r10, 34 ; flags: private & anonymous
+    mov r8, -1 ; fd = -1
+    xor r9, r9 ; offset = 0
+    syscall ; allocate env pages
+    mov rdx, rax ; store env base pointer
+    mov qword [rdx], 0 ; env size metadata
+    mov qword [rdx+8], 24 ; heap size metadata
+    mov qword [rdx+16], 0 ; pointer count metadata
+    mov rax, __4___4_1_2_closure_entry ; load wrapper entry point
+    sub rsp, 24 ; allocate temporary stack for closure state
+    mov [rsp], rax ; save closure code pointer temporarily
+    mov [rsp+8], rdx ; save closure env_end pointer temporarily
+    mov rax, [rsp] ; restore closure code pointer
+    mov rdx, [rsp+8] ; restore closure env_end pointer
+    add rsp, 24 ; pop temporary closure state
+    mov [rbp-64], rax ; update closure code pointer
+    mov [rbp-56], rdx ; update closure environment pointer
+    mov rax, [rbp-64] ; load closure code pointer
+    mov rdx, [rbp-56] ; load closure env_end pointer
+    push rax ; preserve continuation code pointer
+    push rdx ; preserve continuation env_end pointer
+    mov rax, [rbp-32] ; load scalar from frame
+    push rax ; stack arg: scalar
+    mov rax, [rbp-16] ; load scalar from frame
+    push rax ; stack arg: scalar
+    mov rax, [rbp-48] ; load scalar from frame
+    push rax ; stack arg: scalar
+    pop rdi ; restore scalar arg into register
+    pop rsi ; restore scalar arg into register
+    pop rdx ; restore scalar arg into register
+    sub rsp, 8 ; align stack for variadic call
+    call printf ; invoke libc printf
+    add rsp, 8
+    mov rdi, [rel stdout] ; flush stdout
+    sub rsp, 8 ; align stack for fflush
+    call fflush
+    add rsp, 8
+    pop rdx ; restore continuation env_end pointer
+    pop rax ; restore continuation code pointer
+    mov rdi, rdx ; pass env_end pointer to continuation
+    leave ; unwind before jumping
+    jmp rax ; jump into continuation
+__4_1_closure_entry:
+    push rbp ; save caller frame pointer
+    mov rbp, rsp ; establish wrapper frame
+    sub rsp, 16 ; reserve space for env metadata scratch
+    mov [rbp-8], rdi ; stash env_end pointer for release
+    push rbx ; preserve base register
+    mov rbx, rdi ; rdi points to env_end when invoked
+    sub rbx, 16 ; compute env base
+    mov rdi, [rbx+0] ; load scalar param from env
+    push rdi ; preserve parameter register
+    mov rsi, [rbx+8] ; load scalar param from env
+    push rsi ; preserve parameter register
+    mov rdx, [rbp-8] ; load saved env_end pointer
+    mov rcx, [rdx] ; read env size metadata
+    mov rsi, [rdx+8] ; read heap size metadata
+    mov rbx, rdx ; env_end pointer for release
+    sub rbx, rcx ; compute env base pointer
+    mov rdi, rbx ; munmap base pointer
+    mov rax, 11 ; munmap syscall
+    syscall ; release wrapper closure environment
+    pop rsi ; restore parameter register
+    pop rdi ; restore parameter register
+    pop rbx ; restore saved base register
+    leave ; epilogue: restore rbp of caller
+    jmp __4_1 ; jump into actual function
+global _4
+_4:
     push rbp ; save caller frame pointer
     mov rbp, rsp ; establish new frame base
     sub rsp, 80 ; reserve stack space for locals
@@ -182,7 +292,7 @@ __lambda_1:
     mov qword [rdx], 16 ; env size metadata
     mov qword [rdx+8], 40 ; heap size metadata
     mov qword [rdx+16], 0 ; pointer count metadata
-    mov rax, __lambda_2_closure_entry ; load wrapper entry point
+    mov rax, __4_1_closure_entry ; load wrapper entry point
     sub rsp, 24 ; allocate temporary stack for closure state
     mov [rsp], rax ; save closure code pointer temporarily
     mov [rsp+8], rdx ; save closure env_end pointer temporarily
@@ -259,7 +369,7 @@ __lambda_1:
     mov rdi, rdx ; pass env_end pointer as parameter
     leave ; unwind before calling closure
     jmp rax ; jump into fully applied closure
-__lambda_1_closure_entry:
+_4_closure_entry:
     push rbp ; save caller frame pointer
     mov rbp, rsp ; establish wrapper frame
     sub rsp, 16 ; reserve space for env metadata scratch
@@ -286,117 +396,7 @@ __lambda_1_closure_entry:
     pop rdi ; restore parameter register
     pop rbx ; restore saved base register
     leave ; epilogue: restore rbp of caller
-    jmp __lambda_1 ; jump into actual function
-global __lambda_2
-__lambda_2:
-    push rbp ; save caller frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 64 ; reserve stack space for locals
-    mov [rbp-16], rdi ; store scalar arg in frame
-    mov [rbp-32], rsi ; store scalar arg in frame
-    lea rax, [rel str_literal_1] ; point to string literal
-    mov [rbp-48], rax ; save evaluated scalar in frame
-    mov rax, 9 ; mmap syscall
-    xor rdi, rdi ; addr = NULL hint
-    mov rsi, 24 ; length for allocation
-    mov rdx, 3 ; prot = read/write
-    mov r10, 34 ; flags: private & anonymous
-    mov r8, -1 ; fd = -1
-    xor r9, r9 ; offset = 0
-    syscall ; allocate env pages
-    mov rdx, rax ; store env base pointer
-    mov qword [rdx], 0 ; env size metadata
-    mov qword [rdx+8], 24 ; heap size metadata
-    mov qword [rdx+16], 0 ; pointer count metadata
-    mov rax, __lambda_3_closure_entry ; load wrapper entry point
-    sub rsp, 24 ; allocate temporary stack for closure state
-    mov [rsp], rax ; save closure code pointer temporarily
-    mov [rsp+8], rdx ; save closure env_end pointer temporarily
-    mov rax, [rsp] ; restore closure code pointer
-    mov rdx, [rsp+8] ; restore closure env_end pointer
-    add rsp, 24 ; pop temporary closure state
-    mov [rbp-64], rax ; update closure code pointer
-    mov [rbp-56], rdx ; update closure environment pointer
-    mov rax, [rbp-64] ; load closure code pointer
-    mov rdx, [rbp-56] ; load closure env_end pointer
-    push rax ; preserve continuation code pointer
-    push rdx ; preserve continuation env_end pointer
-    mov rax, [rbp-32] ; load scalar from frame
-    push rax ; stack arg: scalar
-    mov rax, [rbp-16] ; load scalar from frame
-    push rax ; stack arg: scalar
-    mov rax, [rbp-48] ; load scalar from frame
-    push rax ; stack arg: scalar
-    pop rdi ; restore scalar arg into register
-    pop rsi ; restore scalar arg into register
-    pop rdx ; restore scalar arg into register
-    sub rsp, 8 ; align stack for variadic call
-    call printf ; invoke libc printf
-    add rsp, 8
-    mov rdi, [rel stdout] ; flush stdout
-    sub rsp, 8 ; align stack for fflush
-    call fflush
-    add rsp, 8
-    pop rdx ; restore continuation env_end pointer
-    pop rax ; restore continuation code pointer
-    mov rdi, rdx ; pass env_end pointer to continuation
-    leave ; unwind before jumping
-    jmp rax ; jump into continuation
-__lambda_2_closure_entry:
-    push rbp ; save caller frame pointer
-    mov rbp, rsp ; establish wrapper frame
-    sub rsp, 16 ; reserve space for env metadata scratch
-    mov [rbp-8], rdi ; stash env_end pointer for release
-    push rbx ; preserve base register
-    mov rbx, rdi ; rdi points to env_end when invoked
-    sub rbx, 16 ; compute env base
-    mov rdi, [rbx+0] ; load scalar param from env
-    push rdi ; preserve parameter register
-    mov rsi, [rbx+8] ; load scalar param from env
-    push rsi ; preserve parameter register
-    mov rdx, [rbp-8] ; load saved env_end pointer
-    mov rcx, [rdx] ; read env size metadata
-    mov rsi, [rdx+8] ; read heap size metadata
-    mov rbx, rdx ; env_end pointer for release
-    sub rbx, rcx ; compute env base pointer
-    mov rdi, rbx ; munmap base pointer
-    mov rax, 11 ; munmap syscall
-    syscall ; release wrapper closure environment
-    pop rsi ; restore parameter register
-    pop rdi ; restore parameter register
-    pop rbx ; restore saved base register
-    leave ; epilogue: restore rbp of caller
-    jmp __lambda_2 ; jump into actual function
-global __lambda_3
-__lambda_3:
-    push rbp ; save caller frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov rax, 0 ; load literal integer
-    mov [rbp-16], rax ; save evaluated scalar in frame
-    mov rax, [rbp-16] ; load scalar from frame
-    mov rdi, rax ; pass exit code
-    leave ; unwind before exit
-    mov rax, 60 ; exit syscall
-    syscall ; exit program
-__lambda_3_closure_entry:
-    push rbp ; save caller frame pointer
-    mov rbp, rsp ; establish wrapper frame
-    sub rsp, 16 ; reserve space for env metadata scratch
-    mov [rbp-8], rdi ; stash env_end pointer for release
-    push rbx ; preserve base register
-    mov rbx, rdi ; rdi points to env_end when invoked
-    mov rdx, [rbp-8] ; load saved env_end pointer
-    mov rcx, [rdx] ; read env size metadata
-    mov rsi, [rdx+8] ; read heap size metadata
-    mov rbx, rdx ; env_end pointer for release
-    sub rbx, rcx ; compute env base pointer
-    mov rdi, rbx ; munmap base pointer
-    mov rax, 11 ; munmap syscall
-    syscall ; release wrapper closure environment
-    pop rbx ; restore saved base register
-    leave ; epilogue: restore rbp of caller
-    jmp __lambda_3 ; jump into actual function
+    jmp _4 ; jump into actual function
 global _start
 _start:
     push rbp ; save caller frame pointer
@@ -422,7 +422,7 @@ _start:
     mov qword [rdx+8], 56 ; heap size metadata
     mov qword [rdx+16], 1 ; pointer count metadata
     mov qword [rdx+24], 16 ; closure env pointer slot offset
-    mov rax, __lambda_1_closure_entry ; load wrapper entry point
+    mov rax, _4_closure_entry ; load wrapper entry point
     sub rsp, 24 ; allocate temporary stack for closure state
     mov [rsp], rax ; save closure code pointer temporarily
     mov [rsp+8], rdx ; save closure env_end pointer temporarily
@@ -445,18 +445,18 @@ _start:
     syscall ; allocate env pages
     mov r14, rax ; stash base pointer for variadic array
     mov rax, [rbp-16] ; load scalar from frame
-    mov [r14+0], rax ; store variadic argument '__temp_3'
+    mov [r14+0], rax ; store variadic argument '_0'
     mov rax, [rbp-32] ; load scalar from frame
-    mov [r14+8], rax ; store variadic argument '__temp_4'
+    mov [r14+8], rax ; store variadic argument '_1'
     mov rax, [rbp-48] ; load scalar from frame
-    mov [r14+16], rax ; store variadic argument '__temp_5'
+    mov [r14+16], rax ; store variadic argument '_2'
     mov qword [r14+24], 3 ; record variadic argument length
     mov rdx, r14 ; env base pointer for array
     add rdx, 72 ; env_end pointer for array closure
     mov qword [rdx], 72 ; env size metadata for array
     mov qword [rdx+8], 104 ; heap size metadata for array
     mov qword [rdx+16], 0 ; pointer count metadata for array
-    mov qword [rdx+24], 40 ; invocation slot metadata for array
+    mov qword [rdx+24], 40 ; exec slot metadata for array
     mov rax, internal_array_str ; builtin array closure entry
     push rdx ; stack arg: closure env_end
     push rax ; stack arg: closure code
@@ -476,7 +476,7 @@ internal_array_str_nth:
     imul rax, 8 ; pointer metadata byte width
     lea r9, [r10+24] ; pointer metadata base
     add r9, rax ; offset to array extras
-    mov r9, [r9] ; load invocation slot size
+    mov r9, [r9] ; load exec slot size
     mov r11, r10 ; copy metadata pointer
     sub r11, r8 ; compute env base pointer
     mov rax, r8 ; payload plus slot bytes
@@ -523,7 +523,7 @@ internal_array_str:
     imul rax, 8 ; pointer metadata byte width
     lea r9, [r10+24] ; pointer metadata base
     add r9, rax ; offset to array extras
-    mov r9, [r9] ; load invocation slot size
+    mov r9, [r9] ; load exec slot size
     mov r11, r10 ; duplicate pointer
     sub r11, r8 ; compute env base
     mov rax, r8 ; payload plus slot bytes

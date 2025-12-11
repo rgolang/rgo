@@ -1,39 +1,43 @@
+@/int
+@/str
+@/exit
+@/write
+@/printf
+at: <T>(int, (), (T))
+arr: <T>((int, at<T>))
 err: (){
-    __temp_0: "none"
-    __temp_1: __lambda_0()
-    write(__temp_0, __temp_1)
+    _err_0: "none"
+    _err_1: _err_2()
+    write(_err_0, _err_1)
 }
 
-__lambda_0: (){
-    __temp_2: 0
-    exit(__temp_2)
+_err_2: (){
+    _err__err_2_0: 0
+    exit(_err__err_2_0)
 }
 
-array: (...items:((int, (int, (), (str)))), ok:(int, (int, (), (str)))){
+array: (...items: arr<str>, ok:(int, at<str>)){
     items(ok)
 }
 
-_start: (){
-    __temp_3: "a"
-    __temp_4: "b"
-    __temp_5: "c"
-    __temp_6: __lambda_1()
-    array(__temp_3, __temp_4, __temp_5, __temp_6)
+__4___4_1_2: (){
+    __4___4_1___4___4_1_2_0: 0
+    exit(__4___4_1___4___4_1_2_0)
 }
 
-__lambda_1: (len: int, nth:(int, (), (str))){
+__4_1: (i: int, v: str){
+    __4___4_1_0: "item at %d: %s"
+    __4___4_1_1: __4___4_1_2()
+    printf(__4___4_1_0, i, v, __4___4_1_1)
+}
+
+_4: (len: int, nth: at<str>){
     i: 1
-    __temp_7: __lambda_2(i)
-    nth(i, err, __temp_7)
+    __4_0: __4_1(i)
+    nth(i, err, __4_0)
 }
-
-__lambda_2: (i: int, v: str){
-    __temp_8: "item at %d: %s"
-    __temp_9: __lambda_3()
-    printf(__temp_8, i, v, __temp_9)
-}
-
-__lambda_3: (){
-    __temp_10: 0
-    exit(__temp_10)
-}
+_0: "a"
+_1: "b"
+_2: "c"
+_3: _4()
+array(_0, _1, _2, _3)

@@ -1,12 +1,12 @@
 use std::collections::{HashMap, HashSet};
 use std::io::Write;
 
-use crate::compiler::ast::TypeRef;
-use crate::compiler::error::CodegenError;
-use crate::compiler::hir::{Arg, Block, Exec, Param, ENTRY_FUNCTION_NAME};
+use crate::compiler::error::{CompileError, CompileErrorCode};
+use crate::compiler::hir::{Arg, Exec, SigItem};
+use crate::compiler::mir;
 use crate::compiler::mir::{
-    DeepCopy, MirEnvAllocation, MirFunction, MirFunctionBinding, MirModule, MirStatement,
-    MirVariadicExecInfo, ReleaseEnv,
+    DeepCopy, MirEnvAllocation, MirFunction, MirFunctionBinding, MirStatement, MirVariadicExecInfo,
+    ReleaseEnv,
 };
 use crate::compiler::runtime::{
     env_metadata_size, ENV_METADATA_FIELD_SIZE, ENV_METADATA_POINTER_COUNT_OFFSET,
@@ -15,32 +15,17 @@ use crate::compiler::runtime::{
 use crate::compiler::span::Span;
 use crate::compiler::symbol::{FunctionSig, SymbolRegistry};
 use crate::compiler::type_utils::expand_alias_chain;
+use crate::compiler::ENTRY_FUNCTION_NAME;
+use crate::compiler::{ast, hir};
+
+const WORD_SIZE: usize = 8;
 
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
 enum Expr {
-    Int {
-        value: i64,
-        span: Span,
-    },
-    Ident {
-        name: String,
-        span: Span,
-    },
-    String {
-        value: String,
-        span: Span,
-    },
-    Apply {
-        of: String,
-        args: Vec<Expr>,
-        span: Span,
-    },
-    Lambda {
-        params: Vec<Param>,
-        body: Block,
-        span: Span,
-    },
+    Int { value: i64, span: Span },
+    Ident { name: String, span: Span },
+    String { value: String, span: Span },
 }
 
 #[derive(Clone, Debug)]
@@ -67,7 +52,7 @@ const ARRAY_NTH_ONE_SLOT_OFFSET: usize = 16;
 const ARRAY_NTH_NONE_SLOT_OFFSET: usize = 32;
 const FMT_BUFFER_SIZE: usize = 1024;
 
-pub fn write_preamble<W: Write>(out: &mut W) -> Result<(), CodegenError> {
+pub fn write_preamble<W: Write>(out: &mut W) -> Result<(), CompileError> {
     writeln!(out, "bits 64")?;
     writeln!(out, "default rel")?;
     writeln!(out, "section .text")?;
@@ -85,7 +70,7 @@ pub fn emit_builtin_definitions<W: Write>(
     symbols: &SymbolRegistry,
     ctx: &mut CodegenContext,
     out: &mut W,
-) -> Result<(), CodegenError> {
+) -> Result<(), CompileError> {
     let mut builtins: Vec<&String> = symbols.builtin_imports().iter().collect();
     builtins.sort();
     for name in builtins {
@@ -115,7 +100,7 @@ pub fn function<W: Write>(
     symbols: &SymbolRegistry,
     ctx: &mut CodegenContext,
     out: &mut W,
-) -> Result<(), CodegenError> {
+) -> Result<(), CompileError> {
     if mir.owns_self {
         ctx.ensure_root_env_slot(&mir.name);
     }
@@ -170,7 +155,7 @@ impl CodegenContext {
         Self::literal_label(idx)
     }
 
-    pub fn emit_data<W: Write>(&self, out: &mut W) -> Result<(), CodegenError> {
+    pub fn emit_data<W: Write>(&self, out: &mut W) -> Result<(), CompileError> {
         let has_mutable = self
             .globals
             .iter()
@@ -268,7 +253,7 @@ impl CodegenContext {
         self.global_names.contains(name)
     }
 
-    pub fn emit_externs<W: Write>(&self, out: &mut W) -> Result<(), CodegenError> {
+    pub fn emit_externs<W: Write>(&self, out: &mut W) -> Result<(), CompileError> {
         if self.externs.is_empty() {
             return Ok(());
         }
@@ -301,7 +286,7 @@ impl CodegenContext {
         self.deep_copy_helper_needed = true;
     }
 
-    pub fn emit_array_builtins<W: Write>(&self, out: &mut W) -> Result<(), CodegenError> {
+    pub fn emit_array_builtins<W: Write>(&self, out: &mut W) -> Result<(), CompileError> {
         if !self.array_builtins_emitted {
             return Ok(());
         }
@@ -479,7 +464,7 @@ impl CodegenContext {
         Ok(())
     }
 
-    pub fn emit_release_helper<W: Write>(&self, out: &mut W) -> Result<(), CodegenError> {
+    pub fn emit_release_helper<W: Write>(&self, out: &mut W) -> Result<(), CompileError> {
         if !self.release_helper_needed {
             return Ok(());
         }
@@ -541,7 +526,7 @@ impl CodegenContext {
         Ok(())
     }
 
-    pub fn emit_deep_copy_helper<W: Write>(&self, out: &mut W) -> Result<(), CodegenError> {
+    pub fn emit_deep_copy_helper<W: Write>(&self, out: &mut W) -> Result<(), CompileError> {
         if !self.deep_copy_helper_needed {
             return Ok(());
         }
@@ -617,7 +602,7 @@ impl CodegenContext {
         Ok(())
     }
 
-    fn emit_memcpy_helper<W: Write>(&self, out: &mut W) -> Result<(), CodegenError> {
+    fn emit_memcpy_helper<W: Write>(&self, out: &mut W) -> Result<(), CompileError> {
         writeln!(out, "internal_memcpy:")?;
         writeln!(out, "    push rbp ; prologue")?;
         writeln!(out, "    mov rbp, rsp")?;
@@ -633,11 +618,6 @@ impl CodegenContext {
         writeln!(out, "    pop rbp")?;
         writeln!(out, "    ret")?;
         Ok(())
-    }
-
-    pub fn take_mir_module(&mut self) -> MirModule {
-        let functions = std::mem::take(&mut self.mir_functions);
-        MirModule::new(functions)
     }
 
     fn literal_label(idx: usize) -> String {
@@ -713,7 +693,7 @@ enum ValueKind {
 struct Binding {
     offset: i32,
     kind: ValueKind,
-    continuation_params: Vec<TypeRef>,
+    continuation_params: Vec<ast::SigKind>,
     env_size: usize,
 }
 
@@ -730,7 +710,7 @@ struct FrameLayout {
 }
 
 impl FrameLayout {
-    fn build(mir: &MirFunction, symbols: &SymbolRegistry) -> Result<Self, CodegenError> {
+    fn build(mir: &MirFunction, symbols: &SymbolRegistry) -> Result<Self, CompileError> {
         let mut layout = Self {
             bindings: HashMap::new(),
             stack_size: 0,
@@ -750,14 +730,16 @@ impl FrameLayout {
 
     fn allocate_param(
         &mut self,
-        param: &Param,
+        param: &SigItem,
         symbols: &SymbolRegistry,
-    ) -> Result<(), CodegenError> {
+    ) -> Result<(), CompileError> {
         let name = &param.name;
         let ty = &param.ty;
-        let kind = resolved_type_kind(ty, symbols);
+        let kind = resolved_type_kind(&hir::hir_type_ref_to_ast_type_ref(&ty.kind), symbols);
         let continuation_params = match kind {
-            ValueKind::Closure => continuation_params_for_type(ty, symbols),
+            ValueKind::Closure => {
+                continuation_params_for_type(&hir::hir_type_ref_to_ast_type_ref(&ty.kind), symbols)
+            }
             ValueKind::Word => Vec::new(),
         };
         let env_size = if kind == ValueKind::Closure {
@@ -768,7 +750,7 @@ impl FrameLayout {
         self.allocate_binding(name, param.span, kind, continuation_params, env_size)
     }
 
-    fn allocate_word(&mut self, name: &str, span: Span) -> Result<(), CodegenError> {
+    fn allocate_word(&mut self, name: &str, span: Span) -> Result<(), CompileError> {
         self.allocate_binding(name, span, ValueKind::Word, Vec::new(), 0)
     }
 
@@ -777,11 +759,12 @@ impl FrameLayout {
         name: &str,
         span: Span,
         kind: ValueKind,
-        continuation_params: Vec<TypeRef>,
+        continuation_params: Vec<ast::SigKind>,
         env_size: usize,
-    ) -> Result<(), CodegenError> {
+    ) -> Result<(), CompileError> {
         if self.bindings.contains_key(name) {
-            return Err(CodegenError::new(
+            return Err(CompileError::new(
+                CompileErrorCode::Codegen,
                 format!("duplicate binding '{}'", name),
                 span,
             ));
@@ -826,19 +809,21 @@ fn mir_statement_binding_info<'a>(stmt: &'a MirStatement) -> Option<(&'a str, Sp
 
 #[derive(Clone, Debug)]
 struct ClosureState {
-    remaining: Vec<TypeRef>,
+    remaining: Vec<ast::SigKind>,
     env_size: usize,
+    has_variadic: bool,
 }
 
 impl ClosureState {
-    fn new(params: Vec<TypeRef>, env_size: usize) -> Self {
+    fn new(params: Vec<ast::SigKind>, env_size: usize, has_variadic: bool) -> Self {
         Self {
             remaining: params,
             env_size,
+            has_variadic,
         }
     }
 
-    fn remaining(&self) -> &[TypeRef] {
+    fn remaining(&self) -> &[ast::SigKind] {
         &self.remaining
     }
 
@@ -847,10 +832,16 @@ impl ClosureState {
     }
 
     fn after_applying(&self, count: usize) -> Self {
+        let count = count.min(self.remaining.len());
         Self {
             remaining: self.remaining[count..].to_vec(),
             env_size: self.env_size,
+            has_variadic: self.has_variadic,
         }
+    }
+
+    fn has_variadic(&self) -> bool {
+        self.has_variadic
     }
 }
 
@@ -900,7 +891,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         }
     }
 
-    fn emit_function(&mut self) -> Result<(), CodegenError> {
+    fn emit_function(&mut self) -> Result<(), CompileError> {
         self.write_header()?;
         self.write_prologue()?;
         self.store_params()?;
@@ -911,13 +902,13 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn write_header(&mut self) -> Result<(), CodegenError> {
+    fn write_header(&mut self) -> Result<(), CompileError> {
         writeln!(self.out, "global {}", self.mir.name)?;
         writeln!(self.out, "{}:", self.mir.name)?;
         Ok(())
     }
 
-    fn write_prologue(&mut self) -> Result<(), CodegenError> {
+    fn write_prologue(&mut self) -> Result<(), CompileError> {
         writeln!(self.out, "    push rbp ; save caller frame pointer")?;
         writeln!(self.out, "    mov rbp, rsp ; establish new frame base")?;
         if self.frame.stack_size > 0 {
@@ -930,7 +921,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn write_epilogue(&mut self) -> Result<(), CodegenError> {
+    fn write_epilogue(&mut self) -> Result<(), CompileError> {
         writeln!(self.out, "    leave ; epilogue: restore rbp and rsp")?;
         writeln!(self.out, "    mov rax, {} ; exit syscall", SYSCALL_EXIT)?;
         writeln!(self.out, "    xor rdi, rdi")?;
@@ -938,7 +929,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn store_params(&mut self) -> Result<(), CodegenError> {
+    fn store_params(&mut self) -> Result<(), CompileError> {
         let mut slot = 0usize;
         for param in &self.mir.params {
             let name = &param.name;
@@ -946,11 +937,15 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             let binding = self
                 .frame
                 .binding(name)
-                .ok_or_else(|| CodegenError::new("missing binding", param.span))?
+                .ok_or_else(|| {
+                    CompileError::new(CompileErrorCode::Codegen, "missing binding", param.span)
+                })?
                 .clone();
-            let required = slots_for_type(ty, self.symbols);
+            let required =
+                slots_for_type(&hir::hir_type_ref_to_ast_type_ref(&ty.kind), self.symbols);
             if slot + required > ARG_REGS.len() {
-                return Err(CodegenError::new(
+                return Err(CompileError::new(
+                    CompileErrorCode::Codegen,
                     format!(
                         "function '{}' supports at most {} argument slots",
                         self.mir.name,
@@ -959,7 +954,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                     self.mir.span,
                 ));
             }
-            match resolved_type_kind(ty, self.symbols) {
+            match resolved_type_kind(&hir::hir_type_ref_to_ast_type_ref(&ty.kind), self.symbols) {
                 ValueKind::Word => {
                     let reg = ARG_REGS[slot];
                     writeln!(
@@ -991,7 +986,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn emit_block(&mut self) -> Result<(), CodegenError> {
+    fn emit_block(&mut self) -> Result<(), CompileError> {
         let statements = self.mir.block.items.clone();
         for stmt in statements {
             self.emit_statement(&stmt)?;
@@ -999,14 +994,15 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn emit_statement(&mut self, stmt: &MirStatement) -> Result<(), CodegenError> {
+    fn emit_statement(&mut self, stmt: &MirStatement) -> Result<(), CompileError> {
         match stmt {
             MirStatement::FunctionDef(binding) => {
                 let sig = self
                     .symbols
                     .get_function(&binding.function_name)
                     .ok_or_else(|| {
-                        CodegenError::new(
+                        CompileError::new(
+                            CompileErrorCode::Codegen,
                             format!("compiler bug: unknown function '{}'", binding.function_name),
                             binding.span,
                         )
@@ -1014,6 +1010,8 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 let state = if self.is_self_owned_binding(binding) {
                     self.emit_self_owned_closure(binding, sig)?
                 } else {
+                    let param_kinds = sig.param_kinds();
+                    let has_variadic = sig.is_variadic();
                     self.emit_named_function_closure(
                         &binding.function_name,
                         sig,
@@ -1023,8 +1021,8 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                         .env_allocation
                         .as_ref()
                         .map(|alloc| alloc.env_size)
-                        .unwrap_or_else(|| env_size_bytes(&sig.params, self.symbols));
-                    ClosureState::new(sig.params.clone(), env_size)
+                        .unwrap_or_else(|| env_size_bytes(&param_kinds, self.symbols));
+                    ClosureState::new(param_kinds.clone(), env_size, has_variadic)
                 };
                 let result = ExprValue::Closure(state);
                 self.store_binding_value(&binding.name, result, binding.span)?;
@@ -1085,12 +1083,17 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         }
     }
 
-    fn emit_release_env(&mut self, release: &ReleaseEnv) -> Result<(), CodegenError> {
+    fn emit_release_env(&mut self, release: &ReleaseEnv) -> Result<(), CompileError> {
         let binding = self.frame.binding(&release.name).cloned().ok_or_else(|| {
-            CodegenError::new(format!("unknown binding '{}'", release.name), release.span)
+            CompileError::new(
+                CompileErrorCode::Codegen,
+                format!("unknown binding '{}'", release.name),
+                release.span,
+            )
         })?;
         if binding.kind != ValueKind::Closure {
-            return Err(CodegenError::new(
+            return Err(CompileError::new(
+                CompileErrorCode::Codegen,
                 format!("cannot release non-closure binding '{}'", release.name),
                 release.span,
             ));
@@ -1109,12 +1112,17 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn emit_deep_copy(&mut self, copy: &DeepCopy) -> Result<(), CodegenError> {
+    fn emit_deep_copy(&mut self, copy: &DeepCopy) -> Result<(), CompileError> {
         let binding = self.frame.binding(&copy.original).cloned().ok_or_else(|| {
-            CodegenError::new(format!("unknown binding '{}'", copy.original), copy.span)
+            CompileError::new(
+                CompileErrorCode::Codegen,
+                format!("unknown binding '{}'", copy.original),
+                copy.span,
+            )
         })?;
         if binding.kind != ValueKind::Closure {
-            return Err(CodegenError::new(
+            return Err(CompileError::new(
+                CompileErrorCode::Codegen,
                 format!("cannot deep copy non-closure binding '{}'", copy.original),
                 copy.span,
             ));
@@ -1154,7 +1162,16 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         )?;
 
         // Store the new closure with the original code pointer and new env
-        let copy_state = ClosureState::new(binding.continuation_params.clone(), binding.env_size);
+        let has_variadic = self
+            .symbols
+            .get_function(&copy.original)
+            .map(|sig| sig.is_variadic())
+            .unwrap_or(false);
+        let copy_state = ClosureState::new(
+            binding.continuation_params.clone(),
+            binding.env_size,
+            has_variadic,
+        );
         let copy_value = ExprValue::Closure(copy_state);
         self.store_binding_value(&copy.copy, copy_value, copy.span)?;
 
@@ -1167,16 +1184,18 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         &mut self,
         exec: &Exec,
         variadic: Option<&MirVariadicExecInfo>,
-    ) -> Result<ExprValue, CodegenError> {
+    ) -> Result<ExprValue, CompileError> {
         if let Some(sig) = self.symbols.get_function(&exec.of) {
+            let param_kinds = sig.param_kinds();
             self.emit_named_function_closure(&exec.of, sig, None)?;
-            let env_size = env_size_bytes(&sig.params, self.symbols);
-            let state = ClosureState::new(sig.params.clone(), env_size);
+            let env_size = env_size_bytes(&param_kinds, self.symbols);
+            let state = ClosureState::new(param_kinds.clone(), env_size, sig.is_variadic());
             return self.apply_closure(state, &exec.args, exec.span, false);
         }
         if let Some(binding) = self.frame.binding(&exec.of) {
             if binding.kind != ValueKind::Closure {
-                return Err(CodegenError::new(
+                return Err(CompileError::new(
+                    CompileErrorCode::Codegen,
                     format!("'{}' is not callable", exec.of),
                     exec.span,
                 ));
@@ -1191,7 +1210,16 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 "    mov rdx, [rbp-{}] ; load closure env_end for value call",
                 binding.slot_addr(1)
             )?;
-            let state = ClosureState::new(binding.continuation_params.clone(), binding.env_size);
+            let has_variadic = self
+                .symbols
+                .get_function(&exec.of)
+                .map(|sig| sig.is_variadic())
+                .unwrap_or(false);
+            let state = ClosureState::new(
+                binding.continuation_params.clone(),
+                binding.env_size,
+                has_variadic,
+            );
             return self.apply_closure(state, &exec.args, exec.span, false);
         }
         self.emit_exec(exec, variadic)
@@ -1202,11 +1230,14 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         name: &str,
         value: ExprValue,
         span: Span,
-    ) -> Result<(), CodegenError> {
-        let binding = self
-            .frame
-            .binding_mut(name)
-            .ok_or_else(|| CodegenError::new(format!("unknown binding '{}'", name), span))?;
+    ) -> Result<(), CompileError> {
+        let binding = self.frame.binding_mut(name).ok_or_else(|| {
+            CompileError::new(
+                CompileErrorCode::Codegen,
+                format!("unknown binding '{}'", name),
+                span,
+            )
+        })?;
         match value {
             ExprValue::Word => {
                 writeln!(
@@ -1236,7 +1267,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn emit_expr(&mut self, expr: &Expr) -> Result<ExprValue, CodegenError> {
+    fn emit_expr(&mut self, expr: &Expr) -> Result<ExprValue, CompileError> {
         match expr {
             Expr::Int { value, .. } => {
                 writeln!(self.out, "    mov rax, {} ; load literal integer", value)?;
@@ -1273,9 +1304,15 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                                 "    mov rdx, [rbp-{}] ; load closure env_end pointer",
                                 binding.slot_addr(1)
                             )?;
+                            let has_variadic = self
+                                .symbols
+                                .get_function(name)
+                                .map(|sig| sig.is_variadic())
+                                .unwrap_or(false);
                             Ok(ExprValue::Closure(ClosureState::new(
                                 binding.continuation_params.clone(),
                                 binding.env_size,
+                                has_variadic,
                             )))
                         }
                     }
@@ -1290,24 +1327,17 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                     )?;
                     Ok(ExprValue::Word)
                 } else {
-                    Err(CodegenError::new(
+                    Err(CompileError::new(
+                        CompileErrorCode::Codegen,
                         format!("compiler bug: unresolved identifier '{}'", name),
                         *span,
                     ))
                 }
             }
-            Expr::Apply { span, .. } => Err(CodegenError::new(
-                "apply expressions should already be normalized into statements",
-                *span,
-            )),
-            Expr::Lambda { span, .. } => Err(CodegenError::new(
-                "lambda expressions are not supported yet",
-                *span,
-            )),
         }
     }
 
-    fn emit_arg_value(&mut self, arg: &Arg) -> Result<ExprValue, CodegenError> {
+    fn emit_arg_value(&mut self, arg: &Arg) -> Result<ExprValue, CompileError> {
         let expr = Expr::Ident {
             name: arg.name.clone(),
             span: arg.span,
@@ -1319,7 +1349,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         &mut self,
         exec: &Exec,
         variadic: Option<&MirVariadicExecInfo>,
-    ) -> Result<ExprValue, CodegenError> {
+    ) -> Result<ExprValue, CompileError> {
         let name = exec.of.as_str();
         let span = exec.span;
 
@@ -1342,10 +1372,16 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
         if let Some(binding) = self.frame.binding(name) {
             if binding.kind != ValueKind::Closure {
-                return Err(CodegenError::new(
+                return Err(CompileError::new(
+                    CompileErrorCode::Codegen,
                     format!("'{}' is not callable", name),
                     span,
                 ));
+            }
+            if let Some(sig) = self.symbols.get_function(name) {
+                if sig.is_variadic() {
+                    return self.emit_named_exec(name, sig, &exec.args, span, variadic);
+                }
             }
             writeln!(
                 self.out,
@@ -1357,7 +1393,16 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 "    mov rdx, [rbp-{}] ; load closure env_end for call",
                 binding.slot_addr(1)
             )?;
-            let state = ClosureState::new(binding.continuation_params.clone(), binding.env_size);
+            let has_variadic = self
+                .symbols
+                .get_function(name)
+                .map(|sig| sig.is_variadic())
+                .unwrap_or(false);
+            let state = ClosureState::new(
+                binding.continuation_params.clone(),
+                binding.env_size,
+                has_variadic,
+            );
             return self.apply_closure(state, &exec.args, span, true);
         }
 
@@ -1366,7 +1411,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         }
 
         self.ctx.add_extern(name);
-        let placeholder: Vec<TypeRef> = std::iter::repeat(TypeRef::Int)
+        let placeholder: Vec<ast::SigKind> = std::iter::repeat(ast::SigKind::Int)
             .take(exec.args.len())
             .collect();
         self.prepare_call_args(&exec.args, &placeholder)?;
@@ -1378,57 +1423,58 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(ExprValue::Word)
     }
 
-    /// Generic variadic libc wrapper for functions like printf.
-    ///
-    /// Handles variadic arguments and proper stack alignment.
-    /// The `return_handler` closure allows custom handling of the return value.
-    #[allow(dead_code)]
-    fn emit_libc_wrapper_variadic(
-        &mut self,
-        libc_name: &str,
-        args: &[Arg],
-        span: Span,
-    ) -> Result<ExprValue, CodegenError> {
-        // Last argument must be a continuation
-        if args.is_empty() {
-            return Err(CodegenError::new(
-                format!("{} requires a continuation as last argument", libc_name),
-                span,
-            ));
-        }
+    // TODO: Might come useful
+    // /// Generic variadic libc wrapper for functions like printf.
+    // ///
+    // /// Handles variadic arguments and proper stack alignment.
+    // /// The `return_handler` closure allows custom handling of the return value.
+    // fn emit_libc_wrapper_variadic(
+    //     &mut self,
+    //     libc_name: &str,
+    //     args: &[Arg],
+    //     span: Span,
+    // ) -> Result<ExprValue, CompileError> {
+    //     // Last argument must be a continuation
+    //     if args.is_empty() {
+    //         return Err(CompileError::new(CompileErrorCode::Codegen,
+    //             format!("{} requires a continuation as last argument", libc_name),
+    //             span,
+    //         ));
+    //     }
 
-        let continuation_arg = &args[args.len() - 1];
-        let continuation_value = self.emit_arg_value(continuation_arg)?;
-        let _closure_state = match continuation_value {
-            ExprValue::Closure(state) => state,
-            _ => {
-                return Err(CodegenError::new(
-                    format!("last argument to {} must be a continuation", libc_name),
-                    continuation_arg.span,
-                ))
-            }
-        };
+    //     let continuation_arg = &args[args.len() - 1];
+    //     let continuation_value = self.emit_arg_value(continuation_arg)?;
+    //     let _closure_state = match continuation_value {
+    //         ExprValue::Closure(state) => state,
+    //         _ => {
+    //             return Err(CompileError::new(CompileErrorCode::Codegen,
+    //                 format!("last argument to {} must be a continuation", libc_name),
+    //                 continuation_arg.span,
+    //             ))
+    //         }
+    //     };
 
-        // Preserve continuation (code pointer in rax, env_end in rdx)
-        writeln!(
-            self.out,
-            "    push rax ; preserve continuation code pointer"
-        )?;
-        writeln!(
-            self.out,
-            "    push rdx ; preserve continuation env_end pointer"
-        )?;
+    //     // Preserve continuation (code pointer in rax, env_end in rdx)
+    //     writeln!(
+    //         self.out,
+    //         "    push rax ; preserve continuation code pointer"
+    //     )?;
+    //     writeln!(
+    //         self.out,
+    //         "    push rdx ; preserve continuation env_end pointer"
+    //     )?;
 
-        Ok(ExprValue::Word)
-    }
+    //     Ok(ExprValue::Word)
+    // }
 
     fn emit_printf_wrapper_exec(
         &mut self,
         args: &[Arg],
         span: Span,
-    ) -> Result<ExprValue, CodegenError> {
+    ) -> Result<ExprValue, CompileError> {
         if args.len() < 2 {
-            return Err(CodegenError::new(
+            return Err(CompileError::new(
+                CompileErrorCode::Codegen,
                 "printf requires a format string and a continuation",
                 span,
             ));
@@ -1441,7 +1487,8 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 // continuation validation is done in MIR layer
             }
             _ => {
-                return Err(CodegenError::new(
+                return Err(CompileError::new(
+                    CompileErrorCode::Codegen,
                     "last argument to printf must be a continuation",
                     continuation_arg.span,
                 ))
@@ -1459,16 +1506,17 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
         let call_args = &args[..args.len() - 1];
         if call_args.is_empty() {
-            return Err(CodegenError::new(
+            return Err(CompileError::new(
+                CompileErrorCode::Codegen,
                 "printf requires a format string before the continuation",
                 span,
             ));
         }
 
         let mut params = Vec::with_capacity(call_args.len());
-        params.push(TypeRef::Str);
+        params.push(ast::SigKind::Str);
         for _ in 1..call_args.len() {
-            params.push(TypeRef::Int);
+            params.push(ast::SigKind::Int);
         }
 
         self.prepare_call_args(call_args, &params)?;
@@ -1505,9 +1553,10 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         &mut self,
         args: &[Arg],
         span: Span,
-    ) -> Result<ExprValue, CodegenError> {
+    ) -> Result<ExprValue, CompileError> {
         if args.len() < 2 {
-            return Err(CodegenError::new(
+            return Err(CompileError::new(
+                CompileErrorCode::Codegen,
                 "sprintf requires a format string and a continuation",
                 span,
             ));
@@ -1518,7 +1567,8 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         let closure_state = match continuation_value {
             ExprValue::Closure(state) => state,
             _ => {
-                return Err(CodegenError::new(
+                return Err(CompileError::new(
+                    CompileErrorCode::Codegen,
                     "last argument to sprintf must be a continuation",
                     continuation_arg.span,
                 ))
@@ -1542,13 +1592,14 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
         let call_args = &args[..args.len() - 1];
         if call_args.len() != 2 {
-            return Err(CodegenError::new(
+            return Err(CompileError::new(
+                CompileErrorCode::Codegen,
                 "sprintf requires a format string and a single integer before the continuation",
                 span,
             ));
         }
 
-        let params = vec![TypeRef::Str, TypeRef::Int];
+        let params = vec![ast::SigKind::Str, ast::SigKind::Int];
         self.prepare_call_args(call_args, &params)?;
 
         self.emit_mmap(FMT_BUFFER_SIZE)?;
@@ -1578,7 +1629,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         let result_offset = suffix_sizes
             .get(0)
             .copied()
-            .unwrap_or_else(|| bytes_for_type(&TypeRef::Str, self.symbols));
+            .unwrap_or_else(|| size_of(&mir::Type::Str));
         writeln!(self.out, "    mov r10, r13 ; copy env_end pointer")?;
         writeln!(
             self.out,
@@ -1610,9 +1661,10 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         &mut self,
         args: &[Arg],
         span: Span,
-    ) -> Result<ExprValue, CodegenError> {
+    ) -> Result<ExprValue, CompileError> {
         if args.len() < 2 {
-            return Err(CodegenError::new(
+            return Err(CompileError::new(
+                CompileErrorCode::Codegen,
                 "write requires a string and a continuation",
                 span,
             ));
@@ -1620,7 +1672,8 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
         let call_args = &args[..args.len() - 1];
         if call_args.len() != 1 {
-            return Err(CodegenError::new(
+            return Err(CompileError::new(
+                CompileErrorCode::Codegen,
                 "write requires a string before the continuation",
                 span,
             ));
@@ -1632,7 +1685,8 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         match continuation_value {
             ExprValue::Closure(_) => {}
             _ => {
-                return Err(CodegenError::new(
+                return Err(CompileError::new(
+                    CompileErrorCode::Codegen,
                     "last argument to write must be a continuation",
                     continuation_arg.span,
                 ))
@@ -1650,7 +1704,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         )?;
 
         // Prepare call arguments (string in rdi)
-        let params = vec![TypeRef::Str];
+        let params = vec![ast::SigKind::Str];
         self.prepare_call_args(call_args, &params)?;
         self.move_args_to_registers(&params)?;
 
@@ -1699,15 +1753,16 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         &mut self,
         args: &[Arg],
         span: Span,
-    ) -> Result<ExprValue, CodegenError> {
+    ) -> Result<ExprValue, CompileError> {
         if args.len() < 2 {
-            return Err(CodegenError::new(
+            return Err(CompileError::new(
+                CompileErrorCode::Codegen,
                 "puts requires a string and a continuation",
                 span,
             ));
         }
 
-        let param_types = vec![TypeRef::Str];
+        let param_types = vec![ast::SigKind::Str];
         self.emit_libc_wrapper_exec("puts", args, &param_types, span, false, |_| Ok(()))
     }
 
@@ -1715,14 +1770,18 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         &mut self,
         args: &[Arg],
         span: Span,
-    ) -> Result<ExprValue, CodegenError> {
+    ) -> Result<ExprValue, CompileError> {
         if args.len() != 1 {
-            return Err(CodegenError::new("exit requires an integer argument", span));
+            return Err(CompileError::new(
+                CompileErrorCode::Codegen,
+                "exit requires an integer argument",
+                span,
+            ));
         }
 
         let arg = &args[0];
         let value = self.emit_arg_value(arg)?;
-        self.ensure_value_matches(&value, &TypeRef::Int, arg.span)?;
+        self.ensure_value_matches(&value, &ast::SigKind::Int, arg.span)?;
 
         match value {
             ExprValue::Word => {
@@ -1746,22 +1805,22 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
     ///
     /// The `return_handler` closure allows custom handling of the return value (rax).
     /// For simple wrappers that ignore return values, it can just do nothing.
-    #[allow(dead_code)]
     fn emit_libc_wrapper_exec<F>(
         &mut self,
         libc_name: &str,
         args: &[Arg],
-        param_types: &[TypeRef],
+        param_types: &[ast::SigKind],
         span: Span,
         is_variadic: bool,
         mut return_handler: F,
-    ) -> Result<ExprValue, CodegenError>
+    ) -> Result<ExprValue, CompileError>
     where
-        F: FnMut(&mut Self) -> Result<(), CodegenError>,
+        F: FnMut(&mut Self) -> Result<(), CompileError>,
     {
         // Last argument must be a continuation
         if args.is_empty() {
-            return Err(CodegenError::new(
+            return Err(CompileError::new(
+                CompileErrorCode::Codegen,
                 format!("{} requires a continuation as last argument", libc_name),
                 span,
             ));
@@ -1772,7 +1831,8 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         let _closure_state = match continuation_value {
             ExprValue::Closure(state) => state,
             _ => {
-                return Err(CodegenError::new(
+                return Err(CompileError::new(
+                    CompileErrorCode::Codegen,
                     format!("last argument to {} must be a continuation", libc_name),
                     continuation_arg.span,
                 ))
@@ -1792,7 +1852,8 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         // Prepare call arguments (all except the continuation)
         let call_args = &args[..args.len() - 1];
         if call_args.len() != param_types.len() {
-            return Err(CodegenError::new(
+            return Err(CompileError::new(
+                CompileErrorCode::Codegen,
                 format!(
                     "{} requires {} arguments plus continuation, got {}",
                     libc_name,
@@ -1853,10 +1914,12 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         args: &[Arg],
         span: Span,
         variadic: Option<&MirVariadicExecInfo>,
-    ) -> Result<ExprValue, CodegenError> {
-        let has_variadic = sig.is_variadic.iter().any(|&flag| flag);
+    ) -> Result<ExprValue, CompileError> {
+        let param_kinds = sig.param_kinds();
+        let has_variadic = sig.is_variadic();
         if !has_variadic && args.len() > sig.params.len() {
-            return Err(CodegenError::new(
+            return Err(CompileError::new(
+                CompileErrorCode::Codegen,
                 format!(
                     "function '{}' expected {} arguments but got {}",
                     of,
@@ -1869,23 +1932,24 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
         if !has_variadic && args.len() < sig.params.len() {
             self.emit_named_function_closure(of, sig, None)?;
-            let env_size = env_size_bytes(&sig.params, self.symbols);
-            let state = ClosureState::new(sig.params.clone(), env_size);
+            let env_size = env_size_bytes(&param_kinds, self.symbols);
+            let state = ClosureState::new(param_kinds.clone(), env_size, has_variadic);
             return self.apply_closure(state, args, span, true);
         }
 
         if has_variadic {
             let layout_info = variadic.ok_or_else(|| {
-                CodegenError::new(
+                CompileError::new(
+                    CompileErrorCode::Codegen,
                     format!("compiler bug: variadic exec metadata missing for '{}'", of),
                     span,
                 )
             })?;
-            self.push_variadic_call_args(args, &sig.params, of, span, layout_info)?;
+            self.push_variadic_call_args(args, &param_kinds, of, span, layout_info)?;
         } else {
-            self.prepare_call_args(args, &sig.params)?;
+            self.prepare_call_args(args, &param_kinds)?;
         }
-        self.move_args_to_registers(&sig.params)?;
+        self.move_args_to_registers(&param_kinds)?;
         writeln!(self.out, "    leave ; unwind before named jump")?;
         writeln!(self.out, "    jmp {} ; jump to fully applied function", of)?;
         self.terminated = true;
@@ -1897,13 +1961,14 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         name: &str,
         sig: &FunctionSig,
         allocation: Option<&MirEnvAllocation>,
-    ) -> Result<(), CodegenError> {
-        let pointer_offsets = env_pointer_offsets(&sig.params, self.symbols);
+    ) -> Result<(), CompileError> {
+        let param_kinds = sig.param_kinds();
+        let pointer_offsets = env_pointer_offsets(&param_kinds, self.symbols);
         let metadata_size = env_metadata_size(pointer_offsets.len());
         let (env_size, heap_size) = if let Some(plan) = allocation {
             (plan.env_size, plan.heap_size)
         } else {
-            let env_size = env_size_bytes(&sig.params, self.symbols);
+            let env_size = env_size_bytes(&param_kinds, self.symbols);
             (env_size, env_size + metadata_size)
         };
         self.emit_mmap(heap_size)?;
@@ -1958,11 +2023,19 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         &mut self,
         binding: &MirFunctionBinding,
         sig: &FunctionSig,
-    ) -> Result<ClosureState, CodegenError> {
+    ) -> Result<ClosureState, CompileError> {
+        let param_kinds = sig.param_kinds();
+        let has_variadic = sig.is_variadic();
         let slot = self
             .root_env_symbol
             .as_ref()
-            .ok_or_else(|| CodegenError::new("missing root env slot", binding.span))?
+            .ok_or_else(|| {
+                CompileError::new(
+                    CompileErrorCode::Codegen,
+                    "missing root env slot",
+                    binding.span,
+                )
+            })?
             .clone();
         let reuse_label = self.next_internal_label("root_env_reuse");
         let done_label = self.next_internal_label("root_env_done");
@@ -1996,11 +2069,15 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             .env_allocation
             .as_ref()
             .map(|allocation| allocation.env_size)
-            .unwrap_or_else(|| env_size_bytes(&sig.params, self.symbols));
-        Ok(ClosureState::new(sig.params.clone(), env_size))
+            .unwrap_or_else(|| env_size_bytes(&param_kinds, self.symbols));
+        Ok(ClosureState::new(
+            param_kinds.clone(),
+            env_size,
+            has_variadic,
+        ))
     }
 
-    fn emit_mmap(&mut self, size: usize) -> Result<(), CodegenError> {
+    fn emit_mmap(&mut self, size: usize) -> Result<(), CompileError> {
         writeln!(self.out, "    mov rax, {} ; mmap syscall", SYSCALL_MMAP)?;
         writeln!(self.out, "    xor rdi, rdi ; addr = NULL hint")?;
         writeln!(
@@ -2024,13 +2101,18 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn prepare_call_args(&mut self, args: &[Arg], params: &[TypeRef]) -> Result<(), CodegenError> {
+    fn prepare_call_args(
+        &mut self,
+        args: &[Arg],
+        params: &[ast::SigKind],
+    ) -> Result<(), CompileError> {
         let total_slots: usize = params
             .iter()
             .map(|ty| slots_for_type(ty, self.symbols))
             .sum();
         if total_slots > ARG_REGS.len() {
-            return Err(CodegenError::new(
+            return Err(CompileError::new(
+                CompileErrorCode::Codegen,
                 format!(
                     "functions support at most {} argument slots",
                     ARG_REGS.len()
@@ -2049,16 +2131,17 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
     fn push_exec_layout(
         &mut self,
         layout: &[ExecArgKind],
-        params: &[TypeRef],
+        params: &[ast::SigKind],
         callee: &str,
         span: Span,
-    ) -> Result<(), CodegenError> {
+    ) -> Result<(), CompileError> {
         let total_slots: usize = params
             .iter()
             .map(|ty| slots_for_type(ty, self.symbols))
             .sum();
         if total_slots > ARG_REGS.len() {
-            return Err(CodegenError::new(
+            return Err(CompileError::new(
+                CompileErrorCode::Codegen,
                 format!(
                     "functions support at most {} argument slots",
                     ARG_REGS.len()
@@ -2085,13 +2168,14 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
     fn push_variadic_call_args(
         &mut self,
         args: &[Arg],
-        params: &[TypeRef],
+        params: &[ast::SigKind],
         callee: &str,
         span: Span,
         layout: &MirVariadicExecInfo,
-    ) -> Result<(), CodegenError> {
+    ) -> Result<(), CompileError> {
         if args.len() < layout.required_arguments() {
-            return Err(CodegenError::new(
+            return Err(CompileError::new(
+                CompileErrorCode::Codegen,
                 format!(
                     "function '{callee}' expected at least {} arguments but got {}",
                     layout.required_arguments(),
@@ -2104,7 +2188,8 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         let suffix_required = layout.suffix_len;
         let suffix_arg_start = args.len() - suffix_required;
         if suffix_arg_start < prefix_required {
-            return Err(CodegenError::new(
+            return Err(CompileError::new(
+                CompileErrorCode::Codegen,
                 format!(
                     "function '{callee}' expected at least {} arguments but got {}",
                     layout.required_arguments(),
@@ -2129,12 +2214,13 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
     fn emit_variadic_array_arg(
         &mut self,
         callee: &str,
-        param_ty: &TypeRef,
+        param_ty: &ast::SigKind,
         args: &[Arg],
         span: Span,
-    ) -> Result<ExprValue, CodegenError> {
+    ) -> Result<ExprValue, CompileError> {
         let element_ty = variadic_element_type(param_ty, self.symbols).ok_or_else(|| {
-            CodegenError::new(
+            CompileError::new(
+                CompileErrorCode::Codegen,
                 format!(
                     "cannot determine element type for variadic parameter of '{}'",
                     callee
@@ -2248,10 +2334,12 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             self.out,
             "    mov rax, internal_array_str ; builtin array closure entry"
         )?;
-        Ok(ExprValue::Closure(ClosureState::new(params, env_size)))
+        Ok(ExprValue::Closure(ClosureState::new(
+            params, env_size, false,
+        )))
     }
 
-    fn push_value(&mut self, value: &ExprValue) -> Result<(), CodegenError> {
+    fn push_value(&mut self, value: &ExprValue) -> Result<(), CompileError> {
         match value {
             ExprValue::Word => {
                 writeln!(self.out, "    push rax ; stack arg: scalar")?;
@@ -2264,7 +2352,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn move_args_to_registers(&mut self, params: &[TypeRef]) -> Result<(), CodegenError> {
+    fn move_args_to_registers(&mut self, params: &[ast::SigKind]) -> Result<(), CompileError> {
         let mut slot = 0usize;
         for ty in params {
             match resolved_type_kind(ty, self.symbols) {
@@ -2279,7 +2367,8 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 }
                 ValueKind::Closure => {
                     if slot + 1 >= ARG_REGS.len() {
-                        return Err(CodegenError::new(
+                        return Err(CompileError::new(
+                            CompileErrorCode::Codegen,
                             "continuations require two argument slots",
                             self.mir.span,
                         ));
@@ -2303,7 +2392,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn clone_closure_argument(&mut self) -> Result<(), CodegenError> {
+    fn clone_closure_argument(&mut self) -> Result<(), CompileError> {
         writeln!(
             self.out,
             "    mov [rsp+16], rax ; stash closure code pointer for clone"
@@ -2382,9 +2471,13 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         args: &[Arg],
         span: Span,
         invoke_when_ready: bool,
-    ) -> Result<ExprValue, CodegenError> {
-        if args.len() > state.remaining().len() {
-            return Err(CodegenError::new("too many arguments for closure", span));
+    ) -> Result<ExprValue, CompileError> {
+        if args.len() > state.remaining().len() && !state.has_variadic() {
+            return Err(CompileError::new(
+                CompileErrorCode::Codegen,
+                "too many arguments for closure",
+                span,
+            ));
         }
         writeln!(
             self.out,
@@ -2401,7 +2494,8 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
         let remaining = state.remaining();
         let suffix_sizes = remaining_suffix_sizes(remaining, self.symbols);
-        let next_state = state.after_applying(args.len());
+        let applied = args.len().min(state.remaining().len());
+        let next_state = state.after_applying(applied);
         let needs_clone =
             !invoke_when_ready && !next_state.remaining().is_empty() && !args.is_empty();
         if needs_clone {
@@ -2531,17 +2625,23 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
     fn ensure_value_matches(
         &self,
         value: &ExprValue,
-        ty: &TypeRef,
+        ty: &ast::SigKind,
         span: Span,
-    ) -> Result<(), CodegenError> {
+    ) -> Result<(), CompileError> {
         match (value, resolved_type_kind(ty, self.symbols)) {
             (ExprValue::Word, ValueKind::Word) => Ok(()),
             (ExprValue::Closure(_), ValueKind::Closure) => Ok(()),
-            (ExprValue::Word, ValueKind::Closure) => {
-                Err(CodegenError::new("expected a closure value", span))
-            }
+            (ExprValue::Word, ValueKind::Closure) => Err(CompileError::new(
+                CompileErrorCode::Codegen,
+                "expected a closure value",
+                span,
+            )),
             (ExprValue::Closure(_), ValueKind::Word) => {
-                Err(CodegenError::new("expected a scalar value", span))
+                Err(CompileError::new(
+                    CompileErrorCode::Codegen,
+                    "expected a scalar value",
+                    span,
+                ))
             }
         }
     }
@@ -2581,14 +2681,15 @@ fn emit_closure_wrapper<W: Write>(
     mir: &MirFunction,
     symbols: &SymbolRegistry,
     out: &mut W,
-) -> Result<(), CodegenError> {
+) -> Result<(), CompileError> {
     let total_slots: usize = mir
         .params
         .iter()
-        .map(|p| slots_for_type(&p.ty, symbols))
+        .map(|p| slots_for_type(&hir::hir_type_ref_to_ast_type_ref(&p.ty.kind), symbols))
         .sum();
     if total_slots > ARG_REGS.len() {
-        return Err(CodegenError::new(
+        return Err(CompileError::new(
+            CompileErrorCode::Codegen,
             format!(
                 "function '{}' exceeds supported continuation argument slots",
                 mir.name
@@ -2610,7 +2711,11 @@ fn emit_closure_wrapper<W: Write>(
     )?;
     writeln!(out, "    push rbx ; preserve base register")?;
     writeln!(out, "    mov rbx, rdi ; rdi points to env_end when invoked")?;
-    let param_types: Vec<TypeRef> = mir.params.iter().map(|p| p.ty.clone()).collect();
+    let param_types: Vec<ast::SigKind> = mir
+        .params
+        .iter()
+        .map(|p| hir::hir_type_ref_to_ast_type_ref(&p.ty.kind).clone())
+        .collect();
     let env_size = env_size_bytes(&param_types, symbols);
     if env_size > 0 {
         writeln!(out, "    sub rbx, {} ; compute env base", env_size)?;
@@ -2618,7 +2723,7 @@ fn emit_closure_wrapper<W: Write>(
     let mut reg_slot = 0usize;
     let mut saved_regs: Vec<&str> = Vec::new();
     for (idx, param) in mir.params.iter().enumerate() {
-        match resolved_type_kind(&param.ty, symbols) {
+        match resolved_type_kind(&hir::hir_type_ref_to_ast_type_ref(&param.ty.kind), symbols) {
             ValueKind::Word => {
                 let offset = env_offset(&mir.params, idx, symbols);
                 let reg = ARG_REGS[reg_slot];
@@ -2687,15 +2792,15 @@ fn closure_wrapper_label(name: &str) -> String {
     format!("{}_closure_entry", name)
 }
 
-fn env_offset(params: &[Param], idx: usize, symbols: &SymbolRegistry) -> usize {
+fn env_offset(params: &[SigItem], idx: usize, symbols: &SymbolRegistry) -> usize {
     params
         .iter()
         .take(idx)
-        .map(|p| bytes_for_type(&p.ty, symbols))
+        .map(|p| bytes_for_type(&hir::hir_type_ref_to_ast_type_ref(&p.ty.kind), symbols))
         .sum()
 }
 
-fn remaining_suffix_sizes(params: &[TypeRef], symbols: &SymbolRegistry) -> Vec<usize> {
+fn remaining_suffix_sizes(params: &[ast::SigKind], symbols: &SymbolRegistry) -> Vec<usize> {
     let mut sizes = Vec::with_capacity(params.len());
     let mut acc = 0;
     for param in params.iter().rev() {
@@ -2713,25 +2818,27 @@ fn align_to(value: usize, align: usize) -> usize {
     ((value + align - 1) / align) * align
 }
 
-fn slots_for_type(ty: &TypeRef, symbols: &SymbolRegistry) -> usize {
+fn slots_for_type(ty: &ast::SigKind, symbols: &SymbolRegistry) -> usize {
     match resolved_type_kind(ty, symbols) {
         ValueKind::Word => 1,
         ValueKind::Closure => 2,
     }
 }
 
-fn bytes_for_type(ty: &TypeRef, symbols: &SymbolRegistry) -> usize {
+// TODO: Remove this usage, replace it with other one
+
+fn bytes_for_type(ty: &ast::SigKind, symbols: &SymbolRegistry) -> usize {
     match resolved_type_kind(ty, symbols) {
-        ValueKind::Word => 8,
-        ValueKind::Closure => 16,
+        ValueKind::Word => WORD_SIZE,
+        ValueKind::Closure => WORD_SIZE * 2,
     }
 }
 
-fn env_size_bytes(params: &[TypeRef], symbols: &SymbolRegistry) -> usize {
+fn env_size_bytes(params: &[ast::SigKind], symbols: &SymbolRegistry) -> usize {
     params.iter().map(|ty| bytes_for_type(ty, symbols)).sum()
 }
 
-fn env_pointer_offsets(params: &[TypeRef], symbols: &SymbolRegistry) -> Vec<usize> {
+fn env_pointer_offsets(params: &[ast::SigKind], symbols: &SymbolRegistry) -> Vec<usize> {
     let mut offsets = Vec::new();
     let mut current = 0usize;
     for ty in params {
@@ -2746,22 +2853,25 @@ fn env_pointer_offsets(params: &[TypeRef], symbols: &SymbolRegistry) -> Vec<usiz
     offsets
 }
 
-fn resolved_type_kind(ty: &TypeRef, symbols: &SymbolRegistry) -> ValueKind {
+fn resolved_type_kind(ty: &ast::SigKind, symbols: &SymbolRegistry) -> ValueKind {
     let mut visited = HashSet::new();
     resolved_type_kind_inner(ty, symbols, &mut visited)
 }
 
+// TODO: This is a good place to start the refactor
 fn resolved_type_kind_inner(
-    ty: &TypeRef,
+    ty: &ast::SigKind,
     symbols: &SymbolRegistry,
     visited: &mut HashSet<String>,
 ) -> ValueKind {
     match ty {
-        TypeRef::Int | TypeRef::Str | TypeRef::CompileTimeInt | TypeRef::CompileTimeStr => {
-            ValueKind::Word
-        }
-        TypeRef::Type(_) => ValueKind::Closure,
-        TypeRef::Alias(name) => {
+        ast::SigKind::Int
+        | ast::SigKind::Str
+        | ast::SigKind::CompileTimeInt
+        | ast::SigKind::CompileTimeStr => ValueKind::Word,
+        ast::SigKind::Tuple(_) => ValueKind::Closure,
+        ast::SigKind::Ident(ident) => {
+            let name = &ident.name;
             if visited.contains(name) {
                 ValueKind::Closure
             } else if let Some(info) = symbols.get_type_info(name) {
@@ -2773,7 +2883,7 @@ fn resolved_type_kind_inner(
                 ValueKind::Word
             }
         }
-        TypeRef::AliasInstance { name, .. } => {
+        ast::SigKind::GenericInst { name, .. } => {
             if visited.contains(name) {
                 ValueKind::Closure
             } else if let Some(info) = symbols.get_type_info(name) {
@@ -2785,23 +2895,24 @@ fn resolved_type_kind_inner(
                 ValueKind::Word
             }
         }
-        TypeRef::Generic(_) => ValueKind::Word,
+        ast::SigKind::Generic(_) => ValueKind::Word,
     }
 }
 
-fn continuation_params_for_type(ty: &TypeRef, symbols: &SymbolRegistry) -> Vec<TypeRef> {
+fn continuation_params_for_type(ty: &ast::SigKind, symbols: &SymbolRegistry) -> Vec<ast::SigKind> {
     let mut visited = HashSet::new();
     continuation_params_for_type_inner(ty, symbols, &mut visited)
 }
 
 fn continuation_params_for_type_inner(
-    ty: &TypeRef,
+    ty: &ast::SigKind,
     symbols: &SymbolRegistry,
     visited: &mut HashSet<String>,
-) -> Vec<TypeRef> {
+) -> Vec<ast::SigKind> {
     match ty {
-        TypeRef::Type(params) => params.clone(),
-        TypeRef::Alias(name) => {
+        ast::SigKind::Tuple(params) => params.kinds(),
+        ast::SigKind::Ident(ident) => {
+            let name = &ident.name;
             if visited.contains(name) {
                 Vec::new()
             } else if let Some(info) = symbols.get_type_info(name) {
@@ -2813,7 +2924,7 @@ fn continuation_params_for_type_inner(
                 Vec::new()
             }
         }
-        TypeRef::AliasInstance { name, .. } => {
+        ast::SigKind::GenericInst { name, .. } => {
             if visited.contains(name) {
                 Vec::new()
             } else if let Some(info) = symbols.get_type_info(name) {
@@ -2825,23 +2936,23 @@ fn continuation_params_for_type_inner(
                 Vec::new()
             }
         }
-        TypeRef::Generic(_) => Vec::new(),
+        ast::SigKind::Generic(_) => Vec::new(),
         _ => Vec::new(),
     }
 }
 
-fn variadic_element_type(ty: &TypeRef, symbols: &SymbolRegistry) -> Option<TypeRef> {
+fn variadic_element_type(ty: &ast::SigKind, symbols: &SymbolRegistry) -> Option<ast::SigKind> {
     let mut visited = HashSet::new();
     let expanded = expand_alias_chain(ty, symbols, &mut visited);
-    let mut current_params = if let TypeRef::Type(params) = expanded {
-        params
+    let mut current_params = if let ast::SigKind::Tuple(params) = expanded {
+        params.kinds()
     } else {
         return None;
     };
     loop {
         if current_params.len() == 1 {
-            if let TypeRef::Type(inner) = &current_params[0] {
-                current_params = inner.clone();
+            if let ast::SigKind::Tuple(inner) = &current_params[0] {
+                current_params = inner.kinds();
                 continue;
             }
         }
@@ -2851,12 +2962,13 @@ fn variadic_element_type(ty: &TypeRef, symbols: &SymbolRegistry) -> Option<TypeR
         let nth_type = current_params[1].clone();
         let mut visited = HashSet::new();
         let nth_expanded = expand_alias_chain(&nth_type, symbols, &mut visited);
-        if let TypeRef::Type(nth_params) = nth_expanded {
-            if nth_params.len() > 2 {
+        if let ast::SigKind::Tuple(nth_params) = nth_expanded {
+            let nth_items = nth_params.kinds();
+            if nth_items.len() > 2 {
                 let mut visited = HashSet::new();
-                let one_expanded = expand_alias_chain(&nth_params[2], symbols, &mut visited);
-                if let TypeRef::Type(one_params) = one_expanded {
-                    return one_params.get(0).cloned();
+                let one_expanded = expand_alias_chain(&nth_items[2], symbols, &mut visited);
+                if let ast::SigKind::Tuple(one_params) = one_expanded {
+                    return one_params.items.get(0).map(|item| item.ty.kind.clone());
                 }
             }
         }
@@ -2864,6 +2976,7 @@ fn variadic_element_type(ty: &TypeRef, symbols: &SymbolRegistry) -> Option<TypeR
     None
 }
 
+// TODO: might come useful
 /// Emits a generic libc wrapper that follows the System V AMD64 ABI:
 /// - Arguments 1-6 are passed in rdi, rsi, rdx, rcx, r8, r9 (up to 6 word-sized args)
 /// - Arguments beyond 6 are spilled onto the stack (8-byte aligned)
@@ -2876,99 +2989,98 @@ fn variadic_element_type(ty: &TypeRef, symbols: &SymbolRegistry) -> Option<TypeR
 /// require special handling (printf/sprintf for formatting, puts for simple output),
 /// so they use custom implementations. As more libc functions are needed, this generic
 /// approach can be refined and used for simpler functions like strlen, strncat, etc.
-#[allow(dead_code)]
-fn emit_generic_libc_wrapper<W: Write>(
-    ctx: &mut CodegenContext,
-    out: &mut W,
-    libc_function_name: &str,
-    param_types: &[TypeRef],
-    symbols: &SymbolRegistry,
-) -> Result<(), CodegenError> {
-    let wrapper_label = format!("rgo_{}", libc_function_name);
-    writeln!(out, "global {}", wrapper_label)?;
-    writeln!(out, "{}:", wrapper_label)?;
+// fn emit_generic_libc_wrapper<W: Write>(
+//     ctx: &mut CodegenContext,
+//     out: &mut W,
+//     libc_function_name: &str,
+//     param_types: &[ast::SigKind],
+//     symbols: &SymbolRegistry,
+// ) -> Result<(), CompileError> {
+//     let wrapper_label = format!("rgo_{}", libc_function_name);
+//     writeln!(out, "global {}", wrapper_label)?;
+//     writeln!(out, "{}:", wrapper_label)?;
 
-    // Prologue: save caller frame pointer and establish new frame
-    writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
-    writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
+//     // Prologue: save caller frame pointer and establish new frame
+//     writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
+//     writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
 
-    // Preserve the rgo continuation (code pointer and env_end pointer)
-    // These were passed as the last two arguments (implicit in rgo's convention)
-    writeln!(out, "    push rsi ; preserve continuation code pointer")?;
-    writeln!(out, "    push rdx ; preserve continuation env_end pointer")?;
+//     // Preserve the rgo continuation (code pointer and env_end pointer)
+//     // These were passed as the last two arguments (implicit in rgo's convention)
+//     writeln!(out, "    push rsi ; preserve continuation code pointer")?;
+//     writeln!(out, "    push rdx ; preserve continuation env_end pointer")?;
 
-    // Calculate total argument slots and validate
-    let total_slots: usize = param_types
-        .iter()
-        .map(|ty| {
-            if resolved_type_kind(ty, symbols) == ValueKind::Closure {
-                2 // closure = code ptr + env_end ptr
-            } else {
-                1 // word-sized
-            }
-        })
-        .sum();
+//     // Calculate total argument slots and validate
+//     let total_slots: usize = param_types
+//         .iter()
+//         .map(|ty| {
+//             if resolved_type_kind(ty, symbols) == ValueKind::Closure {
+//                 2 // closure = code ptr + env_end ptr
+//             } else {
+//                 1 // word-sized
+//             }
+//         })
+//         .sum();
 
-    // System V ABI limit: 6 registers available for integer/pointer arguments
-    if total_slots > 6 {
-        // Additional arguments will be on the stack; we need to ensure proper alignment
-        let stack_args = total_slots - 6;
-        writeln!(
-            out,
-            "    ; Note: {} argument slots will be spilled to stack",
-            stack_args
-        )?;
-    }
+//     // System V ABI limit: 6 registers available for integer/pointer arguments
+//     if total_slots > 6 {
+//         // Additional arguments will be on the stack; we need to ensure proper alignment
+//         let stack_args = total_slots - 6;
+//         writeln!(
+//             out,
+//             "    ; Note: {} argument slots will be spilled to stack",
+//             stack_args
+//         )?;
+//     }
 
-    // At this point, arguments have been pushed in reverse order by prepare_call_args,
-    // and move_args_to_registers has restored them to the proper ABI registers.
-    // The caller is responsible for ensuring correct argument setup before calling this wrapper.
+//     // At this point, arguments have been pushed in reverse order by prepare_call_args,
+//     // and move_args_to_registers has restored them to the proper ABI registers.
+//     // The caller is responsible for ensuring correct argument setup before calling this wrapper.
 
-    // Ensure 16-byte stack alignment before variadic call
-    // Stack is currently misaligned by 1 qword (due to the call instruction earlier),
-    // and we've pushed 2 values (rsi, rdx), so we need to align for the libc call
-    writeln!(
-        out,
-        "    sub rsp, 8 ; align stack to 16-byte boundary for call"
-    )?;
+//     // Ensure 16-byte stack alignment before variadic call
+//     // Stack is currently misaligned by 1 qword (due to the call instruction earlier),
+//     // and we've pushed 2 values (rsi, rdx), so we need to align for the libc call
+//     writeln!(
+//         out,
+//         "    sub rsp, 8 ; align stack to 16-byte boundary for call"
+//     )?;
 
-    // Emit the actual libc call
-    ctx.add_extern(libc_function_name);
-    writeln!(
-        out,
-        "    call {} ; invoke libc function",
-        libc_function_name
-    )?;
+//     // Emit the actual libc call
+//     ctx.add_extern(libc_function_name);
+//     writeln!(
+//         out,
+//         "    call {} ; invoke libc function",
+//         libc_function_name
+//     )?;
 
-    // Clean up the alignment adjustment
-    writeln!(out, "    add rsp, 8")?;
+//     // Clean up the alignment adjustment
+//     writeln!(out, "    add rsp, 8")?;
 
-    // Return value is now in rax (for int/pointer) or xmm0 (for float)
-    // For now, we handle only int/pointer returns (xmm0 not yet supported)
+//     // Return value is now in rax (for int/pointer) or xmm0 (for float)
+//     // For now, we handle only int/pointer returns (xmm0 not yet supported)
 
-    // Restore the rgo continuation
-    writeln!(out, "    pop rdx ; restore continuation env_end pointer")?;
-    writeln!(out, "    pop rsi ; restore continuation code pointer")?;
+//     // Restore the rgo continuation
+//     writeln!(out, "    pop rdx ; restore continuation env_end pointer")?;
+//     writeln!(out, "    pop rsi ; restore continuation code pointer")?;
 
-    // Prepare to jump to continuation
-    // Move rax (return value) to the continuation's input if needed
-    // For now, we assume the continuation doesn't need the return value
-    // (The specific wrappers like printf can override this behavior)
-    writeln!(out, "    mov rax, rsi ; continuation entry point")?;
-    writeln!(
-        out,
-        "    mov rdi, rdx ; pass env_end pointer to continuation"
-    )?;
+//     // Prepare to jump to continuation
+//     // Move rax (return value) to the continuation's input if needed
+//     // For now, we assume the continuation doesn't need the return value
+//     // (The specific wrappers like printf can override this behavior)
+//     writeln!(out, "    mov rax, rsi ; continuation entry point")?;
+//     writeln!(
+//         out,
+//         "    mov rdi, rdx ; pass env_end pointer to continuation"
+//     )?;
 
-    // Epilogue and jump
-    writeln!(out, "    leave ; epilogue: unwind before jump")?;
-    writeln!(out, "    jmp rax ; jump into continuation")?;
-    writeln!(out)?;
+//     // Epilogue and jump
+//     writeln!(out, "    leave ; epilogue: unwind before jump")?;
+//     writeln!(out, "    jmp rax ; jump into continuation")?;
+//     writeln!(out)?;
 
-    Ok(())
-}
+//     Ok(())
+// }
 
-fn emit_builtin_write<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result<(), CodegenError> {
+fn emit_builtin_write<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result<(), CompileError> {
     writeln!(out, "global rgo_write")?;
     writeln!(out, "rgo_write:")?;
     writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
@@ -3002,7 +3114,7 @@ fn emit_builtin_write<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result
     Ok(())
 }
 
-fn emit_builtin_puts<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result<(), CodegenError> {
+fn emit_builtin_puts<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result<(), CompileError> {
     writeln!(out, "global rgo_puts")?;
     writeln!(out, "rgo_puts:")?;
     writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
@@ -3025,7 +3137,7 @@ fn emit_builtin_puts<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result<
     Ok(())
 }
 
-fn emit_builtin_add<W: Write>(out: &mut W) -> Result<(), CodegenError> {
+fn emit_builtin_add<W: Write>(out: &mut W) -> Result<(), CompileError> {
     writeln!(out, "global add")?;
     writeln!(out, "add:")?;
     writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
@@ -3054,7 +3166,7 @@ fn emit_builtin_add<W: Write>(out: &mut W) -> Result<(), CodegenError> {
     Ok(())
 }
 
-fn emit_builtin_sub<W: Write>(out: &mut W) -> Result<(), CodegenError> {
+fn emit_builtin_sub<W: Write>(out: &mut W) -> Result<(), CompileError> {
     writeln!(out, "global sub")?;
     writeln!(out, "sub:")?;
     writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
@@ -3083,7 +3195,7 @@ fn emit_builtin_sub<W: Write>(out: &mut W) -> Result<(), CodegenError> {
     Ok(())
 }
 
-fn emit_builtin_mul<W: Write>(out: &mut W) -> Result<(), CodegenError> {
+fn emit_builtin_mul<W: Write>(out: &mut W) -> Result<(), CompileError> {
     writeln!(out, "global mul")?;
     writeln!(out, "mul:")?;
     writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
@@ -3112,7 +3224,7 @@ fn emit_builtin_mul<W: Write>(out: &mut W) -> Result<(), CodegenError> {
     Ok(())
 }
 
-fn emit_builtin_div<W: Write>(out: &mut W) -> Result<(), CodegenError> {
+fn emit_builtin_div<W: Write>(out: &mut W) -> Result<(), CompileError> {
     writeln!(out, "global div")?;
     writeln!(out, "div:")?;
     writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
@@ -3142,7 +3254,7 @@ fn emit_builtin_div<W: Write>(out: &mut W) -> Result<(), CodegenError> {
     Ok(())
 }
 
-fn emit_builtin_gt<W: Write>(out: &mut W) -> Result<(), CodegenError> {
+fn emit_builtin_gt<W: Write>(out: &mut W) -> Result<(), CompileError> {
     writeln!(out, "global gt")?;
     writeln!(out, "gt:")?;
     writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
@@ -3176,7 +3288,7 @@ fn emit_builtin_gt<W: Write>(out: &mut W) -> Result<(), CodegenError> {
     Ok(())
 }
 
-fn emit_builtin_lt<W: Write>(out: &mut W) -> Result<(), CodegenError> {
+fn emit_builtin_lt<W: Write>(out: &mut W) -> Result<(), CompileError> {
     writeln!(out, "global lt")?;
     writeln!(out, "lt:")?;
     writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
@@ -3210,7 +3322,7 @@ fn emit_builtin_lt<W: Write>(out: &mut W) -> Result<(), CodegenError> {
     Ok(())
 }
 
-fn emit_builtin_eqi<W: Write>(out: &mut W) -> Result<(), CodegenError> {
+fn emit_builtin_eqi<W: Write>(out: &mut W) -> Result<(), CompileError> {
     writeln!(out, "global eqi")?;
     writeln!(out, "eqi:")?;
     writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
@@ -3244,7 +3356,7 @@ fn emit_builtin_eqi<W: Write>(out: &mut W) -> Result<(), CodegenError> {
     Ok(())
 }
 
-fn emit_builtin_eqs<W: Write>(out: &mut W) -> Result<(), CodegenError> {
+fn emit_builtin_eqs<W: Write>(out: &mut W) -> Result<(), CompileError> {
     writeln!(out, "global eqs")?;
     writeln!(out, "eqs:")?;
     writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
@@ -3288,7 +3400,7 @@ fn emit_builtin_eqs<W: Write>(out: &mut W) -> Result<(), CodegenError> {
     Ok(())
 }
 
-fn emit_builtin_itoa<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result<(), CodegenError> {
+fn emit_builtin_itoa<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result<(), CompileError> {
     let min_value_label = ctx.string_literal_label("-9223372036854775808");
     writeln!(out, "global itoa")?;
     writeln!(out, "itoa:")?;
@@ -3381,6 +3493,15 @@ fn emit_builtin_itoa<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result<
     writeln!(out, "    jmp rax ; jump into continuation")?;
     writeln!(out)?;
     Ok(())
+}
+
+fn size_of(ty: &mir::Type) -> usize {
+    match ty {
+        mir::Type::Int => WORD_SIZE,
+        mir::Type::Str => WORD_SIZE,
+        mir::Type::CodePtr => WORD_SIZE,
+        mir::Type::Struct(fields) => fields.iter().map(size_of).sum(),
+    }
 }
 
 #[cfg(test)]

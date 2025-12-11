@@ -1,6 +1,6 @@
 use std::io::{self, BufRead};
 
-use crate::compiler::error::LexError;
+use crate::compiler::error::{CompileError, CompileErrorCode};
 use crate::compiler::span::Span;
 use crate::compiler::token::{Token, TokenKind};
 
@@ -25,7 +25,7 @@ impl<R: BufRead> Lexer<R> {
         }
     }
 
-    pub fn next_token(&mut self) -> Result<Token, LexError> {
+    pub fn next_token(&mut self) -> Result<Token, CompileError> {
         let has_newline = self
             .skip_whitespace_and_comments()
             .map_err(|err| self.io_error(err))?;
@@ -43,31 +43,48 @@ impl<R: BufRead> Lexer<R> {
         let token = match ch {
             '@' => {
                 // Check if next char is '/' for builtin imports (@/name)
-                let owner = if let Some(('/', _)) =
-                    self.peek_char().map_err(|err| self.io_error(err))?
-                {
-                    self.next_char().map_err(|err| self.io_error(err))?; // consume '/'
-                    String::new() // empty string represents builtin (/)
-                } else {
-                    // Collect owner name for user-defined imports (@owner/name)
-                    let owner_name = self.collect_identifier()?;
-                    if owner_name.is_empty() {
-                        return Err(LexError::new("import owner cannot be empty", span));
-                    }
-                    // Expect '/' after owner
-                    let (slash, _) = self
-                        .next_char()
-                        .map_err(|err| self.io_error(err))?
-                        .ok_or_else(|| LexError::new("expected '/' after import owner", span))?;
-                    if slash != '/' {
-                        return Err(LexError::new("expected '/' in import path", span));
-                    }
-                    owner_name
-                };
+                let owner =
+                    if let Some(('/', _)) = self.peek_char().map_err(|err| self.io_error(err))? {
+                        self.next_char().map_err(|err| self.io_error(err))?; // consume '/'
+                        String::new() // empty string represents builtin (/)
+                    } else {
+                        // Collect owner name for user-defined imports (@owner/name)
+                        let owner_name = self.collect_identifier()?;
+                        if owner_name.is_empty() {
+                            return Err(CompileError::new(
+                                CompileErrorCode::Lex,
+                                "import owner cannot be empty",
+                                span,
+                            ));
+                        }
+                        // Expect '/' after owner
+                        let (slash, _) = self
+                            .next_char()
+                            .map_err(|err| self.io_error(err))?
+                            .ok_or_else(|| {
+                                CompileError::new(
+                                    CompileErrorCode::Lex,
+                                    "expected '/' after import owner",
+                                    span,
+                                )
+                            })?;
+                        if slash != '/' {
+                            return Err(CompileError::new(
+                                CompileErrorCode::Lex,
+                                "expected '/' in import path",
+                                span,
+                            ));
+                        }
+                        owner_name
+                    };
 
                 let name = self.collect_identifier()?;
                 if name.is_empty() {
-                    return Err(LexError::new("import name cannot be empty", span));
+                    return Err(CompileError::new(
+                        CompileErrorCode::Lex,
+                        "import name cannot be empty",
+                        span,
+                    ));
                 }
 
                 // Combine owner and name into format: "owner/name" or "/name" for builtins
@@ -87,9 +104,9 @@ impl<R: BufRead> Lexer<R> {
             '0'..='9' => {
                 let mut literal = ch.to_string();
                 literal.push_str(&self.collect_digits()?);
-                let value = literal
-                    .parse::<i64>()
-                    .map_err(|_| LexError::new("invalid integer literal", span))?;
+                let value = literal.parse::<i64>().map_err(|_| {
+                    CompileError::new(CompileErrorCode::Lex, "invalid integer literal", span)
+                })?;
                 Token::new(TokenKind::IntLiteral(value), span)
             }
             '(' => Token::new(TokenKind::LParen, span),
@@ -105,9 +122,21 @@ impl<R: BufRead> Lexer<R> {
                 let dot_count = self.collect_dots(span)?;
                 match dot_count {
                     1 => Token::new(TokenKind::Dot, span),
-                    2 => return Err(LexError::new("invalid token: expected '.' or '...'", span)),
+                    2 => {
+                        return Err(CompileError::new(
+                            CompileErrorCode::Lex,
+                            "invalid token: expected '.' or '...'",
+                            span,
+                        ))
+                    }
                     3 => Token::new(TokenKind::Ellipsis, span),
-                    _ => return Err(LexError::new("invalid token: expected '.' or '...'", span)),
+                    _ => {
+                        return Err(CompileError::new(
+                            CompileErrorCode::Lex,
+                            "invalid token: expected '.' or '...'",
+                            span,
+                        ))
+                    }
                 }
             }
             '+' => Token::new(TokenKind::Plus, span),
@@ -122,7 +151,8 @@ impl<R: BufRead> Lexer<R> {
             '"' => self.string_token(span, '"')?,
             '\'' => self.string_token(span, '\'')?,
             _ => {
-                return Err(LexError::new(
+                return Err(CompileError::new(
+                    CompileErrorCode::Lex,
                     format!("unexpected character '{}'", ch),
                     span,
                 ))
@@ -132,7 +162,7 @@ impl<R: BufRead> Lexer<R> {
         Ok(token)
     }
 
-    fn collect_digits(&mut self) -> Result<String, LexError> {
+    fn collect_digits(&mut self) -> Result<String, CompileError> {
         let mut buf = String::new();
         while let Some((ch, _)) = self.peek_char().map_err(|err| self.io_error(err))? {
             if ch.is_ascii_digit() {
@@ -145,7 +175,7 @@ impl<R: BufRead> Lexer<R> {
         Ok(buf)
     }
 
-    fn collect_identifier(&mut self) -> Result<String, LexError> {
+    fn collect_identifier(&mut self) -> Result<String, CompileError> {
         let mut buf = String::new();
         while let Some((ch, _)) = self.peek_char().map_err(|err| self.io_error(err))? {
             if ch.is_ascii_alphanumeric() || ch == '_' {
@@ -158,7 +188,7 @@ impl<R: BufRead> Lexer<R> {
         Ok(buf)
     }
 
-    fn collect_dots(&mut self, start_span: Span) -> Result<usize, LexError> {
+    fn collect_dots(&mut self, start_span: Span) -> Result<usize, CompileError> {
         let mut count = 1;
 
         while let Some((ch, _)) = self.peek_char().map_err(|err| self.io_error(err))? {
@@ -166,7 +196,11 @@ impl<R: BufRead> Lexer<R> {
                 count += 1;
 
                 if count > 3 {
-                    return Err(LexError::new("too many dots (maximum is 3)", start_span));
+                    return Err(CompileError::new(
+                        CompileErrorCode::Lex,
+                        "too many dots (maximum is 3)",
+                        start_span,
+                    ));
                 }
 
                 // consume the dot
@@ -225,27 +259,47 @@ impl<R: BufRead> Lexer<R> {
         Ok(())
     }
 
-    fn string_token(&mut self, start_span: Span, delimiter: char) -> Result<Token, LexError> {
+    fn string_token(&mut self, start_span: Span, delimiter: char) -> Result<Token, CompileError> {
         let mut value = String::new();
         loop {
             let (ch, _) = self
                 .next_char()
                 .map_err(|err| self.io_error(err))?
-                .ok_or_else(|| LexError::new("unterminated string literal", start_span))?;
+                .ok_or_else(|| {
+                    CompileError::new(
+                        CompileErrorCode::Lex,
+                        "unterminated string literal",
+                        start_span,
+                    )
+                })?;
             if ch == delimiter {
                 break;
             }
             if ch == '\n' {
-                return Err(LexError::new("newline inside string literal", start_span));
+                return Err(CompileError::new(
+                    CompileErrorCode::Lex,
+                    "newline inside string literal",
+                    start_span,
+                ));
             }
 
             if ch == '\\' && delimiter == '"' {
                 let (escaped, _) = self
                     .next_char()
                     .map_err(|err| self.io_error(err))?
-                    .ok_or_else(|| LexError::new("unterminated escape sequence", start_span))?;
+                    .ok_or_else(|| {
+                        CompileError::new(
+                            CompileErrorCode::Lex,
+                            "unterminated escape sequence",
+                            start_span,
+                        )
+                    })?;
                 if escaped == '\n' {
-                    return Err(LexError::new("newline inside string literal", start_span));
+                    return Err(CompileError::new(
+                        CompileErrorCode::Lex,
+                        "newline inside string literal",
+                        start_span,
+                    ));
                 }
                 let esc_char = match escaped {
                     '"' => '"',
@@ -257,7 +311,8 @@ impl<R: BufRead> Lexer<R> {
                     't' => '\t',
                     'u' => self.parse_unicode_escape(start_span)?,
                     other => {
-                        return Err(LexError::new(
+                        return Err(CompileError::new(
+                            CompileErrorCode::Lex,
                             format!("invalid escape '\\\\{}'", other),
                             start_span,
                         ))
@@ -271,39 +326,73 @@ impl<R: BufRead> Lexer<R> {
         Ok(Token::new(TokenKind::StringLiteral(value), start_span))
     }
 
-    fn parse_unicode_escape(&mut self, start_span: Span) -> Result<char, LexError> {
+    fn parse_unicode_escape(&mut self, start_span: Span) -> Result<char, CompileError> {
         let (opening, _) = self
             .next_char()
             .map_err(|err| self.io_error(err))?
-            .ok_or_else(|| LexError::new("unterminated escape sequence", start_span))?;
+            .ok_or_else(|| {
+                CompileError::new(
+                    CompileErrorCode::Lex,
+                    "unterminated escape sequence",
+                    start_span,
+                )
+            })?;
         if opening != '{' {
-            return Err(LexError::new("invalid unicode escape", start_span));
+            return Err(CompileError::new(
+                CompileErrorCode::Lex,
+                "invalid unicode escape",
+                start_span,
+            ));
         }
         let mut digits = String::new();
         loop {
             let (ch, _) = self
                 .next_char()
                 .map_err(|err| self.io_error(err))?
-                .ok_or_else(|| LexError::new("unterminated unicode escape", start_span))?;
+                .ok_or_else(|| {
+                    CompileError::new(
+                        CompileErrorCode::Lex,
+                        "unterminated unicode escape",
+                        start_span,
+                    )
+                })?;
             if ch == '}' {
                 break;
             }
             if ch == '\n' {
-                return Err(LexError::new("newline inside string literal", start_span));
+                return Err(CompileError::new(
+                    CompileErrorCode::Lex,
+                    "newline inside string literal",
+                    start_span,
+                ));
             }
             if ch.is_ascii_hexdigit() {
                 digits.push(ch);
             } else {
-                return Err(LexError::new("invalid unicode escape", start_span));
+                return Err(CompileError::new(
+                    CompileErrorCode::Lex,
+                    "invalid unicode escape",
+                    start_span,
+                ));
             }
         }
         if digits.is_empty() {
-            return Err(LexError::new("invalid unicode escape", start_span));
+            return Err(CompileError::new(
+                CompileErrorCode::Lex,
+                "invalid unicode escape",
+                start_span,
+            ));
         }
-        let codepoint = u32::from_str_radix(&digits, 16)
-            .map_err(|_| LexError::new("invalid unicode escape", start_span))?;
-        char::from_u32(codepoint)
-            .ok_or_else(|| LexError::new("invalid unicode codepoint", start_span))
+        let codepoint = u32::from_str_radix(&digits, 16).map_err(|_| {
+            CompileError::new(CompileErrorCode::Lex, "invalid unicode escape", start_span)
+        })?;
+        char::from_u32(codepoint).ok_or_else(|| {
+            CompileError::new(
+                CompileErrorCode::Lex,
+                "invalid unicode codepoint",
+                start_span,
+            )
+        })
     }
 
     fn peek_char(&mut self) -> io::Result<Option<(char, Span)>> {
@@ -383,7 +472,7 @@ impl<R: BufRead> Lexer<R> {
         Span::new(self.line, self.column, self.offset)
     }
 
-    fn io_error(&self, err: io::Error) -> LexError {
-        LexError::new(err.to_string(), self.current_span())
+    fn io_error(&self, err: io::Error) -> CompileError {
+        CompileError::new(CompileErrorCode::Io, err.to_string(), self.current_span())
     }
 }

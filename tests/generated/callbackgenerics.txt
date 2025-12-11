@@ -6,7 +6,6 @@
             column: 1,
             offset: 0,
         },
-        is_libc: false,
     },
     Import {
         name: "/printf",
@@ -15,7 +14,6 @@
             column: 1,
             offset: 6,
         },
-        is_libc: true,
     },
     Import {
         name: "/exit",
@@ -24,40 +22,94 @@
             column: 1,
             offset: 15,
         },
-        is_libc: true,
     },
     FunctionDef {
         name: "foo",
         lambda: Lambda {
-            params: Params {
+            params: Signature {
                 items: [
-                    NameAndType {
-                        name: "p",
-                        ty: Type(
-                            [
-                                Type(
-                                    [],
-                                ),
-                            ],
+                    SigItem {
+                        name: Some(
+                            "p",
                         ),
+                        ty: SigType {
+                            kind: Tuple(
+                                Signature {
+                                    items: [
+                                        SigItem {
+                                            name: None,
+                                            ty: SigType {
+                                                kind: Tuple(
+                                                    Signature {
+                                                        items: [],
+                                                        span: Span {
+                                                            line: 0,
+                                                            column: 0,
+                                                            offset: 0,
+                                                        },
+                                                    },
+                                                ),
+                                                span: Span {
+                                                    line: 0,
+                                                    column: 0,
+                                                    offset: 0,
+                                                },
+                                            },
+                                            is_variadic: false,
+                                            span: Span {
+                                                line: 0,
+                                                column: 0,
+                                                offset: 0,
+                                            },
+                                        },
+                                    ],
+                                    span: Span {
+                                        line: 0,
+                                        column: 0,
+                                        offset: 0,
+                                    },
+                                },
+                            ),
+                            span: Span {
+                                line: 5,
+                                column: 9,
+                                offset: 31,
+                            },
+                        },
+                        is_variadic: false,
                         span: Span {
                             line: 5,
                             column: 7,
                             offset: 29,
                         },
-                        is_variadic: false,
                     },
-                    NameAndType {
-                        name: "ok",
-                        ty: Type(
-                            [],
+                    SigItem {
+                        name: Some(
+                            "ok",
                         ),
+                        ty: SigType {
+                            kind: Tuple(
+                                Signature {
+                                    items: [],
+                                    span: Span {
+                                        line: 0,
+                                        column: 0,
+                                        offset: 0,
+                                    },
+                                },
+                            ),
+                            span: Span {
+                                line: 5,
+                                column: 18,
+                                offset: 40,
+                            },
+                        },
+                        is_variadic: false,
                         span: Span {
                             line: 5,
                             column: 15,
                             offset: 37,
                         },
-                        is_variadic: false,
                     },
                 ],
                 span: Span {
@@ -114,29 +166,54 @@
     FunctionDef {
         name: "print1",
         lambda: Lambda {
-            params: Params {
+            params: Signature {
                 items: [
-                    NameAndType {
-                        name: "n",
-                        ty: Str,
+                    SigItem {
+                        name: Some(
+                            "n",
+                        ),
+                        ty: SigType {
+                            kind: Str,
+                            span: Span {
+                                line: 8,
+                                column: 12,
+                                offset: 65,
+                            },
+                        },
+                        is_variadic: false,
                         span: Span {
                             line: 8,
                             column: 10,
                             offset: 63,
                         },
-                        is_variadic: false,
                     },
-                    NameAndType {
-                        name: "ok",
-                        ty: Type(
-                            [],
+                    SigItem {
+                        name: Some(
+                            "ok",
                         ),
+                        ty: SigType {
+                            kind: Tuple(
+                                Signature {
+                                    items: [],
+                                    span: Span {
+                                        line: 0,
+                                        column: 0,
+                                        offset: 0,
+                                    },
+                                },
+                            ),
+                            span: Span {
+                                line: 8,
+                                column: 20,
+                                offset: 73,
+                            },
+                        },
+                        is_variadic: false,
                         span: Span {
                             line: 8,
                             column: 17,
                             offset: 70,
                         },
-                        is_variadic: false,
                     },
                 ],
                 span: Span {
@@ -214,29 +291,54 @@
     FunctionDef {
         name: "print2",
         lambda: Lambda {
-            params: Params {
+            params: Signature {
                 items: [
-                    NameAndType {
-                        name: "n",
-                        ty: Str,
+                    SigItem {
+                        name: Some(
+                            "n",
+                        ),
+                        ty: SigType {
+                            kind: Str,
+                            span: Span {
+                                line: 11,
+                                column: 12,
+                                offset: 135,
+                            },
+                        },
+                        is_variadic: false,
                         span: Span {
                             line: 11,
                             column: 10,
                             offset: 133,
                         },
-                        is_variadic: false,
                     },
-                    NameAndType {
-                        name: "ok",
-                        ty: Type(
-                            [],
+                    SigItem {
+                        name: Some(
+                            "ok",
                         ),
+                        ty: SigType {
+                            kind: Tuple(
+                                Signature {
+                                    items: [],
+                                    span: Span {
+                                        line: 0,
+                                        column: 0,
+                                        offset: 0,
+                                    },
+                                },
+                            ),
+                            span: Span {
+                                line: 11,
+                                column: 20,
+                                offset: 143,
+                            },
+                        },
+                        is_variadic: false,
                         span: Span {
                             line: 11,
                             column: 17,
                             offset: 140,
                         },
-                        is_variadic: false,
                     },
                 ],
                 span: Span {
@@ -314,19 +416,35 @@
     FunctionDef {
         name: "p1",
         lambda: Lambda {
-            params: Params {
+            params: Signature {
                 items: [
-                    NameAndType {
-                        name: "ok",
-                        ty: Type(
-                            [],
+                    SigItem {
+                        name: Some(
+                            "ok",
                         ),
+                        ty: SigType {
+                            kind: Tuple(
+                                Signature {
+                                    items: [],
+                                    span: Span {
+                                        line: 0,
+                                        column: 0,
+                                        offset: 0,
+                                    },
+                                },
+                            ),
+                            span: Span {
+                                line: 14,
+                                column: 9,
+                                offset: 203,
+                            },
+                        },
+                        is_variadic: false,
                         span: Span {
                             line: 14,
                             column: 6,
                             offset: 200,
                         },
-                        is_variadic: false,
                     },
                 ],
                 span: Span {
@@ -393,19 +511,35 @@
     FunctionDef {
         name: "p2",
         lambda: Lambda {
-            params: Params {
+            params: Signature {
                 items: [
-                    NameAndType {
-                        name: "ok",
-                        ty: Type(
-                            [],
+                    SigItem {
+                        name: Some(
+                            "ok",
                         ),
+                        ty: SigType {
+                            kind: Tuple(
+                                Signature {
+                                    items: [],
+                                    span: Span {
+                                        line: 0,
+                                        column: 0,
+                                        offset: 0,
+                                    },
+                                },
+                            ),
+                            span: Span {
+                                line: 15,
+                                column: 9,
+                                offset: 233,
+                            },
+                        },
+                        is_variadic: false,
                         span: Span {
                             line: 15,
                             column: 6,
                             offset: 230,
                         },
-                        is_variadic: false,
                     },
                 ],
                 span: Span {
@@ -486,7 +620,7 @@
                 ),
                 Lambda(
                     Lambda {
-                        params: Params {
+                        params: Signature {
                             items: [],
                             span: Span {
                                 line: 16,

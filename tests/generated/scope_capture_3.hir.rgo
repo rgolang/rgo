@@ -1,25 +1,27 @@
+@/str
+@/int
+@/printf
+@/add
+@/exit
 foo: (){
-    __temp_2: __lambda_1()
-    __lambda_0(__temp_2)
+    _foo_1: _foo_2()
+    _foo_0(_foo_1)
 }
 
-__lambda_0: (ok:(int)){
-    __temp_0: 1
-    __temp_1: 2
-    add(__temp_0, __temp_1, ok)
+_foo_0: (ok:(int)){
+    _foo__foo_0_0: 1
+    _foo__foo_0_1: 2
+    add(_foo__foo_0_0, _foo__foo_0_1, ok)
 }
 
-__lambda_1: (x: int){
-    __temp_3: "result: %d"
-    __temp_4: __lambda_2()
-    printf(__temp_3, x, __temp_4)
+_foo__foo_2_2: (){
+    _foo__foo_2__foo__foo_2_2_0: 0
+    exit(_foo__foo_2__foo__foo_2_2_0)
 }
 
-__lambda_2: (){
-    __temp_5: 0
-    exit(__temp_5)
+_foo_2: (x: int){
+    _foo__foo_2_0: "result: %d"
+    _foo__foo_2_1: _foo__foo_2_2()
+    printf(_foo__foo_2_0, x, _foo__foo_2_1)
 }
-
-_start: (){
-    foo()
-}
+foo()

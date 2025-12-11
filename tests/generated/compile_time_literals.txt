@@ -6,7 +6,6 @@
             column: 1,
             offset: 0,
         },
-        is_libc: false,
     },
     Import {
         name: "/int",
@@ -15,7 +14,6 @@
             column: 1,
             offset: 6,
         },
-        is_libc: false,
     },
     Import {
         name: "/printf",
@@ -24,7 +22,6 @@
             column: 1,
             offset: 12,
         },
-        is_libc: true,
     },
     Import {
         name: "/exit",
@@ -33,32 +30,49 @@
             column: 1,
             offset: 21,
         },
-        is_libc: true,
     },
     FunctionDef {
         name: "not_const_msg",
         lambda: Lambda {
-            params: Params {
+            params: Signature {
                 items: [
-                    NameAndType {
-                        name: "fmt",
-                        ty: Str,
+                    SigItem {
+                        name: Some(
+                            "fmt",
+                        ),
+                        ty: SigType {
+                            kind: Str,
+                            span: Span {
+                                line: 6,
+                                column: 22,
+                                offset: 50,
+                            },
+                        },
+                        is_variadic: false,
                         span: Span {
                             line: 6,
                             column: 17,
                             offset: 45,
                         },
-                        is_variadic: false,
                     },
-                    NameAndType {
-                        name: "value",
-                        ty: CompileTimeInt,
+                    SigItem {
+                        name: Some(
+                            "value",
+                        ),
+                        ty: SigType {
+                            kind: CompileTimeInt,
+                            span: Span {
+                                line: 6,
+                                column: 34,
+                                offset: 62,
+                            },
+                        },
+                        is_variadic: false,
                         span: Span {
                             line: 6,
                             column: 27,
                             offset: 55,
                         },
-                        is_variadic: false,
                     },
                 ],
                 span: Span {
@@ -148,27 +162,45 @@
     FunctionDef {
         name: "const_msg",
         lambda: Lambda {
-            params: Params {
+            params: Signature {
                 items: [
-                    NameAndType {
-                        name: "fmt",
-                        ty: CompileTimeStr,
+                    SigItem {
+                        name: Some(
+                            "fmt",
+                        ),
+                        ty: SigType {
+                            kind: CompileTimeStr,
+                            span: Span {
+                                line: 9,
+                                column: 18,
+                                offset: 121,
+                            },
+                        },
+                        is_variadic: false,
                         span: Span {
                             line: 9,
                             column: 13,
                             offset: 116,
                         },
-                        is_variadic: false,
                     },
-                    NameAndType {
-                        name: "value",
-                        ty: CompileTimeInt,
+                    SigItem {
+                        name: Some(
+                            "value",
+                        ),
+                        ty: SigType {
+                            kind: CompileTimeInt,
+                            span: Span {
+                                line: 9,
+                                column: 31,
+                                offset: 134,
+                            },
+                        },
+                        is_variadic: false,
                         span: Span {
                             line: 9,
                             column: 24,
                             offset: 127,
                         },
-                        is_variadic: false,
                     },
                 ],
                 span: Span {

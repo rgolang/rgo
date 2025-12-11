@@ -1,14 +1,14 @@
 use std::collections::{HashSet, VecDeque};
 use std::io::BufRead;
 
+use crate::compiler::ast;
 use crate::compiler::ast::{
-    Block, Ident, IntLiteral, Item, Lambda, Param, Params, StrLiteral, Term, TypeRef,
+    Block, BlockItem, Ident, IntLiteral, Lambda, SigIdent, SigItem, SigKind, Signature, StrLiteral,
+    Term,
 };
-use crate::compiler::builtins;
-use crate::compiler::error::{CompileError, ParseError};
+use crate::compiler::error::{CompileError, CompileErrorCode};
 use crate::compiler::lexer::Lexer;
 use crate::compiler::span::Span;
-use crate::compiler::symbol::{FunctionSig, SymbolRegistry};
 use crate::compiler::token::{Token, TokenKind};
 
 pub struct Parser<R: BufRead> {
@@ -34,7 +34,19 @@ impl<R: BufRead> Parser<R> {
         }
     }
 
-    pub fn next(&mut self, symbols: &mut SymbolRegistry) -> Result<Option<Item>, CompileError> {
+    // TODO: iter
+    // pub fn iter<'a>(
+    //     &'a mut self,
+    //     symbols: &'a mut SymbolRegistry,
+    // ) -> impl Iterator<Item = Result<BlockItem, CompileError>> + 'a {
+    //     std::iter::from_fn(move || match self.next(symbols) {
+    //         Ok(Some(item)) => Some(Ok(item)),
+    //         Ok(None) => None,
+    //         Err(e) => Some(Err(e)),
+    //     })
+    // }
+
+    pub fn next(&mut self) -> Result<Option<BlockItem>, CompileError> {
         loop {
             self.skip_newlines()?;
             let token = self.peek_token()?.clone();
@@ -42,25 +54,21 @@ impl<R: BufRead> Parser<R> {
             match token.kind {
                 TokenKind::Eof => return Ok(None),
                 TokenKind::Import(name) => {
+                    // TODO: Move this into HIR
                     if !self.allow_top_imports {
-                        return Err(ParseError::new(
+                        return Err(CompileError::new(
+                            CompileErrorCode::Parse,
                             "@ imports must appear before any other items",
                             token.span,
                         )
                         .into());
                     }
                     self.bump()?; // consume import token
-                    builtins::register_import(&name, span, symbols)?;
-                    let is_libc = builtins::is_libc_import(&name);
-                    return Ok(Some(Item::Import {
-                        name,
-                        span,
-                        is_libc,
-                    }));
+                    return Ok(Some(BlockItem::Import { name, span }));
                 }
                 _ => {
                     self.allow_top_imports = false;
-                    let item = self.parse_block_item(symbols)?;
+                    let item = self.parse_block_item()?;
                     self.consume_block_item_separators()?;
                     return Ok(Some(item));
                 }
@@ -76,7 +84,7 @@ impl<R: BufRead> Parser<R> {
         Ok(())
     }
 
-    fn parse_block_item(&mut self, symbols: &mut SymbolRegistry) -> Result<Item, CompileError> {
+    fn parse_block_item(&mut self) -> Result<BlockItem, CompileError> {
         self.skip_newlines()?;
         let token = self.peek_token()?.clone();
         let span: Span = token.span;
@@ -86,43 +94,48 @@ impl<R: BufRead> Parser<R> {
                 if matches!(self.peek_token()?.kind, TokenKind::Colon) {
                     // name: ... → declaration
                     self.bump()?; // consume colon
-                    return self.parse_bind(name, span, symbols);
+                    return self.parse_bind(name, span);
                 }
 
                 // Must be an exec
                 self.peeked.push_front(ident); // restore token to attempt exec parse
             }
             TokenKind::LParen => {
-                return self.parse_lambda_or_scope_capture(symbols);
+                return self.parse_lambda_or_scope_capture();
             }
             TokenKind::LBrace => {} // allow lambda exec (possibly without args)
             TokenKind::Newline => {}
-            _ => return Err(ParseError::new("expected a top-level item", span).into()),
+            _ => {
+                return Err(CompileError::new(
+                    CompileErrorCode::Parse,
+                    "expected a top-level item",
+                    span,
+                ))
+            }
         }
 
-        let term = self.parse_term(symbols)?;
+        let term = self.parse_term()?;
         match term {
             Term::String(literal) => {
-                return Err(
-                    ParseError::new("string literals cannot be called yet", literal.span).into(),
-                );
+                return Err(CompileError::new(
+                    CompileErrorCode::Parse,
+                    "string literals cannot be called yet",
+                    literal.span,
+                ));
             }
             Term::Int(literal) => {
-                return Err(
-                    ParseError::new("int literals cannot be called yet", literal.span).into(),
-                );
+                return Err(CompileError::new(
+                    CompileErrorCode::Parse,
+                    "int literals cannot be called yet",
+                    literal.span,
+                ));
             }
-            Term::Ident(ident) => Ok(Item::Ident(ident)),
-            Term::Lambda(lambda) => Ok(Item::Lambda(lambda)),
+            Term::Ident(ident) => Ok(BlockItem::Ident(ident)),
+            Term::Lambda(lambda) => Ok(BlockItem::Lambda(lambda)),
         }
     }
 
-    fn parse_bind(
-        &mut self,
-        name: String,
-        name_span: Span,
-        symbols: &mut SymbolRegistry,
-    ) -> Result<Item, CompileError> {
+    fn parse_bind(&mut self, name: String, name_span: Span) -> Result<BlockItem, CompileError> {
         let generics = self.parse_generic_params()?;
         let next_token = self.peek_token()?.clone();
         let params_span = next_token.span;
@@ -130,7 +143,8 @@ impl<R: BufRead> Parser<R> {
         let has_brace = matches!(next_token.kind, TokenKind::LBrace);
 
         if has_brace && !generics.is_empty() {
-            return Err(ParseError::new(
+            return Err(CompileError::new(
+                CompileErrorCode::Parse,
                 "generics are only supported on type aliases",
                 next_token.span,
             )
@@ -138,24 +152,17 @@ impl<R: BufRead> Parser<R> {
         }
 
         if has_head || has_brace {
-            symbols.install_type(
-                name.clone(),
-                TypeRef::Alias(name.clone()),
-                name_span,
-                Vec::new(),
-                generics.clone(),
-            )?;
             let params = if has_head {
                 self.with_generic_scope(&generics, |parser| {
-                    parser.parse_params(symbols, ParamContext::Params)
+                    parser.parse_params(ParamContext::Params)
                 })?
             } else {
-                Params {
+                Signature {
                     items: Vec::new(),
                     span: params_span,
                 }
             };
-            let param_variadic = params
+            let _param_variadic = params
                 .items
                 .iter()
                 .map(|param| param.is_variadic())
@@ -163,19 +170,10 @@ impl<R: BufRead> Parser<R> {
 
             if matches!(self.peek_token()?.kind, TokenKind::LBrace) {
                 // FUNCTION CASE
-                symbols.remove_type(&name);
-                let param_types = Self::collect_param_types(&params.items)?;
-                let sig = FunctionSig {
-                    name: name.clone(),
-                    params: param_types.clone(),
-                    is_variadic: param_variadic.clone(),
-                    span: name_span,
-                };
-                symbols.declare_function(sig)?;
 
                 let brace = self.expect_token("{", |k| matches!(k, TokenKind::LBrace))?;
-                let body = self.parse_body(symbols, brace.span)?;
-
+                let body = self.parse_body(brace.span)?;
+                self.expect_token("}", |k| matches!(k, TokenKind::RBrace))?;
                 let lambda = Lambda {
                     params,
                     body,
@@ -183,7 +181,7 @@ impl<R: BufRead> Parser<R> {
                     span: name_span,
                 };
 
-                return Ok(Item::FunctionDef {
+                return Ok(BlockItem::FunctionDef {
                     name,
                     lambda,
                     span: name_span,
@@ -191,37 +189,38 @@ impl<R: BufRead> Parser<R> {
             }
 
             if has_head {
-                let param_types = Self::collect_param_types(&params.items)?;
-                let target = TypeRef::Type(param_types);
-                symbols.update_type(&name, target.clone(), param_variadic.clone())?;
-                return Ok(Item::TypeDef {
+                let param_types = Self::collect_param_kinds(&params.items)?;
+                let target = SigKind::tuple(param_types);
+                return Ok(BlockItem::SigDef {
                     name,
                     term: target,
+                    generics: generics.clone(),
                     span: name_span,
                 });
             }
         }
 
         // Case 2: alias or literal (no params or body block)
-        let term = self.parse_term(symbols)?;
+        let term = self.parse_term()?;
         let term_span = term.span();
         return match term {
-            Term::String(literal) => Ok(Item::StrDef {
+            Term::String(literal) => Ok(BlockItem::StrDef {
                 name,
                 literal,
                 span: name_span,
             }),
-            Term::Int(literal) => Ok(Item::IntDef {
+            Term::Int(literal) => Ok(BlockItem::IntDef {
                 name,
                 literal,
                 span: name_span,
             }),
-            Term::Ident(ident) => Ok(Item::IdentDef {
+            Term::Ident(ident) => Ok(BlockItem::IdentDef {
                 name,
                 ident,
                 span: name_span,
             }),
-            _ => Err(ParseError::new(
+            _ => Err(CompileError::new(
+                CompileErrorCode::Parse,
                 "expected a literal or identifier alias on the right-hand side",
                 term_span,
             )
@@ -229,55 +228,56 @@ impl<R: BufRead> Parser<R> {
         };
     }
 
-    fn parse_lambda_or_scope_capture(
-        &mut self,
-        symbols: &mut SymbolRegistry,
-    ) -> Result<Item, CompileError> {
+    fn parse_lambda_or_scope_capture(&mut self) -> Result<BlockItem, CompileError> {
         // 1. Parse params ALWAYS
-        let params = self.parse_params(symbols, ParamContext::Lambda)?;
+        let params = self.parse_params(ParamContext::Lambda)?;
 
         // 2. Decide based on the next token
         match self.peek_token()?.kind {
             TokenKind::Equals => {
                 self.bump()?; // consume '='
-                let term = self.parse_term(symbols)?;
-                Ok(Item::ScopeCapture {
+                let term = self.parse_term()?;
+                let continuation = self.parse_body(params.span)?;
+                Ok(BlockItem::ScopeCapture {
                     params: params.clone(),
+                    continuation,
                     term,
                     span: params.span,
                 })
             }
             TokenKind::LBrace => {
                 // Parse lambda body as a term
-                let mut term = self.parse_term(symbols)?;
+                let mut term = self.parse_term()?;
 
                 match &mut term {
                     Term::Lambda(lambda) => {
                         // attach params parsed earlier
                         lambda.params = params;
 
-                        Ok(Item::Lambda(lambda.clone()))
+                        Ok(BlockItem::Lambda(lambda.clone()))
                     }
-                    _ => Err(ParseError::new(
+                    _ => Err(CompileError::new(
+                        CompileErrorCode::Parse,
                         "expected lambda body after parameter list",
                         params.span,
-                    )
-                    .into()),
+                    )),
                 }
             }
 
-            _ => {
-                Err(ParseError::new("expected '=' or '{' after parameter list", params.span).into())
-            }
+            _ => Err(CompileError::new(
+                CompileErrorCode::Parse,
+                "expected '=' or '{' after parameter list",
+                params.span,
+            )),
         }
     }
 
-    fn parse_term(&mut self, symbols: &mut SymbolRegistry) -> Result<Term, CompileError> {
-        let mut term = self.parse_head(symbols)?;
+    fn parse_term(&mut self) -> Result<Term, CompileError> {
+        let mut term = self.parse_head()?;
 
         while matches!(self.peek_token()?.kind, TokenKind::LParen) {
             let lparen = self.bump()?; // consume '('
-            let args = self.parse_argument_list(symbols)?;
+            let args = self.parse_argument_list()?;
 
             match &mut term {
                 Term::Ident(ident) => {
@@ -287,7 +287,8 @@ impl<R: BufRead> Parser<R> {
                     lambda.args.extend(args);
                 }
                 _ => {
-                    return Err(ParseError::new(
+                    return Err(CompileError::new(
+                        CompileErrorCode::Parse,
                         "expected identifier or lambda before argument list",
                         lparen.span,
                     )
@@ -300,7 +301,7 @@ impl<R: BufRead> Parser<R> {
     }
 
     // parse_head parses primary terms: literals, variables, and lambdas before any curried args.
-    fn parse_head(&mut self, symbols: &mut SymbolRegistry) -> Result<Term, CompileError> {
+    fn parse_head(&mut self) -> Result<Term, CompileError> {
         self.skip_newlines()?;
         let token = self.bump()?;
         match token.kind {
@@ -320,9 +321,10 @@ impl<R: BufRead> Parser<R> {
             TokenKind::LParen => {
                 // ( ... ) { ... } → lambda with params
                 self.peeked.push_front(token.clone());
-                let params = self.parse_params(symbols, ParamContext::Lambda)?;
+                let params = self.parse_params(ParamContext::Lambda)?;
                 let brace = self.expect_token("{", |kind| matches!(kind, TokenKind::LBrace))?;
-                let body = self.parse_body(symbols, brace.span)?;
+                let body = self.parse_body(brace.span)?;
+                self.expect_token("}", |k| matches!(k, TokenKind::RBrace))?;
                 Ok(Term::Lambda(Lambda {
                     params,
                     body,
@@ -332,11 +334,12 @@ impl<R: BufRead> Parser<R> {
             }
             TokenKind::LBrace => {
                 // { ... } → lambda without explicit params
-                let params = Params {
+                let params = Signature {
                     items: Vec::new(),
                     span: token.span,
                 };
-                let body = self.parse_body(symbols, token.span)?;
+                let body = self.parse_body(token.span)?;
+                self.expect_token("}", |k| matches!(k, TokenKind::RBrace))?;
                 Ok(Term::Lambda(Lambda {
                     params,
                     body,
@@ -344,23 +347,22 @@ impl<R: BufRead> Parser<R> {
                     span: token.span,
                 }))
             }
-            _ => Err(
-                ParseError::new(&format!("unexpected token: {:?}", token.kind), token.span).into(),
-            ),
+            _ => Err(CompileError::new(
+                CompileErrorCode::Parse,
+                format!("unexpected token: {:?}", token.kind),
+                token.span,
+            )),
         }
     }
 
-    fn parse_argument_list(
-        &mut self,
-        symbols: &mut SymbolRegistry,
-    ) -> Result<Vec<Term>, CompileError> {
+    fn parse_argument_list(&mut self) -> Result<Vec<Term>, CompileError> {
         let mut args = Vec::new();
         if matches!(self.peek_token()?.kind, TokenKind::RParen) {
             self.bump()?;
             return Ok(args);
         }
         loop {
-            args.push(self.parse_term(symbols)?);
+            args.push(self.parse_term()?);
             if self
                 .consume_if(|kind| matches!(kind, TokenKind::Comma))?
                 .is_some()
@@ -372,54 +374,57 @@ impl<R: BufRead> Parser<R> {
         self.expect_token(")", |kind| matches!(kind, TokenKind::RParen))?;
         Ok(args)
     }
-
-    fn parse_param(
-        &mut self,
-        symbols: &mut SymbolRegistry,
-        context: ParamContext,
-    ) -> Result<Param, CompileError> {
+    fn parse_sig_item(&mut self, context: ParamContext) -> Result<ast::SigItem, CompileError> {
+        let item_span = self.peek_token()?.span;
         let is_variadic = self.consume_variadic_marker()?;
         let token = self.peek_token()?.clone();
 
+        // IDENT — could be a name or a type
         if matches!(token.kind, TokenKind::Ident(_)) {
             let (name, name_span) = self.parse_identifier("parameter name")?;
+
+            // Case: name: Type
             if matches!(self.peek_token()?.kind, TokenKind::Colon) {
                 self.expect_token(":", |kind| matches!(kind, TokenKind::Colon))?;
-                let ty = self.parse_type_ref(symbols)?;
-                return Ok(Param::NameAndType {
-                    name,
+                let ty = self.parse_type_kind()?;
+                return Ok(ast::SigItem {
+                    name: Some(name),
                     ty,
-                    span: name_span,
                     is_variadic,
+                    span: item_span,
                 });
             }
 
+            // Case: identifier is actually a type name
             match context {
                 ParamContext::Params => {
-                    self.peeked.push_front(token.clone());
-                    let ty = self.parse_type_ref(symbols)?;
-                    return Ok(Param::TypeOnly {
+                    // Put back IDENT so parse_type_ref sees it
+                    self.peeked.push_front(token);
+                    let ty = self.parse_type_kind()?;
+                    return Ok(ast::SigItem {
+                        name: None,
                         ty,
-                        span: name_span,
                         is_variadic,
+                        span: item_span,
                     });
                 }
                 ParamContext::Lambda => {
-                    return Ok(Param::NameOnly {
-                        name,
-                        span: name_span,
-                        is_variadic,
-                    });
+                    return Err(CompileError::new(
+                        CompileErrorCode::Parse,
+                        "lambda parameters must have a type",
+                        name_span,
+                    ));
                 }
             }
         }
 
-        let span = token.span;
-        let ty = self.parse_type_ref(symbols)?;
-        Ok(Param::TypeOnly {
+        // Pure type-only parameter: `int`, `str`, `(a:int)`
+        let ty = self.parse_type_kind()?;
+        Ok(ast::SigItem {
+            name: None,
             ty,
-            span,
             is_variadic,
+            span: item_span,
         })
     }
 
@@ -433,11 +438,11 @@ impl<R: BufRead> Parser<R> {
         loop {
             let (name, span) = self.parse_identifier("generic parameter name")?;
             if !seen.insert(name.clone()) {
-                return Err(ParseError::new(
+                return Err(CompileError::new(
+                    CompileErrorCode::Parse,
                     format!("generic parameter '{}' already declared", name),
                     span,
-                )
-                .into());
+                ));
             }
             params.push(name);
             if self
@@ -449,7 +454,11 @@ impl<R: BufRead> Parser<R> {
         }
         self.expect_token(">", |kind| matches!(kind, TokenKind::AngleClose))?;
         if params.is_empty() {
-            return Err(ParseError::new("expected at least one generic parameter", lt.span).into());
+            return Err(CompileError::new(
+                CompileErrorCode::Parse,
+                "expected at least one generic parameter",
+                lt.span,
+            ));
         }
         Ok(params)
     }
@@ -479,26 +488,16 @@ impl<R: BufRead> Parser<R> {
         Ok(false)
     }
 
-    fn collect_param_types(params: &[Param]) -> Result<Vec<TypeRef>, CompileError> {
-        params
-            .iter()
-            .map(|param| {
-                param
-                    .ty()
-                    .cloned()
-                    .ok_or_else(|| ParseError::new("expected parameter type", param.span()).into())
-            })
-            .collect()
+    fn collect_param_kinds(params: &[SigItem]) -> Result<Vec<ast::SigKind>, CompileError> {
+        Ok(params.iter().map(|param| param.ty.kind.clone()).collect())
     }
 
-    fn parse_type_arguments(
-        &mut self,
-        symbols: &mut SymbolRegistry,
-    ) -> Result<Vec<TypeRef>, CompileError> {
+    fn parse_type_arguments(&mut self) -> Result<Vec<ast::SigType>, CompileError> {
         self.expect_token("<", |kind| matches!(kind, TokenKind::AngleOpen))?;
         let mut args = Vec::new();
         loop {
-            args.push(self.parse_type_ref(symbols)?);
+            let ty = self.parse_type_kind()?;
+            args.push(ty);
             if self
                 .consume_if(|kind| matches!(kind, TokenKind::Comma))?
                 .is_none()
@@ -509,9 +508,9 @@ impl<R: BufRead> Parser<R> {
         self.expect_token(">", |kind| matches!(kind, TokenKind::AngleClose))?;
         Ok(args)
     }
-
-    fn parse_type_ref(&mut self, symbols: &mut SymbolRegistry) -> Result<TypeRef, CompileError> {
+    fn parse_type_kind(&mut self) -> Result<ast::SigType, CompileError> {
         let token = self.bump()?;
+        let span = token.span;
         match token.kind {
             TokenKind::LParen => {
                 let mut args = Vec::new();
@@ -525,16 +524,18 @@ impl<R: BufRead> Parser<R> {
                                 .consume_if(|kind| matches!(kind, TokenKind::Colon))?
                                 .is_some()
                             {
-                                args.push(self.parse_type_ref(symbols)?);
+                                let ty = self.parse_type_kind()?;
+                                args.push(ty.kind);
                             } else {
                                 self.peeked.push_front(ident_token);
-                                args.push(self.parse_type_ref(symbols)?);
+                                let ty = self.parse_type_kind()?;
+                                args.push(ty.kind);
                             }
-                            variadics.push(is_variadic);
                         } else {
-                            args.push(self.parse_type_ref(symbols)?);
-                            variadics.push(is_variadic);
+                            let ty = self.parse_type_kind()?;
+                            args.push(ty.kind);
                         }
+                        variadics.push(is_variadic);
                         if self
                             .consume_if(|kind| matches!(kind, TokenKind::Comma))?
                             .is_some()
@@ -545,96 +546,133 @@ impl<R: BufRead> Parser<R> {
                     }
                 }
                 self.expect_token(")", |kind| matches!(kind, TokenKind::RParen))?;
-                let ty = TypeRef::Type(args);
-                symbols.record_type_variadic(ty.clone(), variadics);
-                Ok(ty)
+                let kind = SigKind::tuple(args);
+                return Ok(ast::SigType { kind, span });
             }
             TokenKind::Ident(name) => {
                 if self.is_generic_param(&name) {
-                    return Ok(TypeRef::Generic(name));
+                    return Ok(ast::SigType {
+                        kind: SigKind::Generic(name),
+                        span,
+                    });
                 }
                 if matches!(self.peek_token()?.kind, TokenKind::Bang) {
                     if name == "str" {
-                        if !symbols.builtin_imports().contains("str") {
-                            return Err(ParseError::new(
-                                "type 'str!' requires @/str import",
-                                token.span,
-                            )
-                            .into());
-                        }
                         self.bump()?; // consume '!'
-                        return Ok(TypeRef::CompileTimeStr);
+                        return Ok(ast::SigType {
+                            kind: SigKind::CompileTimeStr,
+                            span,
+                        });
                     }
                     if name == "int" {
-                        if !symbols.builtin_imports().contains("int") {
-                            return Err(ParseError::new(
-                                "type 'int!' requires @/int import",
-                                token.span,
-                            )
-                            .into());
-                        }
                         self.bump()?; // consume '!'
-                        return Ok(TypeRef::CompileTimeInt);
+                        return Ok(ast::SigType {
+                            kind: SigKind::CompileTimeInt,
+                            span,
+                        });
                     }
-                    return Err(ParseError::new("unexpected '!'", token.span).into());
+                    return Err(CompileError::new(
+                        CompileErrorCode::Parse,
+                        "unexpected '!'",
+                        span,
+                    ));
                 }
-                let resolved_type = symbols.resolve_type(&name);
+
                 if matches!(self.peek_token()?.kind, TokenKind::AngleOpen) {
-                    let args = self.parse_type_arguments(symbols)?;
-                    if let Some(info) = symbols.get_type_info(&name) {
-                        if info.generics.len() != args.len() {
-                            return Err(ParseError::new(
-                                format!(
-                                    "type '{}' expects {} generic arguments but got {}",
-                                    name,
-                                    info.generics.len(),
-                                    args.len()
-                                ),
-                                token.span,
-                            )
-                            .into());
-                        }
-                    } else if resolved_type.is_some() {
-                        return Err(ParseError::new(
-                            format!("type '{}' is not generic", name),
-                            token.span,
-                        )
-                        .into());
-                    } else {
-                        return Err(ParseError::new(
-                            format!("unknown type '{}'", name),
-                            token.span,
-                        )
-                        .into());
+                    let args = self.parse_type_arguments()?;
+                    // TODO: Not parsers job
+                    // if let Some(info) = symbols.get_type_info(&name) {
+                    //     if info.generics.len() != args.len() {
+                    //         return Err(CompileError::new(CompileErrorCode::Parse,
+                    //             format!(
+                    //                 "type '{}' expects {} generic arguments but got {}",
+                    //                 name,
+                    //                 info.generics.len(),
+                    //                 args.len()
+                    //             ),
+                    //             span,
+                    //         )
+                    //         .into());
+                    //     }
+                    // } else if resolved_type.is_some() {
+                    //     return Err(CompileError::new(CompileErrorCode::Parse,
+                    //         format!("type '{}' is not generic", name),
+                    //         span,
+                    //     )
+                    //     .into());
+                    // } else {
+                    //     return Err(
+                    //         CompileError::new(CompileErrorCode::Parse, format!("unknown type '{}'", name), span).into()
+                    //     );
+                    // }
+                    if name == "str" {
+                        return Ok(ast::SigType {
+                            kind: SigKind::Str,
+                            span,
+                        });
                     }
-                    return Ok(TypeRef::AliasInstance { name, args });
-                }
-                if let Some(ty) = resolved_type {
-                    if let TypeRef::Alias(alias_name) = &ty {
-                        if let Some(info) = symbols.get_type_info(alias_name) {
-                            if !info.generics.is_empty() {
-                                return Err(ParseError::new(
-                                    format!("generic type '{}' must be specialized", alias_name),
-                                    token.span,
-                                )
-                                .into());
-                            }
-                        }
+                    if name == "int" {
+                        return Ok(ast::SigType {
+                            kind: SigKind::Int,
+                            span,
+                        });
                     }
-                    Ok(ty)
-                } else {
-                    Err(ParseError::new(format!("unknown type '{}'", name), token.span).into())
+                    return Ok(ast::SigType {
+                        kind: SigKind::GenericInst { name, args },
+                        span,
+                    });
                 }
+
+                // TODO: Not parsers job
+                // let resolved_type = symbols.resolve_type(&name);
+                // if let Some(ty) = resolved_type {
+                //     if let SigKind::Ident(ident) = &ty {
+                //         let alias_name = &ident.name;
+                //         if let Some(info) = symbols.get_type_info(alias_name) {
+                //             if !info.generics.is_empty() {
+                //                 return Err(CompileError::new(CompileErrorCode::Parse,
+                //                     format!("generic type '{}' must be specialized", alias_name),
+                //                     span,
+                //                 )
+                //                 .into());
+                //             }
+                //         }
+                //     }
+                //     return Ok(ast::SigType { kind: ty, span });
+                // }
+                // return Err(CompileError::new(CompileErrorCode::Parse, format!("unknown type '{}'", name), span).into());
+                if name == "str" {
+                    return Ok(ast::SigType {
+                        kind: SigKind::Str,
+                        span,
+                    });
+                }
+                if name == "int" {
+                    return Ok(ast::SigType {
+                        kind: SigKind::Int,
+                        span,
+                    });
+                }
+                Ok(ast::SigType {
+                    kind: SigKind::Ident(SigIdent {
+                        name,
+                        has_bang: false,
+                        span,
+                    }),
+                    span,
+                })
             }
-            _ => Err(ParseError::new("expected a type", token.span).into()),
+            _ => {
+                return Err(CompileError::new(
+                    CompileErrorCode::Parse,
+                    "expected a type",
+                    span,
+                ))
+            }
         }
     }
 
-    fn parse_params(
-        &mut self,
-        symbols: &mut SymbolRegistry,
-        context: ParamContext,
-    ) -> Result<Params, CompileError> {
+    fn parse_params(&mut self, context: ParamContext) -> Result<Signature, CompileError> {
         let lparen = self.expect_token("(", |k| matches!(k, TokenKind::LParen))?;
 
         let mut params = Vec::new();
@@ -643,7 +681,7 @@ impl<R: BufRead> Parser<R> {
                 break;
             }
 
-            params.push(self.parse_param(symbols, context)?);
+            params.push(self.parse_sig_item(context)?);
 
             if self
                 .consume_if(|kind| matches!(kind, TokenKind::Comma))?
@@ -654,7 +692,7 @@ impl<R: BufRead> Parser<R> {
         }
 
         self.expect_token(")", |k| matches!(k, TokenKind::RParen))?;
-        Ok(Params {
+        Ok(Signature {
             items: params,
             span: lparen.span,
         })
@@ -664,7 +702,11 @@ impl<R: BufRead> Parser<R> {
         let token = self.bump()?;
         match token.kind {
             TokenKind::Ident(name) => Ok((name, token.span)),
-            _ => Err(ParseError::new(format!("expected {}", expected), token.span).into()),
+            _ => Err(CompileError::new(
+                CompileErrorCode::Parse,
+                format!("expected {}", expected),
+                token.span,
+            )),
         }
     }
 
@@ -676,7 +718,11 @@ impl<R: BufRead> Parser<R> {
         if predicate(&token.kind) {
             Ok(token)
         } else {
-            Err(ParseError::new(format!("expected {}", expected), token.span).into())
+            Err(CompileError::new(
+                CompileErrorCode::Parse,
+                format!("expected {}", expected),
+                token.span,
+            ))
         }
     }
 
@@ -706,45 +752,33 @@ impl<R: BufRead> Parser<R> {
         Ok(self.peeked.front().expect("peeked token exists"))
     }
 
-    fn parse_body(
-        &mut self,
-        symbols: &mut SymbolRegistry,
-        start_span: Span,
-    ) -> Result<Block, CompileError> {
-        (|| {
-            let mut items = Vec::new();
-            loop {
-                let token = self.peek_token()?;
-                match token.kind {
-                    TokenKind::RBrace => {
-                        if items.is_empty() {
-                            return Err(ParseError::new(
-                                "block must contain at least one item",
-                                token.span,
-                            )
-                            .into());
-                        }
-                        self.bump()?;
-                        return Ok(Block {
-                            items,
-                            span: start_span,
-                        });
-                    }
-                    TokenKind::Eof => {
-                        return Err(ParseError::new(
-                            "unexpected EOF inside continuation body",
-                            token.span,
-                        )
-                        .into());
-                    }
-                    _ => {
-                        let item = self.parse_block_item(symbols)?;
-                        self.consume_block_item_separators()?;
-                        items.push(item);
-                    }
+    fn parse_body(&mut self, start_span: Span) -> Result<Block, CompileError> {
+        let mut items = Vec::new();
+        loop {
+            self.consume_block_item_separators()?;
+            let token = self.peek_token()?;
+            match token.kind {
+                TokenKind::RBrace | TokenKind::Eof => break,
+                _ => {
+                    let item = self.parse_block_item()?;
+                    items.push(item);
                 }
             }
-        })()
+        }
+
+        if items.is_empty() {
+            let token = self.peek_token()?.clone();
+            return Err(CompileError::new(
+                CompileErrorCode::Parse,
+                "block must contain at least one item",
+                token.span,
+            ));
+        }
+
+        Ok(Block {
+            items,
+            span: start_span,
+        })
     }
 
     fn consume_block_item_separators(&mut self) -> Result<(), CompileError> {
@@ -760,19 +794,20 @@ impl<R: BufRead> Parser<R> {
 mod tests {
     use super::*;
     use crate::compiler::lexer::Lexer;
-    use crate::compiler::symbol::SymbolRegistry;
     use std::io::Cursor;
 
     #[test]
     fn parse_body_rejects_empty_block() {
         let mut parser = Parser::new(Lexer::new(Cursor::new("{}")));
-        let mut symbols = SymbolRegistry::new();
         let brace = parser
             .expect_token("{", |kind| matches!(kind, TokenKind::LBrace))
             .expect("expected opening brace");
         let err = parser
-            .parse_body(&mut symbols, brace.span)
+            .parse_body(brace.span)
             .expect_err("empty block must fail");
+        parser
+            .expect_token("}", |kind| matches!(kind, TokenKind::RBrace))
+            .expect("expected closing brace");
         assert!(
             err.to_string()
                 .contains("block must contain at least one item"),

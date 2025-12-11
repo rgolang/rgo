@@ -1,14 +1,13 @@
+@/write
+@/exit
 say_hi: (){
-    __temp_0: "hi"
-    __temp_1: __lambda_0()
-    write(__temp_0, __temp_1)
+    _say_hi_0: "hi"
+    _say_hi_1: _say_hi_2()
+    write(_say_hi_0, _say_hi_1)
 }
 
-__lambda_0: (){
-    __temp_2: 0
-    exit(__temp_2)
+_say_hi_2: (){
+    _say_hi__say_hi_2_0: 0
+    exit(_say_hi__say_hi_2_0)
 }
-
-_start: (){
-    say_hi()
-}
+say_hi()

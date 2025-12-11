@@ -6,7 +6,6 @@
             column: 1,
             offset: 0,
         },
-        is_libc: false,
     },
     Import {
         name: "/int",
@@ -15,7 +14,6 @@
             column: 1,
             offset: 6,
         },
-        is_libc: false,
     },
     Import {
         name: "/write",
@@ -24,7 +22,6 @@
             column: 1,
             offset: 12,
         },
-        is_libc: true,
     },
     Import {
         name: "/exit",
@@ -33,7 +30,6 @@
             column: 1,
             offset: 20,
         },
-        is_libc: true,
     },
     StrDef {
         name: "x",
@@ -54,7 +50,7 @@
     FunctionDef {
         name: "foo",
         lambda: Lambda {
-            params: Params {
+            params: Signature {
                 items: [],
                 span: Span {
                     line: 7,

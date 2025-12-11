@@ -1,10 +1,9 @@
-_start: (){
-    __temp_0: "hello\\n"
-    __temp_1: __lambda_0()
-    write(__temp_0, __temp_1)
+@/write
+@/exit
+_2: (){
+    __2_0: 0
+    exit(__2_0)
 }
-
-__lambda_0: (){
-    __temp_2: 0
-    exit(__temp_2)
-}
+_0: "hello\\n"
+_1: _2()
+write(_0, _1)

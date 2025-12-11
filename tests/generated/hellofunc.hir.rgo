@@ -1,0 +1,20 @@
+@/str
+@/int
+@/write
+@/exit
+foo: (x: str, ok:()){
+    _foo_w_0: _foo_w_0
+    _foo_w_0(ok, x)
+}
+
+_foo_w_0: (ok:(), s: str){
+    write(s, ok)
+}
+
+_2: (){
+    __2_0: 0
+    exit(__2_0)
+}
+_0: "hello world"
+_1: _2()
+foo(_0, _1)

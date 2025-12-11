@@ -1,11 +1,10 @@
-_start: (){
-    __temp_0: 1
-    __temp_1: 2
-    __temp_2: __lambda_0()
-    add(__temp_0, __temp_1, __temp_2)
+@/add
+@/exit
+_3: (n: int){
+    __3_0: 0
+    exit(__3_0)
 }
-
-__lambda_0: (n: int){
-    __temp_3: 0
-    exit(__temp_3)
-}
+_0: 1
+_1: 2
+_2: _3()
+add(_0, _1, _2)

@@ -1,39 +1,39 @@
+@/str
+@/exit
+@/write
 foo: (...items:((int, (int, (), (str))))){
-    __temp_0: __lambda_0()
-    items(__temp_0)
+    _foo_0: _foo_1()
+    items(_foo_0)
 }
 
-__lambda_0: (len: int, nth:(int, (), (str))){
-    __temp_1: 1
-    __temp_2: __lambda_1()
-    __temp_6: __lambda_3()
-    nth(__temp_1, __temp_2, __temp_6)
+_foo__foo_1__foo__foo_1_2_2: (){
+    _foo__foo_1__foo__foo_1_2__foo__foo_1__foo__foo_1_2_2_0: 0
+    exit(_foo__foo_1__foo__foo_1_2__foo__foo_1__foo__foo_1_2_2_0)
 }
 
-__lambda_1: (){
-    __temp_3: "none"
-    __temp_4: __lambda_2()
-    write(__temp_3, __temp_4)
+_foo__foo_1_2: (){
+    _foo__foo_1__foo__foo_1_2_0: "none"
+    _foo__foo_1__foo__foo_1_2_1: _foo__foo_1__foo__foo_1_2_2()
+    write(_foo__foo_1__foo__foo_1_2_0, _foo__foo_1__foo__foo_1_2_1)
 }
 
-__lambda_2: (){
-    __temp_5: 0
-    exit(__temp_5)
+_foo__foo_1__foo__foo_1_4_1: (){
+    _foo__foo_1__foo__foo_1_4__foo__foo_1__foo__foo_1_4_1_0: 0
+    exit(_foo__foo_1__foo__foo_1_4__foo__foo_1__foo__foo_1_4_1_0)
 }
 
-__lambda_3: (v: str){
-    __temp_7: __lambda_4()
-    write(v, __temp_7)
+_foo__foo_1_4: (v: str){
+    _foo__foo_1__foo__foo_1_4_0: _foo__foo_1__foo__foo_1_4_1()
+    write(v, _foo__foo_1__foo__foo_1_4_0)
 }
 
-__lambda_4: (){
-    __temp_8: 0
-    exit(__temp_8)
+_foo_1: (len: int, nth:(int, (), (str))){
+    _foo__foo_1_0: 1
+    _foo__foo_1_1: _foo__foo_1_2()
+    _foo__foo_1_3: _foo__foo_1_4()
+    nth(_foo__foo_1_0, _foo__foo_1_1, _foo__foo_1_3)
 }
-
-_start: (){
-    __temp_9: "a"
-    __temp_10: "b"
-    __temp_11: "c"
-    foo(__temp_9, __temp_10, __temp_11)
-}
+_0: "a"
+_1: "b"
+_2: "c"
+foo(_0, _1, _2)

@@ -1,3 +1,7 @@
+@/str
+@/write
+@/exit
+msg: "hello world"
 foo: (input: str, ok:()){
     write(input, ok)
 }
@@ -6,13 +10,10 @@ bar: (msg: str, cb:(str, ()), ok:()){
     cb(msg, ok)
 }
 
-_start: (){
-    msg: "hello world"
-    __temp_0: __lambda_0()
-    bar(msg, foo, __temp_0)
+_1: (){
+    __1_0: 0
+    exit(__1_0)
 }
-
-__lambda_0: (){
-    __temp_1: 0
-    exit(__temp_1)
-}
+_0: _1()
+_bar_2: bar(msg)
+_bar_2(foo, _0)

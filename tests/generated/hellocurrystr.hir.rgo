@@ -1,0 +1,26 @@
+@/str
+@/int
+@/printf
+@/exit
+foo: (n: str, s: str, ok:()){
+    _foo_0: "The winning number for %s is %s\n"
+    printf(_foo_0, s, n, ok)
+}
+_0: "42"
+bar: foo(_0)
+_1: "43"
+_2: "Bob"
+baz: foo(_1, _2)
+__5_1: (){
+    __5___5_1_0: 0
+    exit(__5___5_1_0)
+}
+
+_5: (baz:(())){
+    __5_0: __5_1()
+    baz(__5_0)
+}
+_3: "Alice"
+__5_6: _5(baz)
+_4: __5_6()
+bar(_3, _4)

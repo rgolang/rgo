@@ -1,464 +1,6 @@
-[
-    Function {
-        name: "foo",
-        params: [
-            Param {
-                name: "ok",
-                ty: Type(
-                    [
-                        Str,
-                    ],
-                ),
-                span: Span {
-                    line: 7,
-                    column: 7,
-                    offset: 77,
-                },
-                is_variadic: false,
-            },
-        ],
-        body: Block {
-            items: [
-                StrDef(
-                    StrLiteral {
-                        name: "greeting",
-                        value: "charlie",
-                        span: Span {
-                            line: 8,
-                            column: 5,
-                            offset: 92,
-                        },
-                    },
-                ),
-                Exec(
-                    Exec {
-                        of: "ok",
-                        args: [
-                            Arg {
-                                name: "greeting",
-                                span: Span {
-                                    line: 9,
-                                    column: 8,
-                                    offset: 119,
-                                },
-                            },
-                        ],
-                        span: Span {
-                            line: 9,
-                            column: 5,
-                            offset: 116,
-                        },
-                        result: None,
-                    },
-                ),
-            ],
-            span: Span {
-                line: 7,
-                column: 16,
-                offset: 86,
-            },
-        },
-        span: Span {
-            line: 7,
-            column: 1,
-            offset: 71,
-        },
-    },
-    Function {
-        name: "baz",
-        params: [
-            Param {
-                name: "ok",
-                ty: Type(
-                    [
-                        Str,
-                        Str,
-                    ],
-                ),
-                span: Span {
-                    line: 11,
-                    column: 7,
-                    offset: 137,
-                },
-                is_variadic: false,
-            },
-        ],
-        body: Block {
-            items: [
-                StrDef(
-                    StrLiteral {
-                        name: "__temp_0",
-                        value: "bob",
-                        span: Span {
-                            line: 12,
-                            column: 12,
-                            offset: 158,
-                        },
-                    },
-                ),
-                Exec(
-                    Exec {
-                        of: "ok",
-                        args: [
-                            Arg {
-                                name: "__temp_0",
-                                span: Span {
-                                    line: 12,
-                                    column: 12,
-                                    offset: 158,
-                                },
-                            },
-                        ],
-                        span: Span {
-                            line: 12,
-                            column: 9,
-                            offset: 155,
-                        },
-                        result: Some(
-                            "__temp_1",
-                        ),
-                    },
-                ),
-                Exec(
-                    Exec {
-                        of: "foo",
-                        args: [
-                            Arg {
-                                name: "__temp_1",
-                                span: Span {
-                                    line: 12,
-                                    column: 9,
-                                    offset: 155,
-                                },
-                            },
-                        ],
-                        span: Span {
-                            line: 12,
-                            column: 5,
-                            offset: 151,
-                        },
-                        result: None,
-                    },
-                ),
-            ],
-            span: Span {
-                line: 11,
-                column: 15,
-                offset: 145,
-            },
-        },
-        span: Span {
-            line: 11,
-            column: 1,
-            offset: 131,
-        },
-    },
-    Function {
-        name: "bar",
-        params: [
-            Param {
-                name: "name0",
-                ty: Str,
-                span: Span {
-                    line: 14,
-                    column: 7,
-                    offset: 174,
-                },
-                is_variadic: false,
-            },
-            Param {
-                name: "name1",
-                ty: Str,
-                span: Span {
-                    line: 14,
-                    column: 19,
-                    offset: 186,
-                },
-                is_variadic: false,
-            },
-            Param {
-                name: "name2",
-                ty: Str,
-                span: Span {
-                    line: 14,
-                    column: 31,
-                    offset: 198,
-                },
-                is_variadic: false,
-            },
-        ],
-        body: Block {
-            items: [
-                StrDef(
-                    StrLiteral {
-                        name: "__temp_2",
-                        value: "hello %s, %s and %s\n",
-                        span: Span {
-                            line: 15,
-                            column: 12,
-                            offset: 222,
-                        },
-                    },
-                ),
-                Exec(
-                    Exec {
-                        of: "printf",
-                        args: [
-                            Arg {
-                                name: "__temp_2",
-                                span: Span {
-                                    line: 15,
-                                    column: 12,
-                                    offset: 222,
-                                },
-                            },
-                            Arg {
-                                name: "name0",
-                                span: Span {
-                                    line: 15,
-                                    column: 37,
-                                    offset: 247,
-                                },
-                            },
-                            Arg {
-                                name: "name1",
-                                span: Span {
-                                    line: 15,
-                                    column: 44,
-                                    offset: 254,
-                                },
-                            },
-                            Arg {
-                                name: "name2",
-                                span: Span {
-                                    line: 15,
-                                    column: 51,
-                                    offset: 261,
-                                },
-                            },
-                        ],
-                        span: Span {
-                            line: 15,
-                            column: 5,
-                            offset: 215,
-                        },
-                        result: None,
-                    },
-                ),
-            ],
-            span: Span {
-                line: 14,
-                column: 42,
-                offset: 209,
-            },
-        },
-        span: Span {
-            line: 14,
-            column: 1,
-            offset: 168,
-        },
-    },
-    Function {
-        name: "currying_multi",
-        params: [
-            Param {
-                name: "ok",
-                ty: Type(
-                    [
-                        Type(
-                            [
-                                Str,
-                            ],
-                        ),
-                    ],
-                ),
-                span: Span {
-                    line: 17,
-                    column: 18,
-                    offset: 287,
-                },
-                is_variadic: false,
-            },
-        ],
-        body: Block {
-            items: [
-                StrDef(
-                    StrLiteral {
-                        name: "a",
-                        value: "alice",
-                        span: Span {
-                            line: 18,
-                            column: 5,
-                            offset: 304,
-                        },
-                    },
-                ),
-                StrDef(
-                    StrLiteral {
-                        name: "b",
-                        value: "bob",
-                        span: Span {
-                            line: 20,
-                            column: 5,
-                            offset: 343,
-                        },
-                    },
-                ),
-                ApplyDef(
-                    Apply {
-                        name: "baz",
-                        of: "bar",
-                        args: [
-                            Arg {
-                                name: "a",
-                                span: Span {
-                                    line: 19,
-                                    column: 22,
-                                    offset: 336,
-                                },
-                            },
-                            Arg {
-                                name: "b",
-                                span: Span {
-                                    line: 21,
-                                    column: 22,
-                                    offset: 373,
-                                },
-                            },
-                        ],
-                        span: Span {
-                            line: 21,
-                            column: 10,
-                            offset: 361,
-                        },
-                    },
-                ),
-                Exec(
-                    Exec {
-                        of: "ok",
-                        args: [
-                            Arg {
-                                name: "baz",
-                                span: Span {
-                                    line: 22,
-                                    column: 8,
-                                    offset: 383,
-                                },
-                            },
-                        ],
-                        span: Span {
-                            line: 22,
-                            column: 5,
-                            offset: 380,
-                        },
-                        result: None,
-                    },
-                ),
-            ],
-            span: Span {
-                line: 17,
-                column: 29,
-                offset: 298,
-            },
-        },
-        span: Span {
-            line: 17,
-            column: 1,
-            offset: 270,
-        },
-    },
-    Function {
-        name: "currying_invoke",
-        params: [
-            Param {
-                name: "c",
-                ty: Str,
-                span: Span {
-                    line: 25,
-                    column: 19,
-                    offset: 409,
-                },
-                is_variadic: false,
-            },
-        ],
-        body: Block {
-            items: [
-                StrDef(
-                    StrLiteral {
-                        name: "a",
-                        value: "alice",
-                        span: Span {
-                            line: 26,
-                            column: 5,
-                            offset: 422,
-                        },
-                    },
-                ),
-                StrDef(
-                    StrLiteral {
-                        name: "b",
-                        value: "bob",
-                        span: Span {
-                            line: 28,
-                            column: 5,
-                            offset: 461,
-                        },
-                    },
-                ),
-                Exec(
-                    Exec {
-                        of: "bar",
-                        args: [
-                            Arg {
-                                name: "a",
-                                span: Span {
-                                    line: 27,
-                                    column: 22,
-                                    offset: 454,
-                                },
-                            },
-                            Arg {
-                                name: "b",
-                                span: Span {
-                                    line: 29,
-                                    column: 22,
-                                    offset: 491,
-                                },
-                            },
-                            Arg {
-                                name: "c",
-                                span: Span {
-                                    line: 30,
-                                    column: 9,
-                                    offset: 502,
-                                },
-                            },
-                        ],
-                        span: Span {
-                            line: 30,
-                            column: 5,
-                            offset: 498,
-                        },
-                        result: None,
-                    },
-                ),
-            ],
-            span: Span {
-                line: 25,
-                column: 26,
-                offset: 416,
-            },
-        },
-        span: Span {
-            line: 25,
-            column: 1,
-            offset: 391,
-        },
-    },
-    Function {
-        name: "_start",
-        params: [],
-        body: Block {
+HirSnapshot {
+    entry_block: Some(
+        Block {
             items: [
                 StrDef(
                     StrLiteral {
@@ -522,10 +64,655 @@
                 offset: 508,
             },
         },
-        span: Span {
-            line: 33,
-            column: 1,
-            offset: 508,
+    ),
+    functions: [
+        Function {
+            name: "foo",
+            sig: Signature {
+                items: [
+                    SigItem {
+                        name: "ok",
+                        ty: SigType {
+                            kind: Tuple(
+                                Signature {
+                                    items: [
+                                        SigItem {
+                                            name: "",
+                                            ty: SigType {
+                                                kind: Str,
+                                                span: Span {
+                                                    line: 0,
+                                                    column: 0,
+                                                    offset: 0,
+                                                },
+                                            },
+                                            is_variadic: false,
+                                            span: Span {
+                                                line: 0,
+                                                column: 0,
+                                                offset: 0,
+                                            },
+                                        },
+                                    ],
+                                    span: Span {
+                                        line: 0,
+                                        column: 0,
+                                        offset: 0,
+                                    },
+                                },
+                            ),
+                            span: Span {
+                                line: 7,
+                                column: 1,
+                                offset: 71,
+                            },
+                        },
+                        is_variadic: false,
+                        span: Span {
+                            line: 7,
+                            column: 7,
+                            offset: 77,
+                        },
+                    },
+                ],
+                span: Span {
+                    line: 7,
+                    column: 6,
+                    offset: 76,
+                },
+            },
+            body: Block {
+                items: [
+                    StrDef(
+                        StrLiteral {
+                            name: "greeting",
+                            value: "charlie",
+                            span: Span {
+                                line: 8,
+                                column: 5,
+                                offset: 92,
+                            },
+                        },
+                    ),
+                    Exec(
+                        Exec {
+                            of: "ok",
+                            args: [
+                                Arg {
+                                    name: "greeting",
+                                    span: Span {
+                                        line: 9,
+                                        column: 8,
+                                        offset: 119,
+                                    },
+                                },
+                            ],
+                            span: Span {
+                                line: 9,
+                                column: 5,
+                                offset: 116,
+                            },
+                            result: None,
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 7,
+                    column: 16,
+                    offset: 86,
+                },
+            },
+            span: Span {
+                line: 7,
+                column: 1,
+                offset: 71,
+            },
         },
-    },
-]
+        Function {
+            name: "baz",
+            sig: Signature {
+                items: [
+                    SigItem {
+                        name: "ok",
+                        ty: SigType {
+                            kind: Tuple(
+                                Signature {
+                                    items: [
+                                        SigItem {
+                                            name: "",
+                                            ty: SigType {
+                                                kind: Str,
+                                                span: Span {
+                                                    line: 0,
+                                                    column: 0,
+                                                    offset: 0,
+                                                },
+                                            },
+                                            is_variadic: false,
+                                            span: Span {
+                                                line: 0,
+                                                column: 0,
+                                                offset: 0,
+                                            },
+                                        },
+                                        SigItem {
+                                            name: "",
+                                            ty: SigType {
+                                                kind: Str,
+                                                span: Span {
+                                                    line: 0,
+                                                    column: 0,
+                                                    offset: 0,
+                                                },
+                                            },
+                                            is_variadic: false,
+                                            span: Span {
+                                                line: 0,
+                                                column: 0,
+                                                offset: 0,
+                                            },
+                                        },
+                                    ],
+                                    span: Span {
+                                        line: 0,
+                                        column: 0,
+                                        offset: 0,
+                                    },
+                                },
+                            ),
+                            span: Span {
+                                line: 11,
+                                column: 1,
+                                offset: 131,
+                            },
+                        },
+                        is_variadic: false,
+                        span: Span {
+                            line: 11,
+                            column: 7,
+                            offset: 137,
+                        },
+                    },
+                ],
+                span: Span {
+                    line: 11,
+                    column: 6,
+                    offset: 136,
+                },
+            },
+            body: Block {
+                items: [
+                    StrDef(
+                        StrLiteral {
+                            name: "__temp_0",
+                            value: "bob",
+                            span: Span {
+                                line: 12,
+                                column: 12,
+                                offset: 158,
+                            },
+                        },
+                    ),
+                    Exec(
+                        Exec {
+                            of: "ok",
+                            args: [
+                                Arg {
+                                    name: "__temp_0",
+                                    span: Span {
+                                        line: 12,
+                                        column: 12,
+                                        offset: 158,
+                                    },
+                                },
+                            ],
+                            span: Span {
+                                line: 12,
+                                column: 9,
+                                offset: 155,
+                            },
+                            result: Some(
+                                "__temp_1",
+                            ),
+                        },
+                    ),
+                    Exec(
+                        Exec {
+                            of: "foo",
+                            args: [
+                                Arg {
+                                    name: "__temp_1",
+                                    span: Span {
+                                        line: 12,
+                                        column: 9,
+                                        offset: 155,
+                                    },
+                                },
+                            ],
+                            span: Span {
+                                line: 12,
+                                column: 5,
+                                offset: 151,
+                            },
+                            result: None,
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 11,
+                    column: 15,
+                    offset: 145,
+                },
+            },
+            span: Span {
+                line: 11,
+                column: 1,
+                offset: 131,
+            },
+        },
+        Function {
+            name: "bar",
+            sig: Signature {
+                items: [
+                    SigItem {
+                        name: "name0",
+                        ty: SigType {
+                            kind: Str,
+                            span: Span {
+                                line: 14,
+                                column: 1,
+                                offset: 168,
+                            },
+                        },
+                        is_variadic: false,
+                        span: Span {
+                            line: 14,
+                            column: 7,
+                            offset: 174,
+                        },
+                    },
+                    SigItem {
+                        name: "name1",
+                        ty: SigType {
+                            kind: Str,
+                            span: Span {
+                                line: 14,
+                                column: 1,
+                                offset: 168,
+                            },
+                        },
+                        is_variadic: false,
+                        span: Span {
+                            line: 14,
+                            column: 19,
+                            offset: 186,
+                        },
+                    },
+                    SigItem {
+                        name: "name2",
+                        ty: SigType {
+                            kind: Str,
+                            span: Span {
+                                line: 14,
+                                column: 1,
+                                offset: 168,
+                            },
+                        },
+                        is_variadic: false,
+                        span: Span {
+                            line: 14,
+                            column: 31,
+                            offset: 198,
+                        },
+                    },
+                ],
+                span: Span {
+                    line: 14,
+                    column: 6,
+                    offset: 173,
+                },
+            },
+            body: Block {
+                items: [
+                    StrDef(
+                        StrLiteral {
+                            name: "__temp_2",
+                            value: "hello %s, %s and %s\n",
+                            span: Span {
+                                line: 15,
+                                column: 12,
+                                offset: 222,
+                            },
+                        },
+                    ),
+                    Exec(
+                        Exec {
+                            of: "printf",
+                            args: [
+                                Arg {
+                                    name: "__temp_2",
+                                    span: Span {
+                                        line: 15,
+                                        column: 12,
+                                        offset: 222,
+                                    },
+                                },
+                                Arg {
+                                    name: "name0",
+                                    span: Span {
+                                        line: 15,
+                                        column: 37,
+                                        offset: 247,
+                                    },
+                                },
+                                Arg {
+                                    name: "name1",
+                                    span: Span {
+                                        line: 15,
+                                        column: 44,
+                                        offset: 254,
+                                    },
+                                },
+                                Arg {
+                                    name: "name2",
+                                    span: Span {
+                                        line: 15,
+                                        column: 51,
+                                        offset: 261,
+                                    },
+                                },
+                            ],
+                            span: Span {
+                                line: 15,
+                                column: 5,
+                                offset: 215,
+                            },
+                            result: None,
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 14,
+                    column: 42,
+                    offset: 209,
+                },
+            },
+            span: Span {
+                line: 14,
+                column: 1,
+                offset: 168,
+            },
+        },
+        Function {
+            name: "currying_multi",
+            sig: Signature {
+                items: [
+                    SigItem {
+                        name: "ok",
+                        ty: SigType {
+                            kind: Tuple(
+                                Signature {
+                                    items: [
+                                        SigItem {
+                                            name: "",
+                                            ty: SigType {
+                                                kind: Tuple(
+                                                    Signature {
+                                                        items: [
+                                                            SigItem {
+                                                                name: "",
+                                                                ty: SigType {
+                                                                    kind: Str,
+                                                                    span: Span {
+                                                                        line: 0,
+                                                                        column: 0,
+                                                                        offset: 0,
+                                                                    },
+                                                                },
+                                                                is_variadic: false,
+                                                                span: Span {
+                                                                    line: 0,
+                                                                    column: 0,
+                                                                    offset: 0,
+                                                                },
+                                                            },
+                                                        ],
+                                                        span: Span {
+                                                            line: 0,
+                                                            column: 0,
+                                                            offset: 0,
+                                                        },
+                                                    },
+                                                ),
+                                                span: Span {
+                                                    line: 0,
+                                                    column: 0,
+                                                    offset: 0,
+                                                },
+                                            },
+                                            is_variadic: false,
+                                            span: Span {
+                                                line: 0,
+                                                column: 0,
+                                                offset: 0,
+                                            },
+                                        },
+                                    ],
+                                    span: Span {
+                                        line: 0,
+                                        column: 0,
+                                        offset: 0,
+                                    },
+                                },
+                            ),
+                            span: Span {
+                                line: 17,
+                                column: 1,
+                                offset: 270,
+                            },
+                        },
+                        is_variadic: false,
+                        span: Span {
+                            line: 17,
+                            column: 18,
+                            offset: 287,
+                        },
+                    },
+                ],
+                span: Span {
+                    line: 17,
+                    column: 17,
+                    offset: 286,
+                },
+            },
+            body: Block {
+                items: [
+                    StrDef(
+                        StrLiteral {
+                            name: "a",
+                            value: "alice",
+                            span: Span {
+                                line: 18,
+                                column: 5,
+                                offset: 304,
+                            },
+                        },
+                    ),
+                    StrDef(
+                        StrLiteral {
+                            name: "b",
+                            value: "bob",
+                            span: Span {
+                                line: 20,
+                                column: 5,
+                                offset: 343,
+                            },
+                        },
+                    ),
+                    ApplyDef(
+                        Apply {
+                            name: "baz",
+                            of: "bar",
+                            args: [
+                                Arg {
+                                    name: "a",
+                                    span: Span {
+                                        line: 19,
+                                        column: 22,
+                                        offset: 336,
+                                    },
+                                },
+                                Arg {
+                                    name: "b",
+                                    span: Span {
+                                        line: 21,
+                                        column: 22,
+                                        offset: 373,
+                                    },
+                                },
+                            ],
+                            span: Span {
+                                line: 21,
+                                column: 10,
+                                offset: 361,
+                            },
+                        },
+                    ),
+                    Exec(
+                        Exec {
+                            of: "ok",
+                            args: [
+                                Arg {
+                                    name: "baz",
+                                    span: Span {
+                                        line: 22,
+                                        column: 8,
+                                        offset: 383,
+                                    },
+                                },
+                            ],
+                            span: Span {
+                                line: 22,
+                                column: 5,
+                                offset: 380,
+                            },
+                            result: None,
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 17,
+                    column: 29,
+                    offset: 298,
+                },
+            },
+            span: Span {
+                line: 17,
+                column: 1,
+                offset: 270,
+            },
+        },
+        Function {
+            name: "currying_invoke",
+            sig: Signature {
+                items: [
+                    SigItem {
+                        name: "c",
+                        ty: SigType {
+                            kind: Str,
+                            span: Span {
+                                line: 25,
+                                column: 1,
+                                offset: 391,
+                            },
+                        },
+                        is_variadic: false,
+                        span: Span {
+                            line: 25,
+                            column: 19,
+                            offset: 409,
+                        },
+                    },
+                ],
+                span: Span {
+                    line: 25,
+                    column: 18,
+                    offset: 408,
+                },
+            },
+            body: Block {
+                items: [
+                    StrDef(
+                        StrLiteral {
+                            name: "a",
+                            value: "alice",
+                            span: Span {
+                                line: 26,
+                                column: 5,
+                                offset: 422,
+                            },
+                        },
+                    ),
+                    StrDef(
+                        StrLiteral {
+                            name: "b",
+                            value: "bob",
+                            span: Span {
+                                line: 28,
+                                column: 5,
+                                offset: 461,
+                            },
+                        },
+                    ),
+                    Exec(
+                        Exec {
+                            of: "bar",
+                            args: [
+                                Arg {
+                                    name: "a",
+                                    span: Span {
+                                        line: 27,
+                                        column: 22,
+                                        offset: 454,
+                                    },
+                                },
+                                Arg {
+                                    name: "b",
+                                    span: Span {
+                                        line: 29,
+                                        column: 22,
+                                        offset: 491,
+                                    },
+                                },
+                                Arg {
+                                    name: "c",
+                                    span: Span {
+                                        line: 30,
+                                        column: 9,
+                                        offset: 502,
+                                    },
+                                },
+                            ],
+                            span: Span {
+                                line: 30,
+                                column: 5,
+                                offset: 498,
+                            },
+                            result: None,
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 25,
+                    column: 26,
+                    offset: 416,
+                },
+            },
+            span: Span {
+                line: 25,
+                column: 1,
+                offset: 391,
+            },
+        },
+    ],
+}

@@ -1,27 +1,28 @@
+@/str
+@/int
+@/printf
+@/exit
 foo: (ok:(str)){
-    __temp_0: "charlie"
-    ok(__temp_0)
+    _foo_0: "charlie"
+    ok(_foo_0)
 }
 
 baz: (ok:(str, str)){
-    __temp_1: "bob"
-    __temp_2: ok(__temp_1)
-    foo(__temp_2)
+    _baz_0: "bob"
+    _baz_ok_1: ok(_baz_0)
+    foo(_baz_ok_1)
 }
 
 bar: (name0: str, name1: str, name2: str){
-    __temp_3: "hello %s, %s and %s\n"
-    __temp_4: __lambda_0()
-    printf(__temp_3, name0, name1, name2, __temp_4)
+    _bar_0: "hello %s, %s and %s\n"
+    _bar_1: _bar_2()
+    printf(_bar_0, name0, name1, name2, _bar_1)
 }
 
-__lambda_0: (){
-    __temp_5: 0
-    exit(__temp_5)
+_bar_2: (){
+    _bar__bar_2_0: 0
+    exit(_bar__bar_2_0)
 }
-
-_start: (){
-    __temp_6: "alice"
-    __temp_7: bar(__temp_6)
-    baz(__temp_7)
-}
+_0: "alice"
+_bar_1: bar(_0)
+baz(_bar_1)

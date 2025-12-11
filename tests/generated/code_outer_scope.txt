@@ -6,7 +6,6 @@
             column: 1,
             offset: 0,
         },
-        is_libc: true,
     },
     Import {
         name: "/exit",
@@ -15,34 +14,58 @@
             column: 1,
             offset: 8,
         },
-        is_libc: true,
     },
     FunctionDef {
         name: "bar",
         lambda: Lambda {
-            params: Params {
+            params: Signature {
                 items: [
-                    NameAndType {
-                        name: "v",
-                        ty: Str,
+                    SigItem {
+                        name: Some(
+                            "v",
+                        ),
+                        ty: SigType {
+                            kind: Str,
+                            span: Span {
+                                line: 4,
+                                column: 10,
+                                offset: 25,
+                            },
+                        },
+                        is_variadic: false,
                         span: Span {
                             line: 4,
                             column: 7,
                             offset: 22,
                         },
-                        is_variadic: false,
                     },
-                    NameAndType {
-                        name: "ok",
-                        ty: Type(
-                            [],
+                    SigItem {
+                        name: Some(
+                            "ok",
                         ),
+                        ty: SigType {
+                            kind: Tuple(
+                                Signature {
+                                    items: [],
+                                    span: Span {
+                                        line: 0,
+                                        column: 0,
+                                        offset: 0,
+                                    },
+                                },
+                            ),
+                            span: Span {
+                                line: 4,
+                                column: 19,
+                                offset: 34,
+                            },
+                        },
+                        is_variadic: false,
                         span: Span {
                             line: 4,
                             column: 15,
                             offset: 30,
                         },
-                        is_variadic: false,
                     },
                 ],
                 span: Span {
@@ -126,7 +149,7 @@
     FunctionDef {
         name: "foo",
         lambda: Lambda {
-            params: Params {
+            params: Signature {
                 items: [],
                 span: Span {
                     line: 8,

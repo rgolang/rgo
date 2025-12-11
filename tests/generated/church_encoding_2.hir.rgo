@@ -1,31 +1,33 @@
+@/str
+@/int
+@/add
+@/printf
+@/exit
 two: (f:(int, (int)), x: int, ok:(int)){
-    __temp_0: __lambda_0(f, ok)
-    f(x, __temp_0)
+    _two_0: _two_1(f, ok)
+    f(x, _two_0)
 }
 
-__lambda_0: (f:(int, (int)), ok:(int), y: int){
+_two_1: (f:(int, (int)), ok:(int), y: int){
     f(y, ok)
 }
 
-_start: (){
-    __temp_2: __lambda_1()
-    __temp_4: 0
-    __temp_5: __lambda_2()
-    two(__temp_2, __temp_4, __temp_5)
+_1: (x: int, ok:(int)){
+    __1_0: 10
+    add(x, __1_0, ok)
 }
 
-__lambda_1: (x: int, ok:(int)){
-    __temp_3: 10
-    add(x, __temp_3, ok)
+__4_2: (){
+    __4___4_2_0: 0
+    exit(__4___4_2_0)
 }
 
-__lambda_2: (x: int){
-    __temp_6: "result: %d"
-    __temp_7: __lambda_3()
-    printf(__temp_6, x, __temp_7)
+_4: (x: int){
+    __4_0: "result: %d"
+    __4_1: __4_2()
+    printf(__4_0, x, __4_1)
 }
-
-__lambda_3: (){
-    __temp_8: 0
-    exit(__temp_8)
-}
+_0: _1()
+_2: 0
+_3: _4()
+two(_0, _2, _3)

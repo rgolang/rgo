@@ -2,4 +2,6 @@
 @/int
 @/printf
 @/add
+@/exit
 () = printf("hello world")
+exit(0)

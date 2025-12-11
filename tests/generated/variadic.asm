@@ -63,18 +63,18 @@ _start:
     syscall ; allocate env pages
     mov r14, rax ; stash base pointer for variadic array
     mov rax, [rbp-16] ; load scalar from frame
-    mov [r14+0], rax ; store variadic argument '__temp_1'
+    mov [r14+0], rax ; store variadic argument '_0'
     mov rax, [rbp-32] ; load scalar from frame
-    mov [r14+8], rax ; store variadic argument '__temp_2'
+    mov [r14+8], rax ; store variadic argument '_1'
     mov rax, [rbp-48] ; load scalar from frame
-    mov [r14+16], rax ; store variadic argument '__temp_3'
+    mov [r14+16], rax ; store variadic argument '_2'
     mov qword [r14+24], 3 ; record variadic argument length
     mov rdx, r14 ; env base pointer for array
     add rdx, 72 ; env_end pointer for array closure
     mov qword [rdx], 72 ; env size metadata for array
     mov qword [rdx+8], 104 ; heap size metadata for array
     mov qword [rdx+16], 0 ; pointer count metadata for array
-    mov qword [rdx+24], 40 ; invocation slot metadata for array
+    mov qword [rdx+24], 40 ; exec slot metadata for array
     mov rax, internal_array_str ; builtin array closure entry
     push rdx ; stack arg: closure env_end
     push rax ; stack arg: closure code
@@ -92,7 +92,7 @@ internal_array_str_nth:
     imul rax, 8 ; pointer metadata byte width
     lea r9, [r10+24] ; pointer metadata base
     add r9, rax ; offset to array extras
-    mov r9, [r9] ; load invocation slot size
+    mov r9, [r9] ; load exec slot size
     mov r11, r10 ; copy metadata pointer
     sub r11, r8 ; compute env base pointer
     mov rax, r8 ; payload plus slot bytes
@@ -139,7 +139,7 @@ internal_array_str:
     imul rax, 8 ; pointer metadata byte width
     lea r9, [r10+24] ; pointer metadata base
     add r9, rax ; offset to array extras
-    mov r9, [r9] ; load invocation slot size
+    mov r9, [r9] ; load exec slot size
     mov r11, r10 ; duplicate pointer
     sub r11, r8 ; compute env base
     mov rax, r8 ; payload plus slot bytes

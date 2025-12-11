@@ -1,15 +1,14 @@
-_start: (){
-    __temp_3: 42
-    __lambda_0(__temp_3)
+@/printf
+@/exit
+__0_2: (){
+    __0___0_2_0: 0
+    exit(__0___0_2_0)
 }
 
-__lambda_0: (x: int){
-    __temp_0: "the answer is: %d"
-    __temp_1: __lambda_1()
-    printf(__temp_0, x, __temp_1)
+_0: (x: int){
+    __0_0: "the answer is: %d"
+    __0_1: __0_2()
+    printf(__0_0, x, __0_1)
 }
-
-__lambda_1: (){
-    __temp_2: 0
-    exit(__temp_2)
-}
+_1: 42
+_0(_1)

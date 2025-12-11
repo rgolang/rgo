@@ -1,26 +1,28 @@
+@/str
+@/int
+@/add
+@/printf
+@/exit
 zero: (f:(int, (int)), x: int, ok:(int)){
     ok(x)
 }
 
-_start: (){
-    __temp_0: __lambda_0()
-    __temp_2: 0
-    __temp_3: __lambda_1()
-    zero(__temp_0, __temp_2, __temp_3)
+_1: (x: int, ok:(int)){
+    __1_0: 10
+    add(x, __1_0, ok)
 }
 
-__lambda_0: (x: int, ok:(int)){
-    __temp_1: 10
-    add(x, __temp_1, ok)
+__4_2: (){
+    __4___4_2_0: 0
+    exit(__4___4_2_0)
 }
 
-__lambda_1: (x: int){
-    __temp_4: "result: %d"
-    __temp_5: __lambda_2()
-    printf(__temp_4, x, __temp_5)
+_4: (x: int){
+    __4_0: "result: %d"
+    __4_1: __4_2()
+    printf(__4_0, x, __4_1)
 }
-
-__lambda_2: (){
-    __temp_6: 0
-    exit(__temp_6)
-}
+_0: _1()
+_2: 0
+_3: _4()
+zero(_0, _2, _3)

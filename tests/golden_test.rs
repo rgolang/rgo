@@ -3,19 +3,10 @@ use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use compiler::compiler::{
-    ast::{Item, TypeRef},
-    compile,
-    hir::{
-        lower_entry, lower_function, normalize_type_alias, ConstantValue, Env, EnvEntry, Function,
-    },
-    lexer::Lexer,
-    mir::MirModule,
-    parser::Parser,
-    span::Span,
-    symbol::SymbolRegistry,
-    test_utils::render_normalized_rgo,
-};
+mod test_utils;
+use compiler::compiler::hir;
+use compiler::compiler::{compile, lexer::Lexer, parser::Parser};
+use test_utils::render_normalized_rgo;
 
 const GENERATED_DIR: &str = "tests/generated";
 
@@ -52,137 +43,13 @@ fn generate_golden_snapshots() {
     }
 }
 
-fn collect_items(source: &str) -> Result<(Vec<Item>, SymbolRegistry), String> {
-    let cursor = Cursor::new(source.as_bytes());
-    let lexer = Lexer::new(cursor);
-    let mut parser = Parser::new(lexer);
-    let mut symbols = SymbolRegistry::new();
-    let mut items = Vec::new();
-
-    while let Some(item) = parser
-        .next(&mut symbols)
-        .map_err(|err| format!("parsing failed: {err}"))?
-    {
-        items.push(item);
-    }
-
-    Ok((items, symbols))
-}
-
-fn lower_items(items: Vec<Item>, symbols: &mut SymbolRegistry) -> Result<Vec<Function>, String> {
-    let mut functions = Vec::new();
-    let mut env = Env::new();
-    let mut entry_prelude: Vec<Item> = Vec::new();
-    let mut entry_items: Vec<Item> = Vec::new();
-
-    for item in items {
-        match item {
-            Item::FunctionDef { .. } => {
-                let (function, nested) = lower_function(item, symbols, &env)
-                    .map_err(|err| format!("HIR lowering failed: {err}"))?;
-                functions.push(function);
-                functions.extend(nested);
-            }
-            Item::Ident(ident) => {
-                entry_items.push(Item::Ident(ident));
-            }
-            Item::Lambda(lambda) => {
-                entry_items.push(Item::Lambda(lambda));
-            }
-            Item::ScopeCapture {
-                params,
-                term,
-                span: capture_span,
-            } => {
-                entry_items.push(Item::ScopeCapture {
-                    params,
-                    term,
-                    span: capture_span,
-                });
-            }
-            Item::StrDef {
-                name,
-                literal,
-                span,
-            } => {
-                entry_prelude.push(Item::StrDef {
-                    name: name.clone(),
-                    literal: literal.clone(),
-                    span,
-                });
-                env.insert(
-                    name,
-                    EnvEntry {
-                        ty: TypeRef::Str,
-                        span,
-                        constant: Some(ConstantValue::Str(literal.value.clone())),
-                    },
-                );
-            }
-            Item::IntDef {
-                name,
-                literal,
-                span,
-            } => {
-                entry_prelude.push(Item::IntDef {
-                    name: name.clone(),
-                    literal: literal.clone(),
-                    span,
-                });
-                env.insert(
-                    name,
-                    EnvEntry {
-                        ty: TypeRef::Int,
-                        span,
-                        constant: Some(ConstantValue::Int(literal.value)),
-                    },
-                );
-            }
-            Item::TypeDef { name, .. } => {
-                normalize_type_alias(&name, symbols)
-                    .map_err(|err| format!("type normalization failed: {err}"))?;
-            }
-            Item::IdentDef { name, ident, span } => {
-                entry_prelude.push(Item::IdentDef { name, ident, span });
-            }
-            Item::Import { .. } => {}
-        }
-    }
-
-    if !entry_items.is_empty() {
-        let span = entry_item_span(entry_items.last().unwrap());
-        if let Some(entry_funcs) = lower_entry(entry_prelude.clone(), entry_items, span, symbols)
-            .map_err(|err| format!("HIR lowering failed: {err}"))?
-        {
-            for entry in entry_funcs {
-                let (function, nested) = lower_function(entry, symbols, &env)
-                    .map_err(|err| format!("HIR lowering failed: {err}"))?;
-                functions.push(function);
-                functions.extend(nested);
-            }
-        }
-    }
-
-    Ok(functions)
-}
-
-fn entry_item_span(item: &Item) -> Span {
-    match item {
-        Item::Ident(ident) => ident.span,
-        Item::Lambda(lambda) => lambda.span,
-        Item::ScopeCapture { span, .. } => *span,
-        _ => Span::unknown(),
-    }
-}
-
-fn compile_source(source: &str) -> Result<(String, MirModule), String> {
+fn compile_source(source: &str) -> Result<String, String> {
     let mut output = Vec::new();
     let cursor = Cursor::new(source.as_bytes());
-    let metadata =
-        compile(cursor, &mut output).map_err(|err| format!("assembly generation failed: {err}"))?;
+    compile(cursor, &mut output).map_err(|err| format!("assembly generation failed: {err}"))?;
     let asm =
         String::from_utf8(output).map_err(|err| format!("assembly is not valid UTF-8: {err}"))?;
-    Ok((asm, metadata.mir_module))
+    Ok(asm) // TODO: This mir_module can be done better
 }
 
 fn build_reference_for_path(path: &Path, out_dir: &Path) -> Result<(), String> {
@@ -212,10 +79,9 @@ fn build_reference_for_path(path: &Path, out_dir: &Path) -> Result<(), String> {
         Err(err) => {
             if expect_error {
                 cleanup_generated_artifacts(out_dir, stem)?;
-                fs::write(&err_path, format!("{err}\n"))
-                    .map_err(|write_err| format!(
-                        "writing expected error snapshot failed: {write_err}"
-                    ))?;
+                fs::write(&err_path, format!("{err}\n")).map_err(|write_err| {
+                    format!("writing expected error snapshot failed: {write_err}")
+                })?;
                 Ok(())
             } else {
                 Err(err)
@@ -227,48 +93,62 @@ fn build_reference_for_path(path: &Path, out_dir: &Path) -> Result<(), String> {
 struct GeneratedArtifacts {
     parser_output: String,
     normalized_hir: String,
-    hir_debug: String,
     asm: String,
-    mir_pretty: String,
-    mir_debug: String,
 }
 
 fn generate_artifacts(source: &str) -> Result<GeneratedArtifacts, String> {
-    let (items, mut symbols) =
-        collect_items(source).map_err(|err| format!("parser step failed: {err}"))?;
-    let parser_output = format!("{:#?}", items);
+    let cursor = Cursor::new(source.as_bytes());
+    let lexer = Lexer::new(cursor);
+    let mut parser = Parser::new(lexer);
+    let mut scope = hir::Scope::new();
 
-    let functions =
-        lower_items(items, &mut symbols).map_err(|err| format!("HIR lowering failed: {err}"))?;
+    let mut block_items = Vec::new();
+    let mut lowerer = hir::Lowerer::new();
+    let mut hir_block_items = Vec::new();
 
-    let normalized_hir = render_normalized_rgo(&functions);
-    let hir_debug = format!("{:#?}", functions);
+    while let Some(item) = parser.next().map_err(|e| e.to_string())? {
+        block_items.push(item.clone());
+        lowerer
+            .consume(item, &mut scope)
+            .map_err(|e| e.to_string())?;
+        while let Some(lowered) = lowerer.produce() {
+            hir_block_items.push(lowered.clone());
+        }
+    }
 
-    let (asm, mir_model) =
-        compile_source(source).map_err(|err| format!("codegen step failed: {err}"))?;
+    lowerer.finish().map_err(|e| e.to_string())?;
+    while let Some(lowered) = lowerer.produce() {
+        hir_block_items.push(lowered.clone());
+    }
+
+    let normalized_hir = render_normalized_rgo(&hir_block_items);
+    let parser_output = format!("{:#?}", block_items);
+
+    let asm = compile_source(source).map_err(|err| format!("codegen step failed: {err}"))?;
     Ok(GeneratedArtifacts {
         parser_output,
         normalized_hir,
-        hir_debug,
         asm,
-        mir_pretty: format!("{mir_model}"),
-        mir_debug: format!("{:#?}", mir_model),
     })
 }
 
-fn write_artifacts(out_dir: &Path, stem: &str, artifacts: &GeneratedArtifacts) -> Result<(), String> {
-    fs::write(out_dir.join(format!("{stem}.txt")), &artifacts.parser_output)
-        .map_err(|err| format!("writing parser output failed: {err}"))?;
-    fs::write(out_dir.join(format!("{stem}.hir.rgo")), &artifacts.normalized_hir)
-        .map_err(|err| format!("writing normalized HIR failed: {err}"))?;
-    fs::write(out_dir.join(format!("{stem}.hir.debug.txt")), &artifacts.hir_debug)
-        .map_err(|err| format!("writing HIR debug failed: {err}"))?;
+fn write_artifacts(
+    out_dir: &Path,
+    stem: &str,
+    artifacts: &GeneratedArtifacts,
+) -> Result<(), String> {
+    fs::write(
+        out_dir.join(format!("{stem}.txt")),
+        &artifacts.parser_output,
+    )
+    .map_err(|err| format!("writing parser output failed: {err}"))?;
+    fs::write(
+        out_dir.join(format!("{stem}.hir.rgo")),
+        &artifacts.normalized_hir,
+    )
+    .map_err(|err| format!("writing normalized HIR failed: {err}"))?;
     fs::write(out_dir.join(format!("{stem}.asm")), &artifacts.asm)
         .map_err(|err| format!("writing assembly failed: {err}"))?;
-    fs::write(out_dir.join(format!("{stem}.mir")), &artifacts.mir_pretty)
-        .map_err(|err| format!("writing mir failed: {err}"))?;
-    fs::write(out_dir.join(format!("{stem}.mir.debug.txt")), &artifacts.mir_debug)
-        .map_err(|err| format!("writing mir debug failed: {err}"))?;
     Ok(())
 }
 
@@ -284,8 +164,9 @@ fn cleanup_generated_artifacts(out_dir: &Path, stem: &str) -> Result<(), String>
     for suffix in SUFFIXES {
         let path = out_dir.join(format!("{stem}.{suffix}"));
         if path.exists() {
-            fs::remove_file(&path)
-                .map_err(|err| format!("removing stale snapshot {} failed: {err}", path.display()))?;
+            fs::remove_file(&path).map_err(|err| {
+                format!("removing stale snapshot {} failed: {err}", path.display())
+            })?;
         }
     }
     Ok(())

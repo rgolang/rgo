@@ -66,7 +66,7 @@ global _start
 _start:
     push rbp ; save caller frame pointer
     mov rbp, rsp ; establish new frame base
-    sub rsp, 48 ; reserve stack space for locals
+    sub rsp, 64 ; reserve stack space for locals
     lea rax, [rel str_literal_0] ; point to string literal
     mov [rbp-16], rax ; save evaluated scalar in frame
     mov rax, 0 ; load literal integer
@@ -97,20 +97,73 @@ _start:
     add rsp, 24 ; pop temporary closure state
     mov [rbp-48], rax ; update closure code pointer
     mov [rbp-40], rdx ; update closure environment pointer
+    mov rax, 9 ; mmap syscall
+    xor rdi, rdi ; addr = NULL hint
+    mov rsi, 56 ; length for allocation
+    mov rdx, 3 ; prot = read/write
+    mov r10, 34 ; flags: private & anonymous
+    mov r8, -1 ; fd = -1
+    xor r9, r9 ; offset = 0
+    syscall ; allocate env pages
+    mov rdx, rax ; store env base pointer
+    add rdx, 24 ; bump pointer past env header
+    mov qword [rdx], 24 ; env size metadata
+    mov qword [rdx+8], 56 ; heap size metadata
+    mov qword [rdx+16], 1 ; pointer count metadata
+    mov qword [rdx+24], 16 ; closure env pointer slot offset
+    mov rax, foo_closure_entry ; load wrapper entry point
+    sub rsp, 24 ; allocate temporary stack for closure state
+    mov [rsp], rax ; save closure code pointer temporarily
+    mov [rsp+8], rdx ; save closure env_end pointer temporarily
+    mov rbx, [rsp+8] ; original closure env_end pointer
+    mov r13, [rbx] ; load env size metadata for clone
+    mov r14, [rbx+8] ; load heap size metadata for clone
+    mov r12, rbx ; compute env base pointer for clone
+    sub r12, r13 ; env base pointer for clone source
+    mov rax, 9 ; mmap syscall
+    xor rdi, rdi ; addr = NULL hint
+    mov rsi, r14 ; length for cloned environment
+    mov rdx, 3 ; prot = read/write
+    mov r10, 34 ; flags: private & anonymous
+    mov r8, -1 ; fd = -1
+    xor r9, r9 ; offset = 0
+    syscall ; allocate cloned env pages
+    mov r15, rax ; cloned closure env base pointer
+    mov rsi, r12 ; source env base for clone copy
+    mov rdi, r15 ; destination env base for clone copy
+    mov rcx, r14 ; bytes to copy for cloned env
+    cld ; ensure forward copy for env clone
+    rep movsb ; duplicate closure env data
+    mov rbx, r15 ; start from cloned env base
+    add rbx, r13 ; compute cloned env_end pointer
+    mov [rsp+8], rbx ; operate on cloned closure env
+    mov rax, [rbp-16] ; load scalar from frame
+    mov rbx, [rsp+8] ; env_end pointer
+    sub rbx, 24 ; compute slot for next argument
+    mov [rbx], rax ; store scalar arg in env
+    mov rax, [rsp] ; restore closure code pointer
+    mov rdx, [rsp+8] ; restore closure env_end pointer
+    add rsp, 24 ; pop temporary closure state
+    mov [rbp-64], rax ; update closure code pointer
+    mov [rbp-56], rdx ; update closure environment pointer
+    mov rax, [rbp-64] ; load closure code for call
+    mov rdx, [rbp-56] ; load closure env_end for call
+    sub rsp, 24 ; allocate temporary stack for closure state
+    mov [rsp], rax ; save closure code pointer temporarily
+    mov [rsp+8], rdx ; save closure env_end pointer temporarily
     mov rax, [rbp-48] ; load closure code pointer
     mov rdx, [rbp-40] ; load closure env_end pointer
-    push rdx ; stack arg: closure env_end
-    push rax ; stack arg: closure code
-    mov rax, [rbp-16] ; load scalar from frame
-    push rax ; stack arg: scalar
-    pop rdi ; restore scalar arg into register
-    pop rsi ; restore closure code into register
-    pop rdx ; restore closure env_end into register
-    leave ; unwind before named jump
-    jmp foo ; jump to fully applied function
+    mov rbx, [rsp+8] ; env_end pointer
+    sub rbx, 16 ; compute slot for next argument
+    mov [rbx], rax ; store closure code for arg
+    mov [rbx+8], rdx ; store closure env_end for arg
+    mov rax, [rsp] ; restore closure code pointer
+    mov rdx, [rsp+8] ; restore closure env_end pointer
+    add rsp, 24 ; pop temporary closure state
+    mov rdi, rdx ; pass env_end pointer as parameter
+    leave ; unwind before calling closure
+    jmp rax ; jump into fully applied closure
 extern write
 section .rodata
 str_literal_0:
     db "Hello world!", 10, 0
-x:
-    dq str_literal_0

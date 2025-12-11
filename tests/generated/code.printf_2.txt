@@ -6,7 +6,6 @@
             column: 1,
             offset: 0,
         },
-        is_libc: true,
     },
     Import {
         name: "/exit",
@@ -15,7 +14,6 @@
             column: 1,
             offset: 9,
         },
-        is_libc: true,
     },
     IntDef {
         name: "x",
@@ -34,8 +32,39 @@
         },
     },
     ScopeCapture {
-        params: Params {
+        params: Signature {
             items: [],
+            span: Span {
+                line: 5,
+                column: 1,
+                offset: 23,
+            },
+        },
+        continuation: Block {
+            items: [
+                Ident(
+                    Ident {
+                        name: "exit",
+                        args: [
+                            Int(
+                                IntLiteral {
+                                    value: 0,
+                                    span: Span {
+                                        line: 6,
+                                        column: 6,
+                                        offset: 65,
+                                    },
+                                },
+                            ),
+                        ],
+                        span: Span {
+                            line: 6,
+                            column: 1,
+                            offset: 60,
+                        },
+                    },
+                ),
+            ],
             span: Span {
                 line: 5,
                 column: 1,
@@ -80,26 +109,4 @@
             offset: 23,
         },
     },
-    Ident(
-        Ident {
-            name: "exit",
-            args: [
-                Int(
-                    IntLiteral {
-                        value: 0,
-                        span: Span {
-                            line: 6,
-                            column: 6,
-                            offset: 65,
-                        },
-                    },
-                ),
-            ],
-            span: Span {
-                line: 6,
-                column: 1,
-                offset: 60,
-            },
-        },
-    ),
 ]

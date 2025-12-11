@@ -2,6 +2,8 @@
 @/int
 @/printf
 @/add
+@/exit
 
 (x: int) = add(1,2)
 () = printf("result: %d", x)
+exit(0)

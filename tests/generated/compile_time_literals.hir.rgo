@@ -1,19 +1,20 @@
+@/str
+@/int
+@/printf
+@/exit
 not_const_msg: (fmt: str, value: int!){
-    __temp_0: __lambda_0()
-    printf(fmt, value, __temp_0)
+    _not_const_msg_0: _not_const_msg_1()
+    printf(fmt, value, _not_const_msg_0)
 }
 
-__lambda_0: (){
-    __temp_1: 0
-    exit(__temp_1)
+_not_const_msg_1: (){
+    _not_const_msg__not_const_msg_1_0: 0
+    exit(_not_const_msg__not_const_msg_1_0)
 }
 
 const_msg: (fmt: str!, value: int!){
     not_const_msg(fmt, value)
 }
-
-_start: (){
-    __temp_2: "compile-time value %d\n"
-    __temp_3: 7
-    const_msg(__temp_2, __temp_3)
-}
+_0: "compile-time value %d\n"
+_1: 7
+const_msg(_0, _1)

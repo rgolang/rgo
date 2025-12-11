@@ -1,213 +1,303 @@
-use crate::compiler::ast::TypeRef;
-use crate::compiler::error::ParseError;
+use crate::compiler::ast;
+use crate::compiler::error::CompileError;
+use crate::compiler::hir;
+use crate::compiler::hir_scope::{ConstantValue, ScopeItem};
 use crate::compiler::span::Span;
 use crate::compiler::symbol::{FunctionSig, SymbolRegistry};
 
-/// Determines if an import path depends on libc.
-/// Root imports like /printf, /sprintf, /exit, /puts, /write depend on libc.
-pub fn is_libc_import(import_path: &str) -> bool {
-    // Extract the name from the import path
-    // Format: "/name" for builtins or "owner/name" for user-defined
-    let name = if let Some(slash_pos) = import_path.rfind('/') {
-        &import_path[slash_pos + 1..]
-    } else {
-        import_path
-    };
-
-    matches!(
-        name,
-        "printf"
-            | "sprintf"
-            | "exit"
-            | "puts"
-            | "write"
-            | "write_single_quote"
-            | "write_double_quote"
-    )
+pub fn register_import_scope(
+    import_path: &str,
+    span: Span,
+    scope: &mut hir::Scope,
+) -> Result<Vec<String>, CompileError> {
+    let name = extract_import_name(import_path);
+    let spec = builtin_import_spec(name);
+    for function in &spec.functions {
+        register_function_in_scope(function, span, scope)?;
+    }
+    for value in &spec.values {
+        scope.insert(
+            value.name,
+            ScopeItem::Value {
+                ty: hir::ast_type_ref_to_hir_type_ref(&value.ty),
+                span,
+                constant: placeholder_constant(&value.ty),
+            },
+        )?;
+    }
+    Ok(spec.recorded_names.clone())
 }
 
-pub fn register_import(
+pub fn register_import_symbols(
     import_path: &str,
     span: Span,
     symbols: &mut SymbolRegistry,
-) -> Result<(), ParseError> {
-    // Extract the name from the import path
-    // Format: "/name" for builtins or "owner/name" for user-defined
-    let name = if let Some(slash_pos) = import_path.rfind('/') {
+) -> Result<(), CompileError> {
+    let name = extract_import_name(import_path);
+    let spec = builtin_import_spec(name);
+    for recorded in &spec.recorded_names {
+        symbols.record_builtin_import(recorded);
+    }
+    for function in &spec.functions {
+        register_function_in_symbols(function, span, symbols)?;
+    }
+    for value in &spec.values {
+        symbols.declare_value(value.name.to_string(), value.ty.clone(), span)?;
+    }
+    Ok(())
+}
+
+fn extract_import_name(import_path: &str) -> &str {
+    if let Some(slash_pos) = import_path.rfind('/') {
         &import_path[slash_pos + 1..]
     } else {
         import_path
-    };
-
-    // ensure both the source name and the emitted wrapper name are recorded
-    symbols.record_builtin_import(name);
-    if name == "puts" {
-        symbols.record_builtin_import("rgo_puts");
-    }
-    match name {
-        "add" => register_function(
-            "add",
-            span,
-            vec![
-                TypeRef::Int,
-                TypeRef::Int,
-                TypeRef::Type(vec![TypeRef::Int]),
-            ],
-            symbols,
-        ),
-        "sub" => register_function(
-            "sub",
-            span,
-            vec![
-                TypeRef::Int,
-                TypeRef::Int,
-                TypeRef::Type(vec![TypeRef::Int]),
-            ],
-            symbols,
-        ),
-        "mul" => register_function(
-            "mul",
-            span,
-            vec![
-                TypeRef::Int,
-                TypeRef::Int,
-                TypeRef::Type(vec![TypeRef::Int]),
-            ],
-            symbols,
-        ),
-        "div" => register_function(
-            "div",
-            span,
-            vec![
-                TypeRef::Int,
-                TypeRef::Int,
-                TypeRef::Type(vec![TypeRef::Int]),
-            ],
-            symbols,
-        ),
-        "eq" => register_function(
-            "eq",
-            span,
-            vec![
-                TypeRef::Int,
-                TypeRef::Int,
-                TypeRef::Type(vec![]),
-                TypeRef::Type(vec![]),
-            ],
-            symbols,
-        ),
-        "fmt" => {
-            register_function(
-                "fmt",
-                span,
-                vec![
-                    TypeRef::Str,
-                    TypeRef::Int,
-                    TypeRef::Type(vec![TypeRef::Str]),
-                ],
-                symbols,
-            )?;
-            register_function(
-                "write",
-                span,
-                vec![TypeRef::Str, TypeRef::Type(vec![])],
-                symbols,
-            )
-        }
-        "eqi" => register_function(
-            "eqi",
-            span,
-            vec![
-                TypeRef::Int,
-                TypeRef::Int,
-                TypeRef::Type(vec![]),
-                TypeRef::Type(vec![]),
-            ],
-            symbols,
-        ),
-        "lt" => register_function(
-            "lt",
-            span,
-            vec![
-                TypeRef::Int,
-                TypeRef::Int,
-                TypeRef::Type(vec![]),
-                TypeRef::Type(vec![]),
-            ],
-            symbols,
-        ),
-        "gt" => register_function(
-            "gt",
-            span,
-            vec![
-                TypeRef::Int,
-                TypeRef::Int,
-                TypeRef::Type(vec![]),
-                TypeRef::Type(vec![]),
-            ],
-            symbols,
-        ),
-        "eqs" => register_function(
-            "eqs",
-            span,
-            vec![
-                TypeRef::Str,
-                TypeRef::Str,
-                TypeRef::Type(vec![]),
-                TypeRef::Type(vec![]),
-            ],
-            symbols,
-        ),
-        "itoa" => register_function(
-            "itoa",
-            span,
-            vec![TypeRef::Int, TypeRef::Type(vec![TypeRef::Str])],
-            symbols,
-        ),
-        "stdout" => symbols.declare_value("stdout".to_string(), TypeRef::Str, span),
-        "write" => register_function(
-            "write",
-            span,
-            vec![TypeRef::Str, TypeRef::Type(vec![])],
-            symbols,
-        ),
-        "puts" => {
-            // map source-level `@/puts` to the `rgo_puts` wrapper we emit
-            register_function(
-                "rgo_puts",
-                span,
-                vec![TypeRef::Str, TypeRef::Type(vec![])],
-                symbols,
-            )
-        }
-        "rgo_write" => register_function(
-            "rgo_write",
-            span,
-            vec![TypeRef::Str, TypeRef::Type(vec![])],
-            symbols,
-        ),
-
-        "exit" => register_function("exit", span, vec![TypeRef::Int], symbols),
-        "printf" => Ok(()),
-        "sprintf" => Ok(()),
-        _ => Ok(()),
     }
 }
 
-fn register_function(
-    name: &str,
+struct BuiltinFunctionDef {
+    name: &'static str,
+    params: Vec<ast::SigKind>,
+}
+
+struct BuiltinValueDef {
+    name: &'static str,
+    ty: ast::SigKind,
+}
+
+struct BuiltinSpec {
+    recorded_names: Vec<String>,
+    functions: Vec<BuiltinFunctionDef>,
+    values: Vec<BuiltinValueDef>,
+}
+
+fn builtin_import_spec(name: &str) -> BuiltinSpec {
+    let mut recorded_names = vec![name.to_string()];
+    if name == "puts" {
+        recorded_names.push("rgo_puts".to_string());
+    }
+    let mut functions = Vec::new();
+    let mut values = Vec::new();
+
+    match name {
+        "add" => {
+            functions.push(BuiltinFunctionDef {
+                name: "add",
+                params: vec![
+                    ast::SigKind::Int,
+                    ast::SigKind::Int,
+                    ast::SigKind::tuple([ast::SigKind::Int]),
+                ],
+            });
+        }
+        "sub" => {
+            functions.push(BuiltinFunctionDef {
+                name: "sub",
+                params: vec![
+                    ast::SigKind::Int,
+                    ast::SigKind::Int,
+                    ast::SigKind::tuple([ast::SigKind::Int]),
+                ],
+            });
+        }
+        "mul" => {
+            functions.push(BuiltinFunctionDef {
+                name: "mul",
+                params: vec![
+                    ast::SigKind::Int,
+                    ast::SigKind::Int,
+                    ast::SigKind::tuple([ast::SigKind::Int]),
+                ],
+            });
+        }
+        "div" => {
+            functions.push(BuiltinFunctionDef {
+                name: "div",
+                params: vec![
+                    ast::SigKind::Int,
+                    ast::SigKind::Int,
+                    ast::SigKind::tuple([ast::SigKind::Int]),
+                ],
+            });
+        }
+        "eq" => {
+            functions.push(BuiltinFunctionDef {
+                name: "eq",
+                params: vec![
+                    ast::SigKind::Int,
+                    ast::SigKind::Int,
+                    ast::SigKind::tuple([]),
+                    ast::SigKind::tuple([]),
+                ],
+            });
+        }
+        "fmt" => {
+            functions.push(BuiltinFunctionDef {
+                name: "fmt",
+                params: vec![
+                    ast::SigKind::Str,
+                    ast::SigKind::Int,
+                    ast::SigKind::tuple([ast::SigKind::Str]),
+                ],
+            });
+            functions.push(BuiltinFunctionDef {
+                name: "write",
+                params: vec![ast::SigKind::Str, ast::SigKind::tuple([])],
+            });
+        }
+        "eqi" => {
+            functions.push(BuiltinFunctionDef {
+                name: "eqi",
+                params: vec![
+                    ast::SigKind::Int,
+                    ast::SigKind::Int,
+                    ast::SigKind::tuple([]),
+                    ast::SigKind::tuple([]),
+                ],
+            });
+        }
+        "lt" => {
+            functions.push(BuiltinFunctionDef {
+                name: "lt",
+                params: vec![
+                    ast::SigKind::Int,
+                    ast::SigKind::Int,
+                    ast::SigKind::tuple([]),
+                    ast::SigKind::tuple([]),
+                ],
+            });
+        }
+        "gt" => {
+            functions.push(BuiltinFunctionDef {
+                name: "gt",
+                params: vec![
+                    ast::SigKind::Int,
+                    ast::SigKind::Int,
+                    ast::SigKind::tuple([]),
+                    ast::SigKind::tuple([]),
+                ],
+            });
+        }
+        "eqs" => {
+            functions.push(BuiltinFunctionDef {
+                name: "eqs",
+                params: vec![
+                    ast::SigKind::Str,
+                    ast::SigKind::Str,
+                    ast::SigKind::tuple([]),
+                    ast::SigKind::tuple([]),
+                ],
+            });
+        }
+        "itoa" => {
+            functions.push(BuiltinFunctionDef {
+                name: "itoa",
+                params: vec![ast::SigKind::Int, ast::SigKind::tuple([ast::SigKind::Str])],
+            });
+        }
+        "stdout" => {
+            values.push(BuiltinValueDef {
+                name: "stdout",
+                ty: ast::SigKind::Str,
+            });
+        }
+        "write" => {
+            functions.push(BuiltinFunctionDef {
+                name: "write",
+                params: vec![ast::SigKind::Str, ast::SigKind::tuple([])],
+            });
+        }
+        "puts" => {
+            functions.push(BuiltinFunctionDef {
+                name: "rgo_puts",
+                params: vec![ast::SigKind::Str, ast::SigKind::tuple([])],
+            });
+        }
+        "rgo_write" => {
+            functions.push(BuiltinFunctionDef {
+                name: "rgo_write",
+                params: vec![ast::SigKind::Str, ast::SigKind::tuple([])],
+            });
+        }
+        "exit" => {
+            functions.push(BuiltinFunctionDef {
+                name: "exit",
+                params: vec![ast::SigKind::Int],
+            });
+        }
+        "printf" | "sprintf" => {}
+        _ => {}
+    }
+
+    BuiltinSpec {
+        recorded_names,
+        functions,
+        values,
+    }
+}
+
+fn register_function_in_scope(
+    def: &BuiltinFunctionDef,
     span: Span,
-    params: Vec<TypeRef>,
+    scope: &mut hir::Scope,
+) -> Result<(), CompileError> {
+    let ast_sig_items = build_ast_sig_items(&def.params);
+    let hir_sig_items = ast_sig_items
+        .iter()
+        .enumerate()
+        .map(|(idx, item)| hir::SigItem {
+            name: item.name.clone().unwrap_or_else(|| format!("_{}", idx)),
+            ty: hir::SigType {
+                kind: hir::ast_type_ref_to_hir_type_ref(&item.ty.kind),
+                span: item.ty.span,
+            },
+            is_variadic: item.is_variadic,
+            span: item.span,
+        })
+        .collect();
+    let hir_sig = hir::Signature {
+        items: hir_sig_items,
+        span,
+    };
+    scope.insert_func(def.name, hir_sig, span, true)?;
+    Ok(())
+}
+
+fn register_function_in_symbols(
+    def: &BuiltinFunctionDef,
+    span: Span,
     symbols: &mut SymbolRegistry,
-) -> Result<(), ParseError> {
-    if symbols.get_function(name).is_some() {
+) -> Result<(), CompileError> {
+    if symbols.get_function(def.name).is_some() {
         return Ok(());
     }
-    let is_variadic = vec![false; params.len()];
+    let ast_sig_items = build_ast_sig_items(&def.params);
     symbols.declare_function(FunctionSig {
-        name: name.to_string(),
-        params,
-        is_variadic,
+        name: def.name.to_string(),
+        params: ast_sig_items,
         span,
-    })
+    })?;
+    Ok(())
+}
+
+fn build_ast_sig_items(params: &[ast::SigKind]) -> Vec<ast::SigItem> {
+    params
+        .iter()
+        .map(|kind| ast::SigItem {
+            name: None,
+            ty: ast::SigType {
+                kind: kind.clone(),
+                span: Span::unknown(),
+            },
+            is_variadic: false,
+            span: Span::unknown(),
+        })
+        .collect()
+}
+
+fn placeholder_constant(kind: &ast::SigKind) -> ConstantValue {
+    match kind {
+        ast::SigKind::Str | ast::SigKind::CompileTimeStr => ConstantValue::Str(String::new()),
+        _ => ConstantValue::Int(0),
+    }
 }
