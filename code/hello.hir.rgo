@@ -1,0 +1,29 @@
+@/str
+@/int
+@/printf
+@/sprintf
+@/write
+@/add
+@/exit
+_6_foo: (ok:(), s: str){
+    write(s, ok)
+}
+
+_3_foo: (ok:(), x: int){
+    _4: "result: %d\n"
+    _7_foo: _6_foo(ok)
+    sprintf(_4, x, _7_foo)
+}
+
+foo: (ok:()){
+    _0: 1
+    _1: 2
+    _8_foo: _3_foo(ok)
+    add(_0, _1, _8_foo)
+}
+
+_10_lambda: (){
+    _11: 0
+    exit(_11)
+}
+foo(_10_lambda)
