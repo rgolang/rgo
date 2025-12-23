@@ -9,11 +9,6 @@ foo: (input: str, ok:()){
 bar: (msg: str, cb:(str, ()), ok:()){
     cb(msg, ok)
 }
-
-_1: (){
-    __1_0: 0
-    exit(__1_0)
-}
-_0: _1()
-_bar_2: bar(msg)
-_bar_2(foo, _0)
+_2: 0
+_3_exit: exit(_2)
+bar(msg, foo, _3_exit)

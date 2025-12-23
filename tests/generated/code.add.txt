@@ -44,28 +44,18 @@
                         params: Signature {
                             items: [
                                 SigItem {
-                                    name: Some(
-                                        "n",
-                                    ),
-                                    ty: SigType {
-                                        kind: Ident(
-                                            SigIdent {
-                                                name: "int",
-                                                has_bang: false,
-                                                span: Span {
-                                                    line: 4,
-                                                    column: 15,
-                                                    offset: 28,
-                                                },
+                                    name: "n",
+                                    ty: Ident(
+                                        SigIdent {
+                                            name: "int",
+                                            span: Span {
+                                                line: 4,
+                                                column: 15,
+                                                offset: 28,
                                             },
-                                        ),
-                                        span: Span {
-                                            line: 4,
-                                            column: 15,
-                                            offset: 28,
                                         },
-                                    },
-                                    is_variadic: false,
+                                    ),
+                                    has_bang: false,
                                     span: Span {
                                         line: 4,
                                         column: 12,
@@ -78,6 +68,7 @@
                                 column: 11,
                                 offset: 24,
                             },
+                            generics: [],
                         },
                         body: Block {
                             items: [

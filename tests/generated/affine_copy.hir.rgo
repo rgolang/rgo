@@ -6,24 +6,22 @@ bar: (a: int, b: int, ok:(int)){
     add(a, b, ok)
 }
 
+_5_foo: (ok:(), x: int){
+    _6: "got: %d"
+    printf(_6, x, ok)
+}
+
 foo: (ok:()){
-    _foo_0: 1
-    b: bar(_foo_0)
-    _foo_1: 2
-    _foo_2: 3
-    c2: b(_foo_2)
-    _foo_3: _foo_4(ok)
-    b(_foo_1, _foo_3)
+    _1: 1
+    _2: 2
+    _3: 3
+    _7_foo: _5_foo(ok)
+    c1: bar(_1, _2)
+    c1(_7_foo)
 }
 
-_foo_4: (ok:(), x: int){
-    _foo__foo_4_0: "got: %d"
-    printf(_foo__foo_4_0, x, ok)
+_9_lambda: (){
+    _10: 0
+    exit(_10)
 }
-
-_1: (){
-    __1_0: 0
-    exit(__1_0)
-}
-_0: _1()
-foo(_0)
+foo(_9_lambda)

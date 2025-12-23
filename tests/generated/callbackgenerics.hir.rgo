@@ -6,33 +6,32 @@ foo: (p:(()), ok:()){
 }
 
 print1: (n: str, ok:()){
-    _print1_0: "The losing number is %s\n"
-    printf(_print1_0, n, ok)
+    _1: "The losing number is %s\n"
+    printf(_1, n, ok)
 }
 
 print2: (n: str, ok:()){
-    _print2_0: "The winning number is %s\n"
-    printf(_print2_0, n, ok)
+    _2: "The winning number is %s\n"
+    printf(_2, n, ok)
 }
 
 p1: (ok:()){
-    _p1_0: "41"
-    print1(_p1_0, ok)
+    _3: "41"
+    print1(_3, ok)
 }
 
 p2: (ok:()){
-    _p2_0: "42"
-    print2(_p2_0, ok)
+    _4: "42"
+    print2(_4, ok)
 }
 
-__1_1: (){
-    __1___1_1_0: 0
-    exit(__1___1_1_0)
+_8_lambda: (){
+    _9: 0
+    exit(_9)
 }
 
-_1: (){
-    __1_0: __1_1()
-    foo(p2, __1_0)
+_6_lambda: (foo:((()), ()), p2:(())){
+    foo(p2, _8_lambda)
 }
-_0: _1()
-foo(p1, _0)
+_11_: _6_lambda(foo, p2)
+foo(p1, _11_)

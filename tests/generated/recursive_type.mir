@@ -1,0 +1,53 @@
+_4_identity() {
+    _5 = 0
+    exit(_5)
+}
+
+_4_identity_unwrapper(env_end: int) {
+    _4_identity()
+}
+
+exit(code: int) {
+    syscall exit(code)
+}
+
+exit_unwrapper(env_end: int) {
+    code: int = env_end - 1 words (code)
+    exit(code)
+}
+
+identity(node: (int, ())) {
+    _2 = "unused\n"
+    _4_identity = _4_identity()
+    __result = @printf(_2)
+    _4_identity(__result)
+}
+
+identity_unwrapper(env_end: int) {
+    node: (int, ()) = env_end - 2 words (node)
+    identity(node)
+}
+
+_9_hello() {
+    _10 = 0
+    exit(_10)
+}
+
+_9_hello_unwrapper(env_end: int) {
+    _9_hello()
+}
+
+hello() {
+    _7 = "hi\n"
+    _9_hello = _9_hello()
+    __result = @printf(_7)
+    _9_hello(__result)
+}
+
+hello_unwrapper(env_end: int) {
+    hello()
+}
+
+_start() {
+    hello()
+}

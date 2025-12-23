@@ -4,14 +4,12 @@ bar: (v: str, ok:()){
     write(v, ok)
 }
 msg: "hi"
-foo: (msg: str){
-    _foo_0: _foo_1()
-    bar(msg, _foo_0)
+_1_foo: (){
+    _2: 0
+    exit(_2)
 }
 
-_foo_1: (){
-    _foo__foo_1_0: 0
-    exit(_foo__foo_1_0)
+foo: (msg: str){
+    bar(msg, _1_foo)
 }
-_foo_0: foo(msg)
-_foo_0()
+foo(msg)

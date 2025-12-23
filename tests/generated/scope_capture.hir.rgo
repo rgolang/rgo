@@ -1,21 +1,20 @@
 @/printf
 @/add
 @/exit
+_3_print_sum: (ok:(), total: int){
+    _4: "sum is %d\n"
+    printf(_4, total, ok)
+}
+
 print_sum: (ok:()){
-    _print_sum_0: 3
-    _print_sum_1: 4
-    _print_sum_2: _print_sum_3(ok)
-    add(_print_sum_0, _print_sum_1, _print_sum_2)
+    _0: 3
+    _1: 4
+    _5_print_sum: _3_print_sum(ok)
+    add(_0, _1, _5_print_sum)
 }
 
-_print_sum_3: (ok:(), total: int){
-    _print_sum__print_sum_3_0: "sum is %d\n"
-    printf(_print_sum__print_sum_3_0, total, ok)
+_7_lambda: (){
+    _8: 0
+    exit(_8)
 }
-
-_1: (){
-    __1_0: 0
-    exit(__1_0)
-}
-_0: _1()
-print_sum(_0)
+print_sum(_7_lambda)

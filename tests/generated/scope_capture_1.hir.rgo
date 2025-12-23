@@ -3,17 +3,15 @@
 @/printf
 @/add
 @/exit
-__3_2: (){
-    __3___3_2_0: 0
-    exit(__3___3_2_0)
+_6_lambda: (){
+    _7: 0
+    exit(_7)
 }
 
-_3: (x: int){
-    __3_0: "result: %d"
-    __3_1: __3_2()
-    printf(__3_0, x, __3_1)
+_3_lambda: (x: int){
+    _4: "result: %d"
+    printf(_4, x, _6_lambda)
 }
 _0: 1
 _1: 2
-_2: _3()
-add(_0, _1, _2)
+add(_0, _1, _3_lambda)

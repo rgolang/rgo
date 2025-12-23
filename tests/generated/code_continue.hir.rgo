@@ -7,22 +7,21 @@ foo: (x: int, y: int, ok:(int)){
     add(x, y, ok)
 }
 
+_3_run_k: (ok:(), x: int){
+    _4: "number: %d"
+    printf(_4, x, ok)
+}
+
 run: (ok:()){
-    _run_0: 1
-    _run_1: 2
-    _run_k_2: _run_k_2
-    _run__run_k_2_3: _run_k_2(ok)
-    foo(_run_0, _run_1, _run__run_k_2_3)
+    _1: 1
+    _2: 2
+    _5_k: _3_run_k(ok)
+    a: foo(_1, _2)
+    a(_5_k)
 }
 
-_run_k_2: (ok:(), x: int){
-    _run__run_k_2_0: "number: %d"
-    printf(_run__run_k_2_0, x, ok)
+_7_lambda: (){
+    _8: 0
+    exit(_8)
 }
-
-_1: (){
-    __1_0: 0
-    exit(__1_0)
-}
-_0: _1()
-run(_0)
+run(_7_lambda)

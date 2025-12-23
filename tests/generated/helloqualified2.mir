@@ -1,0 +1,33 @@
+_1_foo() {
+    _2 = 0
+    exit(_2)
+}
+
+_1_foo_unwrapper(env_end: int) {
+    _1_foo()
+}
+
+exit(code: int) {
+    syscall exit(code)
+}
+
+exit_unwrapper(env_end: int) {
+    code: int = env_end - 1 words (code)
+    exit(code)
+}
+
+foo(x: str) {
+    _1_foo = _1_foo()
+    __result = @write(x)
+    _1_foo(__result)
+}
+
+foo_unwrapper(env_end: int) {
+    x: str = env_end - 1 words (x)
+    foo(x)
+}
+
+_start() {
+    x = "Hello world!\n"
+    foo(x)
+}

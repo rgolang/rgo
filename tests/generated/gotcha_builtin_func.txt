@@ -1,0 +1,188 @@
+[
+    Import {
+        name: "/printf",
+        span: Span {
+            line: 1,
+            column: 1,
+            offset: 0,
+        },
+    },
+    Import {
+        name: "/exit",
+        span: Span {
+            line: 2,
+            column: 1,
+            offset: 9,
+        },
+    },
+    Import {
+        name: "/int",
+        span: Span {
+            line: 3,
+            column: 1,
+            offset: 16,
+        },
+    },
+    FunctionDef {
+        name: "write",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "n",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 6,
+                                    column: 12,
+                                    offset: 123,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 6,
+                            column: 9,
+                            offset: 120,
+                        },
+                    },
+                    SigItem {
+                        name: "ok",
+                        ty: Sig(
+                            Signature {
+                                items: [],
+                                span: Span {
+                                    line: 6,
+                                    column: 21,
+                                    offset: 132,
+                                },
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 6,
+                            column: 17,
+                            offset: 128,
+                        },
+                    },
+                ],
+                span: Span {
+                    line: 6,
+                    column: 8,
+                    offset: 119,
+                },
+                generics: [],
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "printf",
+                            args: [
+                                String(
+                                    StrLiteral {
+                                        value: "Gotcha: %d",
+                                        span: Span {
+                                            line: 7,
+                                            column: 12,
+                                            offset: 148,
+                                        },
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "n",
+                                        args: [],
+                                        span: Span {
+                                            line: 7,
+                                            column: 26,
+                                            offset: 162,
+                                        },
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "ok",
+                                        args: [],
+                                        span: Span {
+                                            line: 7,
+                                            column: 29,
+                                            offset: 165,
+                                        },
+                                    },
+                                ),
+                            ],
+                            span: Span {
+                                line: 7,
+                                column: 5,
+                                offset: 141,
+                            },
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 6,
+                    column: 24,
+                    offset: 135,
+                },
+            },
+            args: [],
+            span: Span {
+                line: 6,
+                column: 1,
+                offset: 112,
+            },
+        },
+        span: Span {
+            line: 6,
+            column: 1,
+            offset: 112,
+        },
+    },
+    Ident(
+        Ident {
+            name: "write",
+            args: [
+                Int(
+                    IntLiteral {
+                        value: 1,
+                        span: Span {
+                            line: 9,
+                            column: 7,
+                            offset: 177,
+                        },
+                    },
+                ),
+                Ident(
+                    Ident {
+                        name: "exit",
+                        args: [
+                            Int(
+                                IntLiteral {
+                                    value: 0,
+                                    span: Span {
+                                        line: 9,
+                                        column: 15,
+                                        offset: 185,
+                                    },
+                                },
+                            ),
+                        ],
+                        span: Span {
+                            line: 9,
+                            column: 10,
+                            offset: 180,
+                        },
+                    },
+                ),
+            ],
+            span: Span {
+                line: 9,
+                column: 1,
+                offset: 171,
+            },
+        },
+    ),
+]

@@ -1,0 +1,14 @@
+@/printf
+@/exit
+@/int
+write: (n: int, ok:()){
+    _0: "Gotcha: %d"
+    printf(_0, n, ok)
+}
+
+_3_lambda: (){
+    _4: 0
+    exit(_4)
+}
+_1: 1
+write(_1, _3_lambda)

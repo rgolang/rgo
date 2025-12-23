@@ -1,0 +1,67 @@
+_8_foo() {
+    _9 = 0
+    exit(_9)
+}
+
+_8_foo_unwrapper(env_end: int) {
+    _8_foo()
+}
+
+exit(code: int) {
+    syscall exit(code)
+}
+
+exit_unwrapper(env_end: int) {
+    code: int = env_end - 1 words (code)
+    exit(code)
+}
+
+_6_foo(s: str) {
+    _8_foo = _8_foo()
+    __result = @write(s)
+    _8_foo(__result)
+}
+
+_6_foo_unwrapper(env_end: int) {
+    s: str = env_end - 1 words (s)
+    _6_foo(s)
+}
+
+_3_foo(x: int) {
+    _4 = "result: %d"
+    _6_foo = _6_foo()
+    ok_0 = @sprintf(_4, x)
+    _6_foo(ok_0)
+}
+
+_3_foo_unwrapper(env_end: int) {
+    x: int = env_end - 1 words (x)
+    _3_foo(x)
+}
+
+foo() {
+    _0 = 1
+    _1 = 2
+    _3_foo = _3_foo()
+    add(_0, _1, _3_foo)
+}
+
+foo_unwrapper(env_end: int) {
+    foo()
+}
+
+add(x: int, y: int, ok: (int)) {
+    res = @add(x, y);
+    ok(res)
+}
+
+add_unwrapper(env_end: int) {
+    x: int = env_end - 4 words (x)
+    y: int = env_end - 3 words (y)
+    ok: (int) = env_end - 2 words (ok)
+    add(x, y, ok)
+}
+
+_start() {
+    foo()
+}

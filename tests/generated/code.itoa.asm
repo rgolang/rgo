@@ -1,44 +1,60 @@
 bits 64
 default rel
 section .text
-global _2
-_2:
-    push rbp ; save caller frame pointer
+global _2_lambda
+_2_lambda:
+    push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
     sub rsp, 32 ; reserve stack space for locals
     mov [rbp-16], rdi ; store scalar arg in frame
     mov rax, 0 ; load literal integer
     mov [rbp-32], rax ; save evaluated scalar in frame
     mov rax, [rbp-32] ; load scalar from frame
-    mov rdi, rax ; pass exit code
-    leave ; unwind before exit
+    push rax ; stack arg: scalar
+    pop rdi ; restore scalar arg into register
+    leave ; unwind before named jump
+    jmp exit ; jump to fully applied function
+global _2_lambda_unwrapper
+_2_lambda_unwrapper:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 32 ; reserve stack space for locals
+    mov [rbp-16], rdi ; store scalar arg in frame
+    mov rax, [rbp-16] ; load scalar from frame
+    mov rax, [rax-8] ; load scalar env field
+    mov [rbp-32], rax ; save evaluated scalar in frame
+    mov rax, [rbp-32] ; load scalar from frame
+    push rax ; stack arg: scalar
+    pop rdi ; restore scalar arg into register
+    leave ; unwind before named jump
+    jmp _2_lambda ; jump to fully applied function
+global exit
+exit:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov [rbp-16], rdi ; store scalar arg in frame
+    ; load exit code
+    leave ; unwind before exiting
     mov rax, 60 ; exit syscall
-    syscall ; exit program
-_2_closure_entry:
-    push rbp ; save caller frame pointer
-    mov rbp, rsp ; establish wrapper frame
-    sub rsp, 16 ; reserve space for env metadata scratch
-    mov [rbp-8], rdi ; stash env_end pointer for release
-    push rbx ; preserve base register
-    mov rbx, rdi ; rdi points to env_end when invoked
-    sub rbx, 8 ; compute env base
-    mov rdi, [rbx+0] ; load scalar param from env
-    push rdi ; preserve parameter register
-    mov rdx, [rbp-8] ; load saved env_end pointer
-    mov rcx, [rdx] ; read env size metadata
-    mov rsi, [rdx+8] ; read heap size metadata
-    mov rbx, rdx ; env_end pointer for release
-    sub rbx, rcx ; compute env base pointer
-    mov rdi, rbx ; munmap base pointer
-    mov rax, 11 ; munmap syscall
-    syscall ; release wrapper closure environment
-    pop rdi ; restore parameter register
-    pop rbx ; restore saved base register
-    leave ; epilogue: restore rbp of caller
-    jmp _2 ; jump into actual function
+    syscall ; terminate program
+global exit_unwrapper
+exit_unwrapper:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 32 ; reserve stack space for locals
+    mov [rbp-16], rdi ; store scalar arg in frame
+    mov rax, [rbp-16] ; load scalar from frame
+    mov rax, [rax-8] ; load scalar env field
+    mov [rbp-32], rax ; save evaluated scalar in frame
+    mov rax, [rbp-32] ; load scalar from frame
+    push rax ; stack arg: scalar
+    pop rdi ; restore scalar arg into register
+    leave ; unwind before named jump
+    jmp exit ; jump to fully applied function
 global _start
 _start:
-    push rbp ; save caller frame pointer
+    push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
     sub rsp, 32 ; reserve stack space for locals
     mov rax, 1 ; load literal integer
@@ -56,13 +72,7 @@ _start:
     mov qword [rdx], 8 ; env size metadata
     mov qword [rdx+8], 32 ; heap size metadata
     mov qword [rdx+16], 0 ; pointer count metadata
-    mov rax, _2_closure_entry ; load wrapper entry point
-    sub rsp, 24 ; allocate temporary stack for closure state
-    mov [rsp], rax ; save closure code pointer temporarily
-    mov [rsp+8], rdx ; save closure env_end pointer temporarily
-    mov rax, [rsp] ; restore closure code pointer
-    mov rdx, [rsp+8] ; restore closure env_end pointer
-    add rsp, 24 ; pop temporary closure state
+    mov rax, _2_lambda_unwrapper ; load unwrapper entry point
     mov [rbp-32], rax ; update closure code pointer
     mov [rbp-24], rdx ; update closure environment pointer
     mov rax, [rbp-32] ; load closure code pointer
@@ -78,7 +88,7 @@ _start:
     jmp itoa ; jump to fully applied function
 global itoa
 itoa:
-    push rbp ; save caller frame pointer
+    push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame
     push rsi ; preserve continuation code pointer
     push rdx ; preserve continuation env pointer
@@ -130,7 +140,7 @@ itoa_set_pointer:
     mov r8, r11 ; string start
     jmp itoa_tail
 itoa_min_value:
-    lea r8, [rel str_literal_0] ; reuse static string
+    lea r8, [rel itoa_min_value] ; reuse static string
     jmp itoa_tail
 itoa_tail:
     mov rsi, [rbp-8] ; continuation code pointer
@@ -149,5 +159,5 @@ itoa_tail:
     jmp rax ; jump into continuation
 
 section .rodata
-str_literal_0:
+itoa_min_value:
     db "-9223372036854775808", 0

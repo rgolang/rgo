@@ -3,24 +3,22 @@
 @/printf
 @/exit
 foo: (n: str, s: str, ok:()){
-    _foo_0: "The winning number for %s is %s\n"
-    printf(_foo_0, s, n, ok)
+    _0: "The winning number for %s is %s\n"
+    printf(_0, s, n, ok)
 }
-_0: "42"
-bar: foo(_0)
-_1: "43"
-_2: "Bob"
-baz: foo(_1, _2)
-__5_1: (){
-    __5___5_1_0: 0
-    exit(__5___5_1_0)
+_1: "42"
+_2: "43"
+_3: "Bob"
+_8_lambda: (){
+    _9: 0
+    exit(_9)
 }
 
-_5: (baz:(())){
-    __5_0: __5_1()
-    baz(__5_0)
+_6_lambda: (baz:(())){
+    baz(_8_lambda)
 }
-_3: "Alice"
-__5_6: _5(baz)
-_4: __5_6()
-bar(_3, _4)
+_4: "Alice"
+baz: foo(_2, _3)
+_11_: _6_lambda(baz)
+bar: foo(_1)
+bar(_4, _11_)

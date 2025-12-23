@@ -8,39 +8,36 @@ foo: (x: int, y: int, ok:(int)){
     add(x, y, ok)
 }
 
+_4_run_k: (ok:(), x: int){
+    _5: "number: %d"
+    printf(_5, x, ok)
+}
+
+_9_run: (a:((int)), ok:()){
+    _10_k: _4_run_k(ok)
+    a(_10_k)
+}
+
+_13_run: (b:((int)), ok:()){
+    _14_k: _4_run_k(ok)
+    b(_14_k)
+}
+
 run: (ok:()){
-    _run_0: 1
-    f: foo(_run_0)
-    _run_1: 2
-    a: f(_run_1)
-    _run_2: 3
-    b: f(_run_2)
-    _run_k_3: _run_k_3
-    _run_4: 1
-    _run_5: 1
-    _run_6: _run_7(ok, a)
-    _run_8: _run_9(ok, b)
-    eqi(_run_4, _run_5, _run_6, _run_8)
+    _1: 1
+    _2: 2
+    _3: 3
+    _6: 1
+    _7: 1
+    a: foo(_1, _2)
+    _11_run: _9_run(a, ok)
+    b: foo(_1, _3)
+    _15_run: _13_run(b, ok)
+    eqi(_6, _7, _11_run, _15_run)
 }
 
-_run_k_3: (ok:(), x: int){
-    _run__run_k_3_0: "number: %d"
-    printf(_run__run_k_3_0, x, ok)
+_17_lambda: (){
+    _18: 0
+    exit(_18)
 }
-
-_run_7: (ok:(), a:((int))){
-    _run__run_7__run_k_3_0: _run_k_3(ok)
-    a(_run__run_7__run_k_3_0)
-}
-
-_run_9: (ok:(), b:((int))){
-    _run__run_9__run_k_3_0: _run_k_3(ok)
-    b(_run__run_9__run_k_3_0)
-}
-
-_1: (){
-    __1_0: 0
-    exit(__1_0)
-}
-_0: _1()
-run(_0)
+run(_17_lambda)

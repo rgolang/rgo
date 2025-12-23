@@ -1,11 +1,10 @@
 @/printf
 @/exit
 x: 41
-_3: (){
-    __3_0: 0
-    exit(__3_0)
+_3_lambda: (){
+    _4: 0
+    exit(_4)
 }
 _0: "the answer is: %d"
 _1: 42
-_2: _3()
-printf(_0, _1, _2)
+printf(_0, _1, _3_lambda)

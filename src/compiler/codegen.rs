@@ -1,39 +1,38 @@
 use std::collections::{HashMap, HashSet};
 use std::io::Write;
 
-use crate::compiler::error::{CompileError, CompileErrorCode};
-use crate::compiler::hir::{Arg, Exec, SigItem, SigKind, Signature};
+use crate::compiler::builtins::MirInstKind;
+use crate::compiler::error::{Code, Error};
 use crate::compiler::mir;
 use crate::compiler::mir::{
-    DeepCopy, MirEnvAllocation, MirFunction, MirFunctionBinding, MirStatement, MirVariadicExecInfo,
-    ReleaseEnv,
+    DeepCopy, MirArg, MirCall, MirCallKind, MirClosure, MirEnvBase, MirEnvField, MirExec,
+    MirExecTarget, MirFunction, MirInstruction, MirStmt, MirSysCall, MirSysCallKind, ReleaseEnv,
+    SigItem, SigKind, ValueKind,
 };
-use crate::compiler::runtime::{
-    env_metadata_size, ENV_METADATA_FIELD_SIZE, ENV_METADATA_POINTER_COUNT_OFFSET,
-    ENV_METADATA_POINTER_LIST_OFFSET,
-};
-use crate::compiler::span::Span;
-use crate::compiler::symbol::{FunctionSig, SymbolRegistry};
-use crate::compiler::type_utils::expand_alias_chain;
-use crate::compiler::ENTRY_FUNCTION_NAME;
 
+pub const ENV_METADATA_FIELD_SIZE: usize = 8;
+pub const ENV_METADATA_POINTER_COUNT_OFFSET: usize = ENV_METADATA_FIELD_SIZE * 2;
+pub const ENV_METADATA_POINTER_LIST_OFFSET: usize = ENV_METADATA_FIELD_SIZE * 3;
+pub const ENV_METADATA_SIZE: usize = ENV_METADATA_POINTER_LIST_OFFSET;
+
+pub fn env_metadata_size(pointer_count: usize) -> usize {
+    ENV_METADATA_SIZE + pointer_count * ENV_METADATA_FIELD_SIZE
+}
+
+use crate::compiler::span::Span;
+use crate::{escape_literal_for_rodata, sanitize_function_name};
 const WORD_SIZE: usize = 8;
 
-#[allow(dead_code)]
 #[derive(Clone, Debug)]
 enum Expr {
-    Int { value: i64, span: Span },
+    Int { value: i64 },
     Ident { name: String, span: Span },
-    String { value: String, span: Span },
+    String { label: String },
 }
 
-#[derive(Clone, Debug)]
-enum ExecArgKind<'a> {
-    Normal(&'a Arg),
-    Variadic(&'a [Arg]),
-}
-
-const ARG_REGS: [&str; 8] = ["rdi", "rsi", "rdx", "rcx", "r8", "r9", "r10", "r11"];
+const ARG_REGS: [&str; 12] = [
+    "rdi", "rsi", "rdx", "rcx", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",
+];
 const SYSCALL_MMAP: i32 = 9;
 const SYSCALL_MUNMAP: i32 = 11;
 const SYSCALL_EXIT: i32 = 60;
@@ -41,17 +40,9 @@ const PROT_READ: i32 = 1;
 const PROT_WRITE: i32 = 2;
 const MAP_PRIVATE: i32 = 2;
 const MAP_ANONYMOUS: i32 = 32;
-const VARIADIC_LENGTH_FIELD_SIZE: usize = 8;
-const ARRAY_METADATA_EXTRA_FIELD_SIZE: usize = 8;
-const ARRAY_METADATA_EXTRA_BASE_OFFSET: usize = ENV_METADATA_POINTER_LIST_OFFSET;
-const ARRAY_OK_LEN_SLOT_OFFSET: usize = 24;
-const ARRAY_OK_NTH_SLOT_OFFSET: usize = 16;
-const ARRAY_NTH_IDX_SLOT_OFFSET: usize = 40;
-const ARRAY_NTH_ONE_SLOT_OFFSET: usize = 16;
-const ARRAY_NTH_NONE_SLOT_OFFSET: usize = 32;
 const FMT_BUFFER_SIZE: usize = 1024;
 
-pub fn write_preamble<W: Write>(out: &mut W) -> Result<(), CompileError> {
+pub fn write_preamble<W: Write>(out: &mut W) -> Result<(), Error> {
     writeln!(out, "bits 64")?;
     writeln!(out, "default rel")?;
     writeln!(out, "section .text")?;
@@ -59,200 +50,155 @@ pub fn write_preamble<W: Write>(out: &mut W) -> Result<(), CompileError> {
 }
 
 #[derive(Clone, Debug)]
-enum GlobalValue {
-    Str { name: String, literal_label: String },
-    Int { name: String, value: i64 },
-    MutableBytes { name: String, size: usize },
+struct MutableBytes {
+    name: String,
+    size: usize,
 }
 
 pub fn emit_builtin_definitions<W: Write>(
-    symbols: &SymbolRegistry,
+    builtin_imports: &HashSet<String>,
     ctx: &mut CodegenContext,
     out: &mut W,
-) -> Result<(), CompileError> {
-    let mut builtins: Vec<&String> = symbols.builtin_imports().iter().collect();
+) -> Result<(), Error> {
+    let mut builtins: Vec<&String> = builtin_imports.iter().collect();
     builtins.sort();
     for name in builtins {
         match name.as_str() {
-            "add" => emit_builtin_add(out)?,
-            "div" => emit_builtin_div(out)?,
-            "eqi" => emit_builtin_eqi(out)?,
-            "eqs" => emit_builtin_eqs(out)?,
-            "gt" => emit_builtin_gt(out)?,
             "itoa" => emit_builtin_itoa(ctx, out)?,
-            "lt" => emit_builtin_lt(out)?,
-            "mul" => emit_builtin_mul(out)?,
-            "rgo_write" => emit_builtin_write(ctx, out)?,
             "puts" => emit_builtin_puts(ctx, out)?,
-            "sub" => emit_builtin_sub(out)?,
             _ => {}
         }
     }
-    ctx.emit_array_builtins(out)?;
+    let mut helpers: Vec<_> = ctx.libc_variadic_helpers.iter().copied().collect();
+    helpers.sort_by_key(|helper| helper.helper_label());
+    for helper in helpers {
+        helper.emit(out)?;
+    }
     ctx.emit_release_helper(out)?;
     ctx.emit_deep_copy_helper(out)?;
     Ok(())
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+enum LibcallVariadicHelper {
+    Printf,
+    Sprintf,
+}
+
+impl LibcallVariadicHelper {
+    fn helper_label(&self) -> &'static str {
+        match self {
+            LibcallVariadicHelper::Printf => "printf_aligned",
+            LibcallVariadicHelper::Sprintf => "sprintf_aligned",
+        }
+    }
+
+    fn target_name(&self) -> &'static str {
+        match self {
+            LibcallVariadicHelper::Printf => "printf",
+            LibcallVariadicHelper::Sprintf => "sprintf",
+        }
+    }
+
+    fn emit<W: Write>(&self, out: &mut W) -> Result<(), Error> {
+        let label = self.helper_label();
+        writeln!(out, "global {}", label)?;
+        writeln!(out, "{}:", label)?;
+        writeln!(out, "    push rbp ; save caller base pointer")?;
+        writeln!(out, "    mov rbp, rsp ; establish helper frame")?;
+        writeln!(out, "    push r12 ; preserve alignment register")?;
+        writeln!(out, "    mov rax, rsp ; capture pointer for alignment")?;
+        writeln!(out, "    and rax, 15")?;
+        writeln!(out, "    mov r12, rax")?;
+        writeln!(
+            out,
+            "    sub rsp, r12 ; align stack for variadic {} call",
+            self.target_name()
+        )?;
+        writeln!(out, "    call {}", self.target_name())?;
+        writeln!(out, "    add rsp, r12")?;
+        writeln!(out, "    pop r12")?;
+        writeln!(out, "    leave")?;
+        writeln!(out, "    ret")?;
+        Ok(())
+    }
+}
+
 pub fn function<W: Write>(
     mir: MirFunction,
-    symbols: &SymbolRegistry,
     ctx: &mut CodegenContext,
     out: &mut W,
-) -> Result<(), CompileError> {
-    if mir.owns_self {
-        ctx.ensure_root_env_slot(&mir.name);
-    }
-    let frame = FrameLayout::build(&mir, symbols)?;
-    let mir_name = mir.name.clone();
-    let mut emitter = FunctionEmitter::new(mir.clone(), out, frame, symbols, ctx);
+) -> Result<(), Error> {
+    let frame = FrameLayout::build(&mir)?;
+    let mut emitter = FunctionEmitter::new(mir.clone(), out, frame, ctx);
     emitter.emit_function()?;
-    ctx.push_mir_function(mir);
-    if mir_name != ENTRY_FUNCTION_NAME {
-        // Need to re-get mir from ctx for emit_closure_wrapper
-        let mir_for_wrapper = ctx.mir_functions.last().unwrap();
-        emit_closure_wrapper(mir_for_wrapper, symbols, out)?;
-    }
     Ok(())
 }
 
 pub struct CodegenContext {
-    string_literals: Vec<String>,
-    string_map: HashMap<String, usize>,
+    string_literals: Vec<(String, String)>,
     externs: HashSet<String>,
-    globals: Vec<GlobalValue>,
-    global_names: HashSet<String>,
-    mir_functions: Vec<MirFunction>,
-    array_builtins_emitted: bool,
+    globals: Vec<MutableBytes>,
     release_helper_needed: bool,
     deep_copy_helper_needed: bool,
+    libc_variadic_helpers: HashSet<LibcallVariadicHelper>,
 }
 
 impl CodegenContext {
     pub fn new() -> Self {
         Self {
             string_literals: Vec::new(),
-            string_map: HashMap::new(),
             externs: HashSet::new(),
             globals: Vec::new(),
-            global_names: HashSet::new(),
-            mir_functions: Vec::new(),
-            array_builtins_emitted: false,
             release_helper_needed: false,
             deep_copy_helper_needed: false,
+            libc_variadic_helpers: HashSet::new(),
         }
     }
 
-    pub fn string_literal_label(&mut self, value: &str) -> String {
-        if let Some(&idx) = self.string_map.get(value) {
-            return Self::literal_label(idx);
-        }
-        let value = value.to_string();
-        let idx = self.string_literals.len();
-        self.string_literals.push(value.clone());
-        self.string_map.insert(value, idx);
-        Self::literal_label(idx)
-    }
-
-    pub fn emit_data<W: Write>(&self, out: &mut W) -> Result<(), CompileError> {
+    pub fn emit_data<W: Write>(&self, out: &mut W) -> Result<(), Error> {
         let has_mutable = self
             .globals
             .iter()
-            .any(|global| matches!(global, GlobalValue::MutableBytes { .. }));
-        let has_rodata_entries = self
-            .globals
-            .iter()
-            .any(|global| matches!(global, GlobalValue::Str { .. } | GlobalValue::Int { .. }));
-        if !has_mutable && self.string_literals.is_empty() && !has_rodata_entries {
+            .any(|global| matches!(global, MutableBytes { .. }));
+        if !has_mutable && self.string_literals.is_empty() {
             return Ok(());
         }
         if has_mutable {
             writeln!(out, "section .bss")?;
             for global in &self.globals {
-                if let GlobalValue::MutableBytes { name, size } = global {
-                    writeln!(out, "{}:", name)?;
-                    writeln!(out, "    resb {}", size)?;
-                }
+                writeln!(out, "{}:", global.name)?;
+                writeln!(out, "    resb {}", global.size)?;
             }
         }
-        if !self.string_literals.is_empty() || has_rodata_entries {
+        if !self.string_literals.is_empty() {
             writeln!(out, "section .rodata")?;
-            for (idx, literal) in self.string_literals.iter().enumerate() {
-                let label = Self::literal_label(idx);
+            for (label, literal) in &self.string_literals {
                 writeln!(out, "{}:", label)?;
-                let escaped = Self::escape_literal(literal);
+                let escaped = escape_literal_for_rodata(literal);
                 writeln!(out, "    db {}, 0", escaped)?;
-            }
-            for global in &self.globals {
-                match global {
-                    GlobalValue::Str {
-                        name,
-                        literal_label,
-                    } => {
-                        writeln!(out, "{}:", name)?;
-                        writeln!(out, "    dq {}", literal_label)?;
-                    }
-                    GlobalValue::Int { name, value } => {
-                        writeln!(out, "{}:", name)?;
-                        writeln!(out, "    dq {}", value)?;
-                    }
-                    GlobalValue::MutableBytes { .. } => {}
-                }
             }
         }
         Ok(())
     }
 
-    pub fn add_extern(&mut self, name: &str) {
+    fn add_string_literal(&mut self, label: &str, value: &str) {
+        if self
+            .string_literals
+            .iter()
+            .any(|(existing_label, _)| existing_label == label)
+        {
+            return;
+        }
+        self.string_literals
+            .push((label.to_string(), value.to_string()));
+    }
+
+    fn add_extern(&mut self, name: &str) {
         self.externs.insert(name.to_string());
     }
 
-    pub fn register_global_str(&mut self, name: &str, value: &str) {
-        if self.global_names.contains(name) {
-            return;
-        }
-        let label = self.string_literal_label(value);
-        let name_owned = name.to_string();
-        self.global_names.insert(name_owned.clone());
-        self.globals.push(GlobalValue::Str {
-            name: name_owned,
-            literal_label: label,
-        });
-    }
-
-    pub fn register_global_int(&mut self, name: &str, value: i64) {
-        if self.global_names.contains(name) {
-            return;
-        }
-        let name_owned = name.to_string();
-        self.global_names.insert(name_owned.clone());
-        self.globals.push(GlobalValue::Int {
-            name: name_owned,
-            value,
-        });
-    }
-
-    pub fn ensure_root_env_slot(&mut self, func_name: &str) {
-        let symbol = Self::root_env_symbol(func_name);
-        if self.global_names.contains(&symbol) {
-            return;
-        }
-        self.global_names.insert(symbol.clone());
-        self.globals.push(GlobalValue::MutableBytes {
-            name: symbol,
-            size: 8,
-        });
-    }
-
-    pub fn root_env_symbol(func_name: &str) -> String {
-        format!("{}_root_env_slot", func_name)
-    }
-
-    pub fn is_global_value(&self, name: &str) -> bool {
-        self.global_names.contains(name)
-    }
-
-    pub fn emit_externs<W: Write>(&self, out: &mut W) -> Result<(), CompileError> {
+    pub fn emit_externs<W: Write>(&self, out: &mut W) -> Result<(), Error> {
         if self.externs.is_empty() {
             return Ok(());
         }
@@ -264,213 +210,26 @@ impl CodegenContext {
         Ok(())
     }
 
-    pub fn push_mir_function(&mut self, function: MirFunction) {
-        self.mir_functions.push(function);
-    }
-
-    pub fn ensure_array_builtins(&mut self) {
-        if self.array_builtins_emitted {
-            return;
-        }
-        self.array_builtins_emitted = true;
-        self.push_mir_function(MirFunction::builtin_internal_array_str_nth());
-        self.push_mir_function(MirFunction::builtin_internal_array_str());
-    }
-
-    pub fn ensure_release_helper(&mut self) {
+    fn ensure_release_helper(&mut self) {
         self.release_helper_needed = true;
     }
 
-    pub fn ensure_deep_copy_helper(&mut self) {
+    fn ensure_deep_copy_helper(&mut self) {
         self.deep_copy_helper_needed = true;
     }
 
-    pub fn emit_array_builtins<W: Write>(&self, out: &mut W) -> Result<(), CompileError> {
-        if !self.array_builtins_emitted {
-            return Ok(());
-        }
-        writeln!(out, "global internal_array_str_nth")?;
-        writeln!(out, "internal_array_str_nth:")?;
-        writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
-        writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
-        writeln!(out, "    mov r10, rdi ; keep env_end pointer for later")?;
-        writeln!(out, "    mov r8, [r10] ; load env size metadata")?;
-        writeln!(
-            out,
-            "    mov rax, [r10+{}] ; pointer count metadata",
-            ENV_METADATA_POINTER_COUNT_OFFSET
-        )?;
-        writeln!(
-            out,
-            "    imul rax, {} ; pointer metadata byte width",
-            ENV_METADATA_FIELD_SIZE
-        )?;
-        writeln!(
-            out,
-            "    lea r9, [r10+{}] ; pointer metadata base",
-            ARRAY_METADATA_EXTRA_BASE_OFFSET
-        )?;
-        writeln!(out, "    add r9, rax ; offset to array extras")?;
-        writeln!(out, "    mov r9, [r9] ; load exec slot size")?;
-        writeln!(out, "    mov r11, r10 ; copy metadata pointer")?;
-        writeln!(out, "    sub r11, r8 ; compute env base pointer")?;
-        writeln!(out, "    mov rax, r8 ; payload plus slot bytes")?;
-        writeln!(out, "    sub rax, r9 ; isolate payload size")?;
-        writeln!(out, "    mov rcx, r11 ; start from env base")?;
-        writeln!(out, "    add rcx, rax ; advance to payload end")?;
-        writeln!(
-            out,
-            "    sub rcx, {} ; locate stored array length",
-            VARIADIC_LENGTH_FIELD_SIZE
-        )?;
-        writeln!(out, "    mov rdx, [rcx] ; load array length")?;
-        writeln!(
-            out,
-            "    mov rax, [r10-{}] ; requested index argument",
-            ARRAY_NTH_IDX_SLOT_OFFSET
-        )?;
-        writeln!(out, "    cmp rax, 0 ; disallow negative indexes")?;
-        writeln!(out, "    jl internal_array_str_nth_oob")?;
-        writeln!(out, "    cmp rax, rdx ; ensure idx < len")?;
-        writeln!(out, "    jge internal_array_str_nth_oob")?;
-        writeln!(out, "    imul rax, 8 ; stride by element size")?;
-        writeln!(out, "    add rax, r11 ; locate element slot")?;
-        writeln!(out, "    mov rax, [rax] ; load string pointer")?;
-        writeln!(
-            out,
-            "    mov rsi, [r10-{}] ; load 'one' continuation code",
-            ARRAY_NTH_ONE_SLOT_OFFSET
-        )?;
-        writeln!(
-            out,
-            "    mov rdx, [r10-{}] ; load 'one' continuation env_end",
-            ARRAY_NTH_ONE_SLOT_OFFSET - 8
-        )?;
-        writeln!(
-            out,
-            "    sub rsp, 16 ; allocate temp stack for closure state"
-        )?;
-        writeln!(out, "    mov [rsp], rsi ; save closure code pointer")?;
-        writeln!(out, "    mov [rsp+8], rdx ; save closure env_end pointer")?;
-        writeln!(out, "    mov rcx, [rsp+8] ; env_end pointer for argument")?;
-        writeln!(
-            out,
-            "    sub rcx, {} ; slot for string argument",
-            VARIADIC_LENGTH_FIELD_SIZE
-        )?;
-        writeln!(out, "    mov [rcx], rax ; store selected element")?;
-        writeln!(out, "    mov rax, [rsp] ; restore closure code pointer")?;
-        writeln!(
-            out,
-            "    mov rdx, [rsp+8] ; restore closure env_end pointer"
-        )?;
-        writeln!(out, "    add rsp, 16 ; drop temp state")?;
-        writeln!(out, "    mov rdi, rdx ; pass env_end to continuation")?;
-        writeln!(out, "    leave ; epilogue before jump")?;
-        writeln!(out, "    jmp rax ; return into 'one' continuation")?;
-        writeln!(out, "internal_array_str_nth_oob:")?;
-        writeln!(
-            out,
-            "    mov rax, [r10-{}] ; load 'none' continuation code",
-            ARRAY_NTH_NONE_SLOT_OFFSET
-        )?;
-        writeln!(
-            out,
-            "    mov rdx, [r10-{}] ; load 'none' continuation env_end",
-            ARRAY_NTH_NONE_SLOT_OFFSET - 8
-        )?;
-        writeln!(out, "    mov rdi, rdx ; pass env_end pointer")?;
-        writeln!(out, "    leave ; epilogue before jump")?;
-        writeln!(out, "    jmp rax ; return into 'none' continuation")?;
-        writeln!(out, "global internal_array_str")?;
-        writeln!(out, "internal_array_str:")?;
-        writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
-        writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
-        writeln!(out, "    mov r10, rdi ; capture env_end pointer")?;
-        writeln!(out, "    mov r8, [r10] ; load env size metadata")?;
-        writeln!(
-            out,
-            "    mov rax, [r10+{}] ; pointer count metadata",
-            ENV_METADATA_POINTER_COUNT_OFFSET
-        )?;
-        writeln!(
-            out,
-            "    imul rax, {} ; pointer metadata byte width",
-            ENV_METADATA_FIELD_SIZE
-        )?;
-        writeln!(
-            out,
-            "    lea r9, [r10+{}] ; pointer metadata base",
-            ARRAY_METADATA_EXTRA_BASE_OFFSET
-        )?;
-        writeln!(out, "    add r9, rax ; offset to array extras")?;
-        writeln!(out, "    mov r9, [r9] ; load exec slot size")?;
-        writeln!(out, "    mov r11, r10 ; duplicate pointer")?;
-        writeln!(out, "    sub r11, r8 ; compute env base")?;
-        writeln!(out, "    mov rax, r8 ; payload plus slot bytes")?;
-        writeln!(out, "    sub rax, r9 ; isolate payload size")?;
-        writeln!(out, "    mov rcx, r11 ; start from env base")?;
-        writeln!(out, "    add rcx, rax ; advance to payload end")?;
-        writeln!(
-            out,
-            "    sub rcx, {} ; locate stored array length",
-            VARIADIC_LENGTH_FIELD_SIZE
-        )?;
-        writeln!(out, "    mov r9, [rcx] ; load array length")?;
-        writeln!(
-            out,
-            "    mov rax, [r10-{}] ; load 'ok' continuation code",
-            ARRAY_OK_NTH_SLOT_OFFSET
-        )?;
-        writeln!(
-            out,
-            "    mov rdx, [r10-{}] ; load 'ok' continuation env_end",
-            ARRAY_OK_NTH_SLOT_OFFSET - 8
-        )?;
-        writeln!(
-            out,
-            "    sub rsp, 16 ; allocate temp stack for closure state"
-        )?;
-        writeln!(out, "    mov [rsp], rax ; save closure code pointer")?;
-        writeln!(out, "    mov [rsp+8], rdx ; save closure env_end pointer")?;
-        writeln!(out, "    mov rsi, [rsp+8] ; env_end pointer for args")?;
-        writeln!(
-            out,
-            "    sub rsi, {} ; slot for len argument",
-            ARRAY_OK_LEN_SLOT_OFFSET
-        )?;
-        writeln!(out, "    mov [rsi], r9 ; write len argument")?;
-        writeln!(out, "    mov rsi, [rsp+8] ; env_end pointer for args")?;
-        writeln!(
-            out,
-            "    sub rsi, {} ; slot for nth continuation",
-            ARRAY_OK_NTH_SLOT_OFFSET
-        )?;
-        writeln!(
-            out,
-            "    mov qword [rsi], internal_array_str_nth ; install nth code"
-        )?;
-        writeln!(out, "    mov [rsi+8], r10 ; install nth env_end pointer")?;
-        writeln!(out, "    mov rax, [rsp] ; restore closure code pointer")?;
-        writeln!(
-            out,
-            "    mov rdx, [rsp+8] ; restore closure env_end pointer"
-        )?;
-        writeln!(out, "    add rsp, 16 ; drop temp stack")?;
-        writeln!(out, "    mov rdi, rdx ; pass env_end pointer")?;
-        writeln!(out, "    leave ; epilogue before jump")?;
-        writeln!(out, "    jmp rax ; return into 'ok' continuation")?;
-        Ok(())
+    fn require_libcall_variadic_helper(&mut self, helper: LibcallVariadicHelper) {
+        self.libc_variadic_helpers.insert(helper);
     }
 
-    pub fn emit_release_helper<W: Write>(&self, out: &mut W) -> Result<(), CompileError> {
+    fn emit_release_helper<W: Write>(&self, out: &mut W) -> Result<(), Error> {
         if !self.release_helper_needed {
             return Ok(());
         }
         writeln!(out, "internal_release_env:")?;
-        writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
+        writeln!(out, "    push rbp ; prologue: save executor frame pointer")?;
         writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
-        writeln!(out, "    push rbx ; preserve callee-saved registers")?;
+        writeln!(out, "    push rbx ; preserve continuation-saved registers")?;
         writeln!(out, "    push r12")?;
         writeln!(out, "    push r13")?;
         writeln!(out, "    push r14")?;
@@ -525,14 +284,14 @@ impl CodegenContext {
         Ok(())
     }
 
-    pub fn emit_deep_copy_helper<W: Write>(&self, out: &mut W) -> Result<(), CompileError> {
+    fn emit_deep_copy_helper<W: Write>(&self, out: &mut W) -> Result<(), Error> {
         if !self.deep_copy_helper_needed {
             return Ok(());
         }
         writeln!(out, "internal_deep_copy_env:")?;
-        writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
+        writeln!(out, "    push rbp ; prologue: save executor frame pointer")?;
         writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
-        writeln!(out, "    push rbx ; preserve callee-saved registers")?;
+        writeln!(out, "    push rbx ; preserve continuation-saved registers")?;
         writeln!(out, "    push r12")?;
         writeln!(out, "    push r13")?;
         writeln!(out, "    push r14")?;
@@ -601,7 +360,7 @@ impl CodegenContext {
         Ok(())
     }
 
-    fn emit_memcpy_helper<W: Write>(&self, out: &mut W) -> Result<(), CompileError> {
+    fn emit_memcpy_helper<W: Write>(&self, out: &mut W) -> Result<(), Error> {
         writeln!(out, "internal_memcpy:")?;
         writeln!(out, "    push rbp ; prologue")?;
         writeln!(out, "    mov rbp, rsp")?;
@@ -618,74 +377,6 @@ impl CodegenContext {
         writeln!(out, "    ret")?;
         Ok(())
     }
-
-    fn literal_label(idx: usize) -> String {
-        format!("str_literal_{}", idx)
-    }
-
-    fn escape_literal(literal: &str) -> String {
-        fn append_part(output: &mut String, part: &str) {
-            if !output.is_empty() {
-                output.push_str(", ");
-            }
-            output.push_str(part);
-        }
-
-        fn flush_chunk(output: &mut String, chunk: &mut Vec<u8>) {
-            if chunk.is_empty() {
-                return;
-            }
-            let mut literal = String::from("\"");
-            for &byte in chunk.iter() {
-                match byte {
-                    b'"' => literal.push_str("\\\""),
-                    other => literal.push(other as char),
-                }
-            }
-            literal.push('"');
-            append_part(output, &literal);
-            chunk.clear();
-        }
-
-        let mut output = String::new();
-        let mut chunk = Vec::new();
-        for &byte in literal.as_bytes() {
-            match byte {
-                b'\n' => {
-                    flush_chunk(&mut output, &mut chunk);
-                    append_part(&mut output, "10");
-                }
-                b'\r' => {
-                    flush_chunk(&mut output, &mut chunk);
-                    append_part(&mut output, "13");
-                }
-                b'\t' => {
-                    flush_chunk(&mut output, &mut chunk);
-                    append_part(&mut output, "9");
-                }
-                b if b == b'\\' || b == b'"' || b == b' ' || (0x21..=0x7e).contains(&b) => {
-                    chunk.push(byte);
-                }
-                other => {
-                    flush_chunk(&mut output, &mut chunk);
-                    append_part(&mut output, &format!("0x{other:02x}"));
-                }
-            }
-        }
-
-        flush_chunk(&mut output, &mut chunk);
-
-        if output.is_empty() {
-            return "\"\"".to_string();
-        }
-        output
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum ValueKind {
-    Word,
-    Closure,
 }
 
 #[derive(Clone, Debug)]
@@ -709,16 +400,17 @@ struct FrameLayout {
 }
 
 impl FrameLayout {
-    fn build(mir: &MirFunction, symbols: &SymbolRegistry) -> Result<Self, CompileError> {
+    fn build(mir: &MirFunction) -> Result<Self, Error> {
         let mut layout = Self {
             bindings: HashMap::new(),
             stack_size: 0,
             next_offset: 0,
         };
-        for param in &mir.params {
-            layout.allocate_param(param, symbols)?;
+        for param in &mir.sig.params {
+            let continuation_params = mir::continuation_params_for_type(&param.ty);
+            layout.allocate_param(param, &continuation_params)?;
         }
-        for stmt in &mir.block.items {
+        for stmt in &mir.items {
             if let Some((name, span)) = mir_statement_binding_info(stmt) {
                 layout.allocate_word(name, span)?;
             }
@@ -730,24 +422,28 @@ impl FrameLayout {
     fn allocate_param(
         &mut self,
         param: &SigItem,
-        symbols: &SymbolRegistry,
-    ) -> Result<(), CompileError> {
+        continuation_params: &[SigKind],
+    ) -> Result<(), Error> {
         let name = &param.name;
         let ty = &param.ty;
-        let kind = resolved_type_kind(&ty.kind, symbols);
-        let continuation_params = match kind {
-            ValueKind::Closure => continuation_params_for_type(&ty.kind, symbols),
-            ValueKind::Word => Vec::new(),
+        let kind = resolved_type_kind(&ty);
+        if kind == ValueKind::Variadic {
+            return Ok(());
+        }
+        let continuation_params = if kind == ValueKind::Closure {
+            continuation_params.to_vec()
+        } else {
+            Vec::new()
         };
         let env_size = if kind == ValueKind::Closure {
-            env_size_bytes(&continuation_params, symbols)
+            env_size_bytes_from_kinds(&continuation_params)
         } else {
             0
         };
         self.allocate_binding(name, param.span, kind, continuation_params, env_size)
     }
 
-    fn allocate_word(&mut self, name: &str, span: Span) -> Result<(), CompileError> {
+    fn allocate_word(&mut self, name: &str, span: Span) -> Result<(), Error> {
         self.allocate_binding(name, span, ValueKind::Word, Vec::new(), 0)
     }
 
@@ -758,10 +454,10 @@ impl FrameLayout {
         kind: ValueKind,
         continuation_params: Vec<SigKind>,
         env_size: usize,
-    ) -> Result<(), CompileError> {
+    ) -> Result<(), Error> {
         if self.bindings.contains_key(name) {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
+            return Err(Error::new(
+                Code::Codegen,
                 format!("duplicate binding '{}'", name),
                 span,
             ));
@@ -788,19 +484,31 @@ impl FrameLayout {
     }
 }
 
-fn mir_statement_binding_info<'a>(stmt: &'a MirStatement) -> Option<(&'a str, Span)> {
+fn mir_statement_binding_info<'a>(stmt: &'a MirStmt) -> Option<(&'a str, Span)> {
     match stmt {
-        MirStatement::FunctionDef(binding) => Some((binding.name.as_str(), binding.span)),
-        MirStatement::StrDef(literal) => Some((literal.name.as_str(), literal.span)),
-        MirStatement::IntDef(literal) => Some((literal.name.as_str(), literal.span)),
-        MirStatement::StructDef(apply) => Some((apply.value.name.as_str(), apply.value.span)),
-        MirStatement::Exec(exec) => exec
-            .exec
-            .result
-            .as_ref()
-            .map(|name| (name.as_str(), exec.exec.span)),
-        MirStatement::ReleaseEnv(_) => None,
-        MirStatement::DeepCopy(copy) => Some((copy.copy.as_str(), copy.span)),
+        MirStmt::EnvBase(base) => Some((base.name.as_str(), base.span)),
+        MirStmt::EnvField(field) => Some((field.result.as_str(), field.span)),
+        MirStmt::StrDef { name, literal } => Some((name.as_str(), literal.span)),
+        MirStmt::IntDef { name, literal } => Some((name.as_str(), literal.span)),
+        MirStmt::Closure(s) => Some((&s.name, s.span)),
+        MirStmt::Exec(..) => None,
+        MirStmt::ReleaseEnv(..) => None,
+        MirStmt::DeepCopy(copy) => Some((copy.copy.as_str(), copy.span)),
+        MirStmt::Op(instr) => instr
+            .outputs
+            .first()
+            .map(|name| (name.as_str(), instr.span)),
+        MirStmt::SysCall(syscall) => syscall
+            .outputs
+            .first()
+            .map(|name| (name.as_str(), syscall.span)),
+        MirStmt::Call(call) => {
+            if call.result.is_empty() {
+                None
+            } else {
+                Some((call.result.as_str(), call.span))
+            }
+        }
     }
 }
 
@@ -808,15 +516,13 @@ fn mir_statement_binding_info<'a>(stmt: &'a MirStatement) -> Option<(&'a str, Sp
 struct ClosureState {
     remaining: Vec<SigKind>,
     env_size: usize,
-    has_variadic: bool,
 }
 
 impl ClosureState {
-    fn new(params: Vec<SigKind>, env_size: usize, has_variadic: bool) -> Self {
+    fn new(params: Vec<SigKind>, env_size: usize) -> Self {
         Self {
             remaining: params,
             env_size,
-            has_variadic,
         }
     }
 
@@ -833,12 +539,7 @@ impl ClosureState {
         Self {
             remaining: self.remaining[count..].to_vec(),
             env_size: self.env_size,
-            has_variadic: self.has_variadic,
         }
-    }
-
-    fn has_variadic(&self) -> bool {
-        self.has_variadic
     }
 }
 
@@ -852,13 +553,10 @@ struct FunctionEmitter<'a, W: Write> {
     mir: MirFunction,
     out: &'a mut W,
     frame: FrameLayout,
-    symbols: &'a SymbolRegistry,
     ctx: &'a mut CodegenContext,
-    literal_strings: HashMap<String, String>,
     terminated: bool,
     write_loop_counter: usize,
     label_counter: usize,
-    root_env_symbol: Option<String>,
 }
 
 impl<'a, W: Write> FunctionEmitter<'a, W> {
@@ -866,29 +564,20 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         mir: MirFunction,
         out: &'a mut W,
         frame: FrameLayout,
-        symbols: &'a SymbolRegistry,
         ctx: &'a mut CodegenContext,
     ) -> Self {
-        let root_env_symbol = if mir.owns_self {
-            Some(CodegenContext::root_env_symbol(&mir.name))
-        } else {
-            None
-        };
         Self {
             mir,
             out,
             frame,
-            symbols,
             ctx,
-            literal_strings: HashMap::new(),
             terminated: false,
             write_loop_counter: 0,
             label_counter: 0,
-            root_env_symbol,
         }
     }
 
-    fn emit_function(&mut self) -> Result<(), CompileError> {
+    fn emit_function(&mut self) -> Result<(), Error> {
         self.write_header()?;
         self.write_prologue()?;
         self.store_params()?;
@@ -899,14 +588,14 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn write_header(&mut self) -> Result<(), CompileError> {
-        writeln!(self.out, "global {}", self.mir.name)?;
-        writeln!(self.out, "{}:", self.mir.name)?;
+    fn write_header(&mut self) -> Result<(), Error> {
+        writeln!(self.out, "global {}", self.mir.sig.name)?;
+        writeln!(self.out, "{}:", self.mir.sig.name)?;
         Ok(())
     }
 
-    fn write_prologue(&mut self) -> Result<(), CompileError> {
-        writeln!(self.out, "    push rbp ; save caller frame pointer")?;
+    fn write_prologue(&mut self) -> Result<(), Error> {
+        writeln!(self.out, "    push rbp ; save executor frame pointer")?;
         writeln!(self.out, "    mov rbp, rsp ; establish new frame base")?;
         if self.frame.stack_size > 0 {
             writeln!(
@@ -918,7 +607,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn write_epilogue(&mut self) -> Result<(), CompileError> {
+    fn write_epilogue(&mut self) -> Result<(), Error> {
         writeln!(self.out, "    leave ; epilogue: restore rbp and rsp")?;
         writeln!(self.out, "    mov rax, {} ; exit syscall", SYSCALL_EXIT)?;
         writeln!(self.out, "    xor rdi, rdi")?;
@@ -926,31 +615,34 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn store_params(&mut self) -> Result<(), CompileError> {
+    fn store_params(&mut self) -> Result<(), Error> {
         let mut slot = 0usize;
-        for param in &self.mir.params {
+        for param in &self.mir.sig.params {
             let name = &param.name;
             let ty = &param.ty;
+            let required = slots_for_type(&ty);
+            if slot + required > ARG_REGS.len() {
+                return Err(Error::new(
+                    Code::Codegen,
+                    format!(
+                        "function '{}' supports at most {} argument slots",
+                        self.mir.sig.name,
+                        ARG_REGS.len()
+                    ),
+                    self.mir.sig.span,
+                ));
+            }
+            let kind = resolved_type_kind(&ty);
+            if kind == ValueKind::Variadic {
+                slot += required;
+                continue;
+            }
             let binding = self
                 .frame
                 .binding(name)
-                .ok_or_else(|| {
-                    CompileError::new(CompileErrorCode::Codegen, "missing binding", param.span)
-                })?
+                .ok_or_else(|| Error::new(Code::Codegen, "missing binding", param.span))?
                 .clone();
-            let required = slots_for_type(&ty.kind, self.symbols);
-            if slot + required > ARG_REGS.len() {
-                return Err(CompileError::new(
-                    CompileErrorCode::Codegen,
-                    format!(
-                        "function '{}' supports at most {} argument slots",
-                        self.mir.name,
-                        ARG_REGS.len()
-                    ),
-                    self.mir.span,
-                ));
-            }
-            match resolved_type_kind(&ty.kind, self.symbols) {
+            match kind {
                 ValueKind::Word => {
                     let reg = ARG_REGS[slot];
                     writeln!(
@@ -976,120 +668,303 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                         reg_env
                     )?;
                 }
+                ValueKind::Variadic => unreachable!(),
             }
             slot += required;
         }
         Ok(())
     }
 
-    fn emit_block(&mut self) -> Result<(), CompileError> {
-        let statements = self.mir.block.items.clone();
+    fn emit_block(&mut self) -> Result<(), Error> {
+        let statements = self.mir.items.clone();
         for stmt in statements {
             self.emit_statement(&stmt)?;
+            if self.terminated {
+                break;
+            }
         }
         Ok(())
     }
 
-    fn emit_statement(&mut self, stmt: &MirStatement) -> Result<(), CompileError> {
+    fn emit_statement(&mut self, stmt: &MirStmt) -> Result<(), Error> {
         match stmt {
-            MirStatement::FunctionDef(binding) => {
-                let sig = self
-                    .symbols
-                    .get_function(&binding.function_name)
-                    .ok_or_else(|| {
-                        CompileError::new(
-                            CompileErrorCode::Codegen,
-                            format!("compiler bug: unknown function '{}'", binding.function_name),
-                            binding.span,
-                        )
-                    })?;
-                let state = if self.is_self_owned_binding(binding) {
-                    self.emit_self_owned_closure(binding, sig)?
-                } else {
-                    let param_kinds = sig.param_kinds();
-                    let has_variadic = sig.is_variadic();
-                    self.emit_named_function_closure(
-                        &binding.function_name,
-                        sig,
-                        binding.env_allocation.as_ref(),
-                    )?;
-                    let env_size = binding
-                        .env_allocation
-                        .as_ref()
-                        .map(|alloc| alloc.env_size)
-                        .unwrap_or_else(|| env_size_bytes(&param_kinds, self.symbols));
-                    ClosureState::new(param_kinds.clone(), env_size, has_variadic)
-                };
-                let result = ExprValue::Closure(state);
-                self.store_binding_value(&binding.name, result, binding.span)?;
-                return Ok(());
-            }
-            MirStatement::StrDef(literal) => {
-                self.literal_strings
-                    .insert(literal.name.clone(), literal.value.clone());
+            MirStmt::StrDef { name, literal } => {
+                self.ctx.add_string_literal(&name, &literal.value);
                 let expr = Expr::String {
-                    value: literal.value.clone(),
-                    span: literal.span,
+                    label: name.clone(),
                 };
                 let value = self.emit_expr(&expr)?;
-                self.store_binding_value(&literal.name, value, literal.span)?;
+                self.store_binding_value(&name, value, literal.span)?;
                 return Ok(());
             }
-            MirStatement::IntDef(literal) => {
+            MirStmt::IntDef { name, literal } => {
                 let expr = Expr::Int {
                     value: literal.value,
-                    span: literal.span,
                 };
                 let value = self.emit_expr(&expr)?;
-                self.store_binding_value(&literal.name, value, literal.span)?;
+                self.store_binding_value(&name, value, literal.span)?;
                 return Ok(());
             }
-            MirStatement::StructDef(struct_def) => {
-                let exec = Exec {
-                    of: struct_def.value.of.clone(),
-                    args: struct_def.value.args.clone(),
-                    span: struct_def.value.span,
-                    result: None,
-                };
-                let value = self.emit_exec_value(&exec, struct_def.variadic.as_ref())?;
-                self.store_binding_value(&struct_def.value.name, value, struct_def.value.span)?;
+            MirStmt::EnvBase(base) => {
+                self.emit_env_base(base)?;
                 return Ok(());
             }
-            MirStatement::Exec(exec) if exec.exec.result.is_some() => {
-                let name = exec.exec.result.as_ref().unwrap().clone();
-                let value = self.emit_exec_value(&exec.exec, exec.variadic.as_ref())?;
-                self.store_binding_value(&name, value, exec.exec.span)?;
+            MirStmt::EnvField(field) => {
+                self.emit_env_field(field)?;
                 return Ok(());
             }
-            MirStatement::Exec(exec) => {
-                let result = self.emit_exec(&exec.exec, exec.variadic.as_ref())?;
-                if let ExprValue::Closure(_) = result {
-                    // TODO: discard unused closures to avoid leaking temporaries
-                }
+            MirStmt::Closure(s) => {
+                let name = s.name.clone();
+                let value = self.emit_struct_value(s)?;
+                self.store_binding_value(&name, value, s.span)?;
                 return Ok(());
             }
-            MirStatement::ReleaseEnv(release) => {
+            MirStmt::Exec(exec) => {
+                let _ = self.emit_exec(exec)?; // TODO: discard unused closures to avoid leaking temporaries
+
+                return Ok(());
+            }
+            MirStmt::ReleaseEnv(release) => {
                 self.emit_release_env(release)?;
                 return Ok(());
             }
-            MirStatement::DeepCopy(copy) => {
+            MirStmt::DeepCopy(copy) => {
                 self.emit_deep_copy(copy)?;
+                return Ok(());
+            }
+            MirStmt::Op(instr) => {
+                self.emit_op(instr)?;
+                return Ok(());
+            }
+            MirStmt::SysCall(syscall) => {
+                self.emit_syscall(syscall)?;
+                return Ok(());
+            }
+            MirStmt::Call(call) => {
+                let value = self.emit_libcall(call)?;
+                if !call.result.is_empty() {
+                    self.store_binding_value(&call.result, value, call.span)?;
+                }
                 return Ok(());
             }
         }
     }
 
-    fn emit_release_env(&mut self, release: &ReleaseEnv) -> Result<(), CompileError> {
+    fn emit_op(&mut self, instr: &MirInstruction) -> Result<(), Error> {
+        match instr.kind {
+            MirInstKind::Add | MirInstKind::Sub | MirInstKind::Mul | MirInstKind::Div => {
+                self.emit_builtin_binary_op(instr)
+            }
+            MirInstKind::EqInt => self.emit_builtin_int_comparison(instr, IntComparison::Equal),
+            MirInstKind::Lt => self.emit_builtin_int_comparison(instr, IntComparison::Less),
+            MirInstKind::Gt => self.emit_builtin_int_comparison(instr, IntComparison::Greater),
+            MirInstKind::EqStr => self.emit_builtin_string_equality(instr),
+        }
+    }
+
+    fn emit_builtin_binary_op(&mut self, instr: &MirInstruction) -> Result<(), Error> {
+        let (first_comment, second_comment, store_comment) = instr.operand_comments;
+        writeln!(self.out, "    mov rax, rdi ; {}", first_comment)?;
+        if matches!(instr.kind, MirInstKind::Div) {
+            writeln!(self.out, "    cqo ; sign extend dividend")?;
+            writeln!(self.out, "    idiv rsi ; {}", second_comment)?;
+        } else {
+            writeln!(
+                self.out,
+                "    {} rax, rsi ; {}",
+                instr.opcode, second_comment
+            )?;
+        }
+        writeln!(
+            self.out,
+            "    lea rbx, [rcx-8] ; reserve slot for result before metadata"
+        )?;
+        writeln!(self.out, "    mov [rbx], rax ; {}", store_comment)?;
+        writeln!(self.out, "    mov rax, rdx ; continuation entry point")?;
+        writeln!(
+            self.out,
+            "    mov rdi, rcx ; pass env_end pointer unchanged"
+        )?;
+        writeln!(self.out, "    jmp rax ; jump into continuation")?;
+        writeln!(self.out)?;
+        self.terminated = true;
+        Ok(())
+    }
+
+    fn emit_builtin_int_comparison(
+        &mut self,
+        instr: &MirInstruction,
+        comparison: IntComparison,
+    ) -> Result<(), Error> {
+        let (first_comment, second_comment, _) = instr.operand_comments;
+        let true_label = self.new_label("true");
+        let false_label = self.new_label("false");
+        writeln!(self.out, "    cmp rdi, rsi ; {}", first_comment)?;
+        writeln!(
+            self.out,
+            "    {} {} ; {}",
+            comparison.false_jump(),
+            false_label,
+            second_comment
+        )?;
+        writeln!(self.out, "{}:", true_label)?;
+        self.emit_jump_to_continuation("rdx", "rcx")?;
+        writeln!(self.out, "{}:", false_label)?;
+        self.emit_jump_to_continuation("r8", "r9")?;
+        writeln!(self.out)?;
+        Ok(())
+    }
+
+    fn emit_builtin_string_equality(&mut self, instr: &MirInstruction) -> Result<(), Error> {
+        let (first_comment, second_comment, _) = instr.operand_comments;
+        let loop_label = self.new_label("eqs_loop");
+        let true_label = self.new_label("eqs_true");
+        let false_label = self.new_label("eqs_false");
+        writeln!(self.out, "    mov r10, rdi ; {}", first_comment)?;
+        writeln!(self.out, "    mov r11, rsi ; {}", second_comment)?;
+        writeln!(self.out, "{}:", loop_label)?;
+        writeln!(self.out, "    mov al, byte [r10]")?;
+        writeln!(self.out, "    mov dl, byte [r11]")?;
+        writeln!(self.out, "    cmp al, dl")?;
+        writeln!(self.out, "    jne {} ; bytes differ", false_label)?;
+        writeln!(self.out, "    test al, al")?;
+        writeln!(self.out, "    je {}", true_label)?;
+        writeln!(self.out, "    inc r10")?;
+        writeln!(self.out, "    inc r11")?;
+        writeln!(self.out, "    jmp {}", loop_label)?;
+        writeln!(self.out, "{}:", true_label)?;
+        self.emit_jump_to_continuation("rdx", "rcx")?;
+        writeln!(self.out, "{}:", false_label)?;
+        self.emit_jump_to_continuation("r8", "r9")?;
+        writeln!(self.out)?;
+        Ok(())
+    }
+
+    fn emit_syscall(&mut self, syscall: &MirSysCall) -> Result<(), Error> {
+        match syscall.kind {
+            MirSysCallKind::Exit => self.emit_exit_syscall(syscall),
+        }
+    }
+
+    fn emit_exit_syscall(&mut self, syscall: &MirSysCall) -> Result<(), Error> {
+        let (first_comment, _, exit_comment) = syscall.operand_comments;
+        writeln!(self.out, "    ; {}", first_comment)?;
+        self.emit_exit_syscall_sequence(exit_comment)
+    }
+
+    fn emit_exit_syscall_sequence(&mut self, exit_comment: &str) -> Result<(), Error> {
+        writeln!(self.out, "    leave ; unwind before exiting")?;
+        writeln!(self.out, "    mov rax, {} ; exit syscall", SYSCALL_EXIT)?;
+        writeln!(self.out, "    syscall ; {}", exit_comment)?;
+        self.terminated = true;
+        Ok(())
+    }
+
+    fn emit_jump_to_continuation(&mut self, code_reg: &str, env_reg: &str) -> Result<(), Error> {
+        writeln!(
+            self.out,
+            "    mov rax, {} ; continuation entry point",
+            code_reg
+        )?;
+        writeln!(
+            self.out,
+            "    mov rdi, {} ; pass env_end pointer to continuation",
+            env_reg
+        )?;
+        writeln!(self.out, "    leave")?;
+        writeln!(self.out, "    jmp rax")?;
+        self.terminated = true;
+        Ok(())
+    }
+
+    fn emit_env_base(&mut self, base: &MirEnvBase) -> Result<(), Error> {
+        let expr = Expr::Ident {
+            name: base.env_end.clone(),
+            span: base.span,
+        };
+        let value = self.emit_expr(&expr)?;
+        if let ExprValue::Word = value {
+        } else {
+            return Err(Error::new(
+                Code::Codegen,
+                format!("env_end binding '{}' is not a pointer", base.env_end),
+                base.span,
+            ));
+        }
+        let env_size_bytes = base.size * WORD_SIZE;
+        if env_size_bytes > 0 {
+            writeln!(
+                self.out,
+                "    sub rax, {} ; compute env base pointer",
+                env_size_bytes
+            )?;
+        }
+        self.store_binding_value(&base.name, ExprValue::Word, base.span)?;
+        Ok(())
+    }
+
+    fn emit_env_field(&mut self, field: &MirEnvField) -> Result<(), Error> {
+        let expr = Expr::Ident {
+            name: field.env_end.clone(),
+            span: field.span,
+        };
+        let value = self.emit_expr(&expr)?;
+        if let ExprValue::Word = value {
+        } else {
+            return Err(Error::new(
+                Code::Codegen,
+                format!("env_end binding '{}' is not a pointer", field.env_end),
+                field.span,
+            ));
+        }
+        let offset_bytes = field.offset_from_end * WORD_SIZE;
+        match resolved_type_kind(&field.ty) {
+            ValueKind::Word => {
+                writeln!(
+                    self.out,
+                    "    mov rax, [rax-{}] ; load scalar env field",
+                    offset_bytes
+                )?;
+                let expr_value = ExprValue::Word;
+                self.store_binding_value(&field.result, expr_value, field.span)?;
+            }
+            ValueKind::Closure => {
+                writeln!(
+                    self.out,
+                    "    mov r10, rax ; env_end pointer for closure field"
+                )?;
+                writeln!(
+                    self.out,
+                    "    mov rax, [r10-{}] ; load closure code pointer",
+                    offset_bytes
+                )?;
+                writeln!(
+                    self.out,
+                    "    mov rdx, [r10-{}] ; load closure env_end pointer",
+                    offset_bytes - WORD_SIZE
+                )?;
+                let params = field.continuation_params.clone();
+                let env_size = env_size_bytes_from_kinds(&params);
+                let state = ClosureState::new(params.clone(), env_size);
+                let expr_value = ExprValue::Closure(state);
+                self.store_binding_value(&field.result, expr_value, field.span)?;
+            }
+            ValueKind::Variadic => unreachable!("variadic env entries are not stored"),
+        }
+        Ok(())
+    }
+
+    fn emit_release_env(&mut self, release: &ReleaseEnv) -> Result<(), Error> {
         let binding = self.frame.binding(&release.name).cloned().ok_or_else(|| {
-            CompileError::new(
-                CompileErrorCode::Codegen,
+            Error::new(
+                Code::Codegen,
                 format!("unknown binding '{}'", release.name),
                 release.span,
             )
         })?;
         if binding.kind != ValueKind::Closure {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
+            return Err(Error::new(
+                Code::Codegen,
                 format!("cannot release non-closure binding '{}'", release.name),
                 release.span,
             ));
@@ -1108,17 +983,17 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn emit_deep_copy(&mut self, copy: &DeepCopy) -> Result<(), CompileError> {
+    fn emit_deep_copy(&mut self, copy: &DeepCopy) -> Result<(), Error> {
         let binding = self.frame.binding(&copy.original).cloned().ok_or_else(|| {
-            CompileError::new(
-                CompileErrorCode::Codegen,
+            Error::new(
+                Code::Codegen,
                 format!("unknown binding '{}'", copy.original),
                 copy.span,
             )
         })?;
         if binding.kind != ValueKind::Closure {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
+            return Err(Error::new(
+                Code::Codegen,
                 format!("cannot deep copy non-closure binding '{}'", copy.original),
                 copy.span,
             ));
@@ -1158,16 +1033,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         )?;
 
         // Store the new closure with the original code pointer and new env
-        let has_variadic = self
-            .symbols
-            .get_function(&copy.original)
-            .map(|sig| sig.is_variadic())
-            .unwrap_or(false);
-        let copy_state = ClosureState::new(
-            binding.continuation_params.clone(),
-            binding.env_size,
-            has_variadic,
-        );
+        let copy_state = ClosureState::new(binding.continuation_params.clone(), binding.env_size);
         let copy_value = ExprValue::Closure(copy_state);
         self.store_binding_value(&copy.copy, copy_value, copy.span)?;
 
@@ -1176,49 +1042,35 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn emit_exec_value(
-        &mut self,
-        exec: &Exec,
-        variadic: Option<&MirVariadicExecInfo>,
-    ) -> Result<ExprValue, CompileError> {
-        if let Some(sig) = self.symbols.get_function(&exec.of) {
-            let param_kinds = sig.param_kinds();
-            self.emit_named_function_closure(&exec.of, sig, None)?;
-            let env_size = env_size_bytes(&param_kinds, self.symbols);
-            let state = ClosureState::new(param_kinds.clone(), env_size, sig.is_variadic());
-            return self.apply_closure(state, &exec.args, exec.span, false);
-        }
-        if let Some(binding) = self.frame.binding(&exec.of) {
-            if binding.kind != ValueKind::Closure {
-                return Err(CompileError::new(
-                    CompileErrorCode::Codegen,
-                    format!("'{}' is not callable", exec.of),
-                    exec.span,
-                ));
+    fn emit_exec_value(&mut self, exec: &MirExec) -> Result<ExprValue, Error> {
+        match &exec.target {
+            MirExecTarget::Function(sig) => {
+                if let Some(mir::MirBuiltin::Call(kind)) = sig.builtin {
+                    return self.emit_builtin_exec(kind, &exec.args, exec.span);
+                }
+                let param_kinds = sig.param_kinds();
+                let env_kinds = &param_kinds;
+                self.emit_named_function_closure(&sig.name, env_kinds)?;
+                let env_size = env_size_bytes_from_kinds(env_kinds);
+                let state = ClosureState::new(env_kinds.to_vec(), env_size);
+                return self.apply_closure(state, &exec.args, exec.span, false);
             }
-            writeln!(
-                self.out,
-                "    mov rax, [rbp-{}] ; load closure code for value call",
-                binding.slot_addr(0)
-            )?;
-            writeln!(
-                self.out,
-                "    mov rdx, [rbp-{}] ; load closure env_end for value call",
-                binding.slot_addr(1)
-            )?;
-            let has_variadic = self
-                .symbols
-                .get_function(&exec.of)
-                .map(|sig| sig.is_variadic())
-                .unwrap_or(false);
-            let state = ClosureState::new(
-                binding.continuation_params.clone(),
-                binding.env_size,
-                has_variadic,
-            );
-            return self.apply_closure(state, &exec.args, exec.span, false);
+            MirExecTarget::Closure { name } => {
+                return self.apply_closure_binding(name, &exec.args, exec.span, false);
+            }
         }
-        self.emit_exec(exec, variadic)
+    }
+
+    fn emit_struct_value(&mut self, structure: &MirClosure) -> Result<ExprValue, Error> {
+        if let MirExecTarget::Closure { name } = &structure.target {
+            return self.apply_closure_binding(name, &structure.args, structure.span, false);
+        }
+        let exec = MirExec {
+            target: structure.target.clone(),
+            args: structure.args.clone(),
+            span: structure.span,
+        };
+        self.emit_exec_value(&exec) // TODO: Should not emit exec here
     }
 
     fn store_binding_value(
@@ -1226,13 +1078,9 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         name: &str,
         value: ExprValue,
         span: Span,
-    ) -> Result<(), CompileError> {
+    ) -> Result<(), Error> {
         let binding = self.frame.binding_mut(name).ok_or_else(|| {
-            CompileError::new(
-                CompileErrorCode::Codegen,
-                format!("unknown binding '{}'", name),
-                span,
-            )
+            Error::new(Code::Codegen, format!("unknown binding '{}'", name), span)
         })?;
         match value {
             ExprValue::Word => {
@@ -1263,14 +1111,13 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn emit_expr(&mut self, expr: &Expr) -> Result<ExprValue, CompileError> {
+    fn emit_expr(&mut self, expr: &Expr) -> Result<ExprValue, Error> {
         match expr {
             Expr::Int { value, .. } => {
                 writeln!(self.out, "    mov rax, {} ; load literal integer", value)?;
                 Ok(ExprValue::Word)
             }
-            Expr::String { value, .. } => {
-                let label = self.ctx.string_literal_label(value);
+            Expr::String { label, .. } => {
                 writeln!(
                     self.out,
                     "    lea rax, [rel {}] ; point to string literal",
@@ -1300,31 +1147,22 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                                 "    mov rdx, [rbp-{}] ; load closure env_end pointer",
                                 binding.slot_addr(1)
                             )?;
-                            let has_variadic = self
-                                .symbols
-                                .get_function(name)
-                                .map(|sig| sig.is_variadic())
-                                .unwrap_or(false);
                             Ok(ExprValue::Closure(ClosureState::new(
                                 binding.continuation_params.clone(),
                                 binding.env_size,
-                                has_variadic,
                             )))
                         }
+                        ValueKind::Variadic => unreachable!("variadic bindings are not stored"),
                     }
-                } else if self.symbols.get_value(name).is_some() {
-                    if !self.ctx.is_global_value(name) {
-                        self.ctx.add_extern(name);
-                    }
-                    writeln!(
-                        self.out,
-                        "    mov rax, [rel {}] ; load external value pointer",
-                        name
-                    )?;
-                    Ok(ExprValue::Word)
                 } else {
-                    Err(CompileError::new(
-                        CompileErrorCode::Codegen,
+                    eprintln!(
+                        "{}: missing binding `{}`; available: {:?}",
+                        self.mir.sig.name,
+                        name,
+                        self.frame.bindings.keys().cloned().collect::<Vec<String>>()
+                    );
+                    Err(Error::new(
+                        Code::Codegen,
                         format!("compiler bug: unresolved identifier '{}'", name),
                         *span,
                     ))
@@ -1333,163 +1171,248 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         }
     }
 
-    fn emit_arg_value(&mut self, arg: &Arg) -> Result<ExprValue, CompileError> {
+    fn emit_mir_arg_value(&mut self, arg: &MirArg, span: Span) -> Result<ExprValue, Error> {
         let expr = Expr::Ident {
             name: arg.name.clone(),
-            span: arg.span,
+            span,
         };
         self.emit_expr(&expr)
     }
 
-    fn emit_exec(
-        &mut self,
-        exec: &Exec,
-        variadic: Option<&MirVariadicExecInfo>,
-    ) -> Result<ExprValue, CompileError> {
-        let name = exec.of.as_str();
-        let span = exec.span;
-
-        if name == "exit" {
-            return self.emit_exit_wrapper_exec(&exec.args, span);
-        }
-
-        if name == "printf" {
-            return self.emit_printf_wrapper_exec(&exec.args, span);
-        }
-        if name == "sprintf" {
-            return self.emit_sprintf_wrapper_exec(&exec.args, span);
-        }
-        if name == "write" {
-            return self.emit_write_wrapper_exec(&exec.args, span);
-        }
-        if name == "puts" {
-            return self.emit_puts_wrapper_exec(&exec.args, span);
-        }
-
-        if let Some(binding) = self.frame.binding(name) {
-            if binding.kind != ValueKind::Closure {
-                return Err(CompileError::new(
-                    CompileErrorCode::Codegen,
-                    format!("'{}' is not callable", name),
-                    span,
-                ));
-            }
-            if let Some(sig) = self.symbols.get_function(name) {
-                if sig.is_variadic() {
-                    return self.emit_named_exec(name, sig, &exec.args, span, variadic);
+    fn emit_exec(&mut self, exec: &MirExec) -> Result<ExprValue, Error> {
+        match &exec.target {
+            MirExecTarget::Function(sig) => {
+                if let Some(mir::MirBuiltin::Call(kind)) = sig.builtin {
+                    self.emit_builtin_exec(kind, &exec.args, exec.span)
+                } else {
+                    self.emit_named_exec(sig, &exec.args, exec.span)
                 }
             }
-            writeln!(
-                self.out,
-                "    mov rax, [rbp-{}] ; load closure code for call",
-                binding.slot_addr(0)
-            )?;
-            writeln!(
-                self.out,
-                "    mov rdx, [rbp-{}] ; load closure env_end for call",
-                binding.slot_addr(1)
-            )?;
-            let has_variadic = self
-                .symbols
-                .get_function(name)
-                .map(|sig| sig.is_variadic())
-                .unwrap_or(false);
-            let state = ClosureState::new(
-                binding.continuation_params.clone(),
-                binding.env_size,
-                has_variadic,
-            );
-            return self.apply_closure(state, &exec.args, span, true);
+            MirExecTarget::Closure { name } => {
+                self.apply_closure_binding(name, &exec.args, exec.span, true)
+            }
         }
-
-        if let Some(sig) = self.symbols.get_function(name) {
-            return self.emit_named_exec(name, sig, &exec.args, span, variadic);
-        }
-
-        self.ctx.add_extern(name);
-        let placeholder: Vec<SigKind> = std::iter::repeat(SigKind::Int)
-            .take(exec.args.len())
-            .collect();
-        self.prepare_call_args(&exec.args, &placeholder)?;
-        self.move_args_to_registers(&placeholder)?;
-        writeln!(self.out, "    leave ; unwind before jumping")?;
-        writeln!(self.out, "    jmp {} ; jump to named function", name)?;
-        self.terminated = true;
-
-        Ok(ExprValue::Word)
     }
 
-    // TODO: Might come useful
-    // /// Generic variadic libc wrapper for functions like printf.
-    // ///
-    // /// Handles variadic arguments and proper stack alignment.
-    // /// The `return_handler` closure allows custom handling of the return value.
-    // fn emit_libc_wrapper_variadic(
-    //     &mut self,
-    //     libc_name: &str,
-    //     args: &[Arg],
-    //     span: Span,
-    // ) -> Result<ExprValue, CompileError> {
-    //     // Last argument must be a continuation
-    //     if args.is_empty() {
-    //         return Err(CompileError::new(CompileErrorCode::Codegen,
-    //             format!("{} requires a continuation as last argument", libc_name),
-    //             span,
-    //         ));
-    //     }
+    fn emit_builtin_exec(
+        &mut self,
+        kind: MirCallKind,
+        args: &[MirArg],
+        span: Span,
+    ) -> Result<ExprValue, Error> {
+        if let Some(result) = self.emit_builtin_syscall(kind, args, span)? {
+            return Ok(result);
+        }
+        match kind {
+            MirCallKind::Printf => self.emit_printf_wrapper_exec(args, span),
+            MirCallKind::Puts => self.emit_puts_wrapper_exec(args, span),
+            _ => Err(Error::new(
+                Code::Codegen,
+                format!("unsupported builtin exec '{:?}'", kind),
+                span,
+            )),
+        }
+    }
 
-    //     let continuation_arg = &args[args.len() - 1];
-    //     let continuation_value = self.emit_arg_value(continuation_arg)?;
-    //     let _closure_state = match continuation_value {
-    //         ExprValue::Closure(state) => state,
-    //         _ => {
-    //             return Err(CompileError::new(CompileErrorCode::Codegen,
-    //                 format!("last argument to {} must be a continuation", libc_name),
-    //                 continuation_arg.span,
-    //             ))
-    //         }
-    //     };
+    fn emit_builtin_syscall(
+        &mut self,
+        kind: MirCallKind,
+        args: &[MirArg],
+        span: Span,
+    ) -> Result<Option<ExprValue>, Error> {
+        match kind {
+            MirCallKind::Write => Ok(Some(self.emit_write_wrapper_exec(args, span)?)),
+            _ => Ok(None),
+        }
+    }
 
-    //     // Preserve continuation (code pointer in rax, env_end in rdx)
-    //     writeln!(
-    //         self.out,
-    //         "    push rax ; preserve continuation code pointer"
-    //     )?;
-    //     writeln!(
-    //         self.out,
-    //         "    push rdx ; preserve continuation env_end pointer"
-    //     )?;
+    fn apply_closure_binding(
+        &mut self,
+        name: &str,
+        args: &[MirArg],
+        span: Span,
+        invoke_when_ready: bool,
+    ) -> Result<ExprValue, Error> {
+        let binding = self.frame.binding(name).ok_or_else(|| {
+            Error::new(Code::Codegen, format!("unknown binding '{}'", name), span)
+        })?;
+        if binding.kind != ValueKind::Closure {
+            return Err(Error::new(
+                Code::Codegen,
+                format!("'{}' is not callable", name),
+                span,
+            ));
+        }
+        writeln!(
+            self.out,
+            "    mov rax, [rbp-{}] ; load closure code for exec",
+            binding.slot_addr(0)
+        )?;
+        writeln!(
+            self.out,
+            "    mov rdx, [rbp-{}] ; load closure env_end for exec",
+            binding.slot_addr(1)
+        )?;
+        let state = ClosureState::new(binding.continuation_params.clone(), binding.env_size);
+        self.apply_closure(state, args, span, invoke_when_ready)
+    }
 
-    //     Ok(ExprValue::Word)
-    // }
+    fn emit_libcall(&mut self, call: &MirCall) -> Result<ExprValue, Error> {
+        match call.name.as_str() {
+            "printf" => {
+                let call_args = &call.args;
+                if call_args.is_empty() {
+                    return Err(Error::new(
+                        Code::Codegen,
+                        "printf requires a format string before the continuation",
+                        call.span,
+                    ));
+                }
+
+                let params = &call.arg_kinds;
+
+                self.prepare_mir_args(call_args, params, call.span)?;
+                self.move_args_to_registers(params)?;
+                self.emit_variadic_helper_call(LibcallVariadicHelper::Printf)?;
+                self.ctx.add_extern("fflush");
+                self.ctx.add_extern("stdout");
+                writeln!(self.out, "    mov rdi, [rel stdout] ; flush stdout")?;
+                writeln!(self.out, "    sub rsp, 8 ; align stack for fflush")?;
+                writeln!(self.out, "    call fflush")?;
+                writeln!(self.out, "    add rsp, 8")?;
+
+                Ok(ExprValue::Word)
+            }
+            "sprintf" => {
+                let call_args = &call.args;
+                if call_args.is_empty() {
+                    return Err(Error::new(
+                        Code::Codegen,
+                        "sprintf requires a format string before the continuation",
+                        call.span,
+                    ));
+                }
+
+                let params = &call.arg_kinds;
+
+                self.prepare_mir_args(call_args, params, call.span)?;
+
+                self.emit_mmap(FMT_BUFFER_SIZE)?;
+                writeln!(self.out, "    mov rbx, rax ; keep sprintf buffer pointer")?;
+                self.move_args_to_registers(params)?;
+                for i in (0..params.len()).rev() {
+                    let dest = ARG_REGS[i + 1];
+                    let src = ARG_REGS[i];
+                    writeln!(
+                        self.out,
+                        "    mov {}, {} ; shift sprintf args for buffer insertion",
+                        dest, src
+                    )?;
+                }
+
+                writeln!(
+                    self.out,
+                    "    mov rdi, rbx ; destination buffer for sprintf"
+                )?;
+                self.emit_variadic_helper_call(LibcallVariadicHelper::Sprintf)?;
+                writeln!(
+                    self.out,
+                    "    mov rax, rbx ; return formatted string pointer"
+                )?;
+
+                Ok(ExprValue::Word)
+            }
+            "write" => {
+                let call_args = &call.args;
+                if call_args.is_empty() {
+                    return Err(Error::new(
+                        Code::Codegen,
+                        "write requires a buffer before the continuation",
+                        call.span,
+                    ));
+                }
+
+                let params = &call.arg_kinds;
+
+                self.prepare_mir_args(call_args, params, call.span)?;
+                self.move_args_to_registers(params)?;
+
+                writeln!(self.out, "    mov r8, rdi ; keep string pointer")?;
+                writeln!(self.out, "    xor rcx, rcx ; reset length counter")?;
+                let (loop_label, done_label) = self.next_write_loop_labels();
+                writeln!(self.out, "{}:", loop_label)?;
+                writeln!(
+                    self.out,
+                    "    mov dl, byte [r8+rcx] ; load current character"
+                )?;
+                writeln!(self.out, "    cmp dl, 0 ; stop at terminator")?;
+                writeln!(self.out, "    je {}", done_label)?;
+                writeln!(self.out, "    inc rcx ; advance char counter")?;
+                writeln!(self.out, "    jmp {}", loop_label)?;
+                writeln!(self.out, "{}:", done_label)?;
+
+                writeln!(self.out, "    mov rdx, rcx ; length to write")?;
+                writeln!(self.out, "    mov rsi, r8 ; buffer start")?;
+                writeln!(self.out, "    mov rdi, 1 ; stdout fd")?;
+
+                self.ctx.add_extern("write");
+                writeln!(self.out, "    call write ; invoke libc write")?;
+
+                Ok(ExprValue::Word)
+            }
+            "puts" => {
+                let call_args = &call.args;
+                if call_args.is_empty() {
+                    return Err(Error::new(
+                        Code::Codegen,
+                        "puts requires a buffer before the continuation",
+                        call.span,
+                    ));
+                }
+
+                let params = &call.arg_kinds;
+
+                self.prepare_mir_args(call_args, params, call.span)?;
+                self.move_args_to_registers(params)?;
+
+                self.ctx.add_extern("puts");
+                writeln!(self.out, "    call puts ; invoke libc puts")?;
+
+                Ok(ExprValue::Word)
+            }
+            _ => Err(Error::new(
+                Code::Codegen,
+                format!("unsupported libcall '{}'", call.name),
+                call.span,
+            )),
+        }
+    }
 
     fn emit_printf_wrapper_exec(
         &mut self,
-        args: &[Arg],
+        args: &[MirArg],
         span: Span,
-    ) -> Result<ExprValue, CompileError> {
+    ) -> Result<ExprValue, Error> {
         if args.len() < 2 {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
+            return Err(Error::new(
+                Code::Codegen,
                 "printf requires a format string and a continuation",
                 span,
             ));
         }
 
         let continuation_arg = &args[args.len() - 1];
-        let continuation_value = self.emit_arg_value(continuation_arg)?;
-        match continuation_value {
-            ExprValue::Closure(_) => {
-                // continuation validation is done in MIR layer
-            }
-            _ => {
-                return Err(CompileError::new(
-                    CompileErrorCode::Codegen,
-                    "last argument to printf must be a continuation",
-                    continuation_arg.span,
-                ))
-            }
-        };
+        let continuation_value = self.emit_mir_arg_value(continuation_arg, span)?;
+        if !matches!(continuation_value, ExprValue::Closure(_)) {
+            return Err(Error::new(
+                Code::Codegen,
+                format!(
+                    "last argument to printf must be a continuation, got {:?}",
+                    continuation_value
+                ),
+                span,
+            ));
+        }
 
         writeln!(
             self.out,
@@ -1502,8 +1425,8 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
         let call_args = &args[..args.len() - 1];
         if call_args.is_empty() {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
+            return Err(Error::new(
+                Code::Codegen,
                 "printf requires a format string before the continuation",
                 span,
             ));
@@ -1515,13 +1438,9 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             params.push(SigKind::Int);
         }
 
-        self.prepare_call_args(call_args, &params)?;
+        self.prepare_mir_args(call_args, &params, span)?;
         self.move_args_to_registers(&params)?;
-
-        self.ctx.add_extern("printf");
-        writeln!(self.out, "    sub rsp, 8 ; align stack for variadic call")?;
-        writeln!(self.out, "    call printf ; invoke libc printf")?;
-        writeln!(self.out, "    add rsp, 8")?;
+        self.emit_variadic_helper_call(LibcallVariadicHelper::Printf)?;
         self.ctx.add_extern("fflush");
         self.ctx.add_extern("stdout");
         writeln!(self.out, "    mov rdi, [rel stdout] ; flush stdout")?;
@@ -1545,122 +1464,10 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(ExprValue::Word)
     }
 
-    fn emit_sprintf_wrapper_exec(
-        &mut self,
-        args: &[Arg],
-        span: Span,
-    ) -> Result<ExprValue, CompileError> {
+    fn emit_write_wrapper_exec(&mut self, args: &[MirArg], span: Span) -> Result<ExprValue, Error> {
         if args.len() < 2 {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
-                "sprintf requires a format string and a continuation",
-                span,
-            ));
-        }
-
-        let continuation_arg = &args[args.len() - 1];
-        let continuation_value = self.emit_arg_value(continuation_arg)?;
-        let closure_state = match continuation_value {
-            ExprValue::Closure(state) => state,
-            _ => {
-                return Err(CompileError::new(
-                    CompileErrorCode::Codegen,
-                    "last argument to sprintf must be a continuation",
-                    continuation_arg.span,
-                ))
-            }
-        };
-
-        let remaining_params = closure_state.remaining();
-
-        writeln!(
-            self.out,
-            "    push rax ; preserve continuation code pointer"
-        )?;
-        writeln!(
-            self.out,
-            "    push rdx ; preserve continuation env_end pointer"
-        )?;
-        writeln!(
-            self.out,
-            "    mov r13, [rsp] ; stash continuation env_end pointer"
-        )?;
-
-        let call_args = &args[..args.len() - 1];
-        if call_args.len() != 2 {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
-                "sprintf requires a format string and a single integer before the continuation",
-                span,
-            ));
-        }
-
-        let params = vec![SigKind::Str, SigKind::Int];
-        self.prepare_call_args(call_args, &params)?;
-
-        self.emit_mmap(FMT_BUFFER_SIZE)?;
-        writeln!(self.out, "    mov r12, rax ; keep sprintf buffer pointer")?;
-        writeln!(
-            self.out,
-            "    pop rsi ; restore format string pointer for sprintf"
-        )?;
-        writeln!(
-            self.out,
-            "    pop rdx ; restore integer argument for sprintf"
-        )?;
-
-        writeln!(
-            self.out,
-            "    mov rdi, r12 ; destination buffer for sprintf"
-        )?;
-        self.ctx.add_extern("sprintf");
-        writeln!(
-            self.out,
-            "    sub rsp, 8 ; align stack for variadic sprintf call"
-        )?;
-        writeln!(self.out, "    call sprintf")?;
-        writeln!(self.out, "    add rsp, 8")?;
-
-        let suffix_sizes = remaining_suffix_sizes(remaining_params, self.symbols);
-        let result_offset = suffix_sizes
-            .get(0)
-            .copied()
-            .unwrap_or_else(|| size_of(&mir::Type::Str));
-        writeln!(self.out, "    mov r10, r13 ; copy env_end pointer")?;
-        writeln!(
-            self.out,
-            "    sub r10, {} ; slot for formatted result",
-            result_offset
-        )?;
-        writeln!(
-            self.out,
-            "    mov [r10], r12 ; store formatted string pointer"
-        )?;
-
-        writeln!(
-            self.out,
-            "    pop rdx ; restore continuation env_end pointer"
-        )?;
-        writeln!(self.out, "    pop rax ; restore continuation code pointer")?;
-        writeln!(
-            self.out,
-            "    mov rdi, rdx ; pass env_end pointer to continuation"
-        )?;
-        writeln!(self.out, "    leave ; unwind before jumping")?;
-        writeln!(self.out, "    jmp rax ; jump into continuation")?;
-        self.terminated = true;
-
-        Ok(ExprValue::Word)
-    }
-
-    fn emit_write_wrapper_exec(
-        &mut self,
-        args: &[Arg],
-        span: Span,
-    ) -> Result<ExprValue, CompileError> {
-        if args.len() < 2 {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
+            return Err(Error::new(
+                Code::Codegen,
                 "write requires a string and a continuation",
                 span,
             ));
@@ -1668,28 +1475,23 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
         let call_args = &args[..args.len() - 1];
         if call_args.len() != 1 {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
+            return Err(Error::new(
+                Code::Codegen,
                 "write requires a string before the continuation",
                 span,
             ));
         }
 
-        // First, validate continuation
         let continuation_arg = &args[args.len() - 1];
-        let continuation_value = self.emit_arg_value(continuation_arg)?;
-        match continuation_value {
-            ExprValue::Closure(_) => {}
-            _ => {
-                return Err(CompileError::new(
-                    CompileErrorCode::Codegen,
-                    "last argument to write must be a continuation",
-                    continuation_arg.span,
-                ))
-            }
+        let continuation_value = self.emit_mir_arg_value(continuation_arg, span)?;
+        if !matches!(continuation_value, ExprValue::Closure(_)) {
+            return Err(Error::new(
+                Code::Codegen,
+                "last argument to write must be a continuation",
+                span,
+            ));
         };
 
-        // Preserve continuation
         writeln!(
             self.out,
             "    push rax ; preserve continuation code pointer"
@@ -1699,13 +1501,10 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             "    push rdx ; preserve continuation env_end pointer"
         )?;
 
-        // Prepare call arguments (string in rdi)
         let params = vec![SigKind::Str];
-        self.prepare_call_args(call_args, &params)?;
+        self.prepare_mir_args(call_args, &params, span)?;
         self.move_args_to_registers(&params)?;
 
-        // At this point, string pointer is in rdi
-        // Calculate its length
         writeln!(self.out, "    mov r8, rdi ; keep string pointer")?;
         writeln!(self.out, "    xor rcx, rcx ; reset length counter")?;
         let (loop_label, done_label) = self.next_write_loop_labels();
@@ -1720,16 +1519,13 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         writeln!(self.out, "    jmp {}", loop_label)?;
         writeln!(self.out, "{}:", done_label)?;
 
-        // Now set up System V ABI arguments for write(int fd, const void *buf, size_t count)
         writeln!(self.out, "    mov rsi, r8 ; buffer start")?;
         writeln!(self.out, "    mov rdx, rcx ; length to write")?;
         writeln!(self.out, "    mov rdi, 1 ; stdout fd")?;
 
-        // Call write
         self.ctx.add_extern("write");
         writeln!(self.out, "    call write ; invoke libc write")?;
 
-        // Restore continuation and jump
         writeln!(
             self.out,
             "    pop rdx ; restore continuation env_end pointer"
@@ -1745,93 +1541,65 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
         Ok(ExprValue::Word)
     }
-    fn emit_puts_wrapper_exec(
-        &mut self,
-        args: &[Arg],
-        span: Span,
-    ) -> Result<ExprValue, CompileError> {
+
+    fn emit_puts_wrapper_exec(&mut self, args: &[MirArg], span: Span) -> Result<ExprValue, Error> {
         if args.len() < 2 {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
+            return Err(Error::new(
+                Code::Codegen,
                 "puts requires a string and a continuation",
                 span,
             ));
         }
 
         let param_types = vec![SigKind::Str];
-        self.emit_libc_wrapper_exec("puts", args, &param_types, span, false, |_| Ok(()))
+        self.emit_ffi_bridge_exec("puts", args, &param_types, span, false, |_| Ok(()))
     }
 
-    fn emit_exit_wrapper_exec(
-        &mut self,
-        args: &[Arg],
-        span: Span,
-    ) -> Result<ExprValue, CompileError> {
-        if args.len() != 1 {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
-                "exit requires an integer argument",
-                span,
-            ));
-        }
-
-        let arg = &args[0];
-        let value = self.emit_arg_value(arg)?;
-        self.ensure_value_matches(&value, &SigKind::Int, arg.span)?;
-
-        match value {
-            ExprValue::Word => {
-                writeln!(self.out, "    mov rdi, rax ; pass exit code")?;
-            }
-            ExprValue::Closure(_) => unreachable!(),
-        }
-
-        writeln!(self.out, "    leave ; unwind before exit")?;
-        writeln!(self.out, "    mov rax, {} ; exit syscall", SYSCALL_EXIT)?;
-        writeln!(self.out, "    syscall ; exit program")?;
-        self.terminated = true;
-
-        Ok(ExprValue::Word)
+    fn emit_variadic_helper_call(&mut self, helper: LibcallVariadicHelper) -> Result<(), Error> {
+        self.ctx.require_libcall_variadic_helper(helper);
+        self.ctx.add_extern(helper.target_name());
+        writeln!(self.out, "    call {}", helper.helper_label())?;
+        Ok(())
     }
 
-    /// Generic libc wrapper that handles System V AMD64 C ABI calling convention.
+    /// Generic FFI bridge that handles the System V AMD64 C ABI calling convention.
     ///
-    /// Takes arguments, passes them via System V ABI (rdi, rsi, rdx, rcx, r8, r9),
-    /// calls the libc function, and jumps to continuation.
+    /// Takes arguments, passes them via the ABI (rdi, rsi, rdx, rcx, r8, r9),
+    /// calls the external function, and jumps to continuation.
     ///
     /// The `return_handler` closure allows custom handling of the return value (rax).
-    /// For simple wrappers that ignore return values, it can just do nothing.
-    fn emit_libc_wrapper_exec<F>(
+    /// For simple bridges that ignore return values, it can just do nothing.
+    fn emit_ffi_bridge_exec<F>(
         &mut self,
-        libc_name: &str,
-        args: &[Arg],
+        ffi_name: &str,
+        args: &[MirArg],
         param_types: &[SigKind],
         span: Span,
         is_variadic: bool,
         mut return_handler: F,
-    ) -> Result<ExprValue, CompileError>
+    ) -> Result<ExprValue, Error>
     where
-        F: FnMut(&mut Self) -> Result<(), CompileError>,
+        F: FnMut(&mut Self) -> Result<(), Error>,
     {
         // Last argument must be a continuation
         if args.is_empty() {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
-                format!("{} requires a continuation as last argument", libc_name),
+            return Err(Error::new(
+                Code::Codegen,
+                format!("{} requires a continuation as last argument", ffi_name),
                 span,
             ));
         }
 
         let continuation_arg = &args[args.len() - 1];
-        let continuation_value = self.emit_arg_value(continuation_arg)?;
+        let continuation_value = self.emit_mir_arg_value(continuation_arg, span)?;
         let _closure_state = match continuation_value {
             ExprValue::Closure(state) => state,
             _ => {
-                return Err(CompileError::new(
-                    CompileErrorCode::Codegen,
-                    format!("last argument to {} must be a continuation", libc_name),
-                    continuation_arg.span,
-                ))
+                return Err(Error::new(
+                    Code::Codegen,
+                    format!("last argument to {} must be a continuation", ffi_name),
+                    span,
+                ));
             }
         };
 
@@ -1848,11 +1616,11 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         // Prepare call arguments (all except the continuation)
         let call_args = &args[..args.len() - 1];
         if call_args.len() != param_types.len() {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
+            return Err(Error::new(
+                Code::Codegen,
                 format!(
                     "{} requires {} arguments plus continuation, got {}",
-                    libc_name,
+                    ffi_name,
                     param_types.len(),
                     call_args.len()
                 ),
@@ -1860,14 +1628,14 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             ));
         }
 
-        self.prepare_call_args(call_args, param_types)?;
+        self.prepare_mir_args(call_args, param_types, span)?;
         self.move_args_to_registers(param_types)?;
 
-        // Call the libc function
-        self.ctx.add_extern(libc_name);
+        // Call the external function
+        self.ctx.add_extern(ffi_name);
 
         // Stack alignment: for variadic functions, the stack must be 16-byte aligned before call
-        // For non-variadic, we just call directly (the call instruction will misalign by 8)
+        // For non-variadic, we just call directly (the call op will misalign by 8)
         if is_variadic {
             writeln!(
                 self.out,
@@ -1875,7 +1643,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             )?;
         }
 
-        writeln!(self.out, "    call {} ; invoke libc function", libc_name)?;
+        writeln!(self.out, "    call {} ; invoke external function", ffi_name)?;
 
         if is_variadic {
             writeln!(self.out, "    add rsp, 8 ; restore stack")?;
@@ -1905,20 +1673,18 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
     fn emit_named_exec(
         &mut self,
-        of: &str,
-        sig: &FunctionSig,
-        args: &[Arg],
+        sig: &mir::FunctionSig,
+        args: &[MirArg],
         span: Span,
-        variadic: Option<&MirVariadicExecInfo>,
-    ) -> Result<ExprValue, CompileError> {
+    ) -> Result<ExprValue, Error> {
         let param_kinds = sig.param_kinds();
-        let has_variadic = sig.is_variadic();
-        if !has_variadic && args.len() > sig.params.len() {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
+        let env_kinds = &param_kinds;
+        if args.len() > sig.params.len() {
+            return Err(Error::new(
+                Code::Codegen,
                 format!(
                     "function '{}' expected {} arguments but got {}",
-                    of,
+                    sig.name,
                     sig.params.len(),
                     args.len()
                 ),
@@ -1926,28 +1692,21 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             ));
         }
 
-        if !has_variadic && args.len() < sig.params.len() {
-            self.emit_named_function_closure(of, sig, None)?;
-            let env_size = env_size_bytes(&param_kinds, self.symbols);
-            let state = ClosureState::new(param_kinds.clone(), env_size, has_variadic);
+        if args.len() < sig.params.len() {
+            self.emit_named_function_closure(&sig.name, env_kinds)?;
+            let env_size = env_size_bytes_from_kinds(env_kinds);
+            let state = ClosureState::new(env_kinds.to_vec(), env_size);
             return self.apply_closure(state, args, span, true);
         }
 
-        if has_variadic {
-            let layout_info = variadic.ok_or_else(|| {
-                CompileError::new(
-                    CompileErrorCode::Codegen,
-                    format!("compiler bug: variadic exec metadata missing for '{}'", of),
-                    span,
-                )
-            })?;
-            self.push_variadic_call_args(args, &param_kinds, of, span, layout_info)?;
-        } else {
-            self.prepare_call_args(args, &param_kinds)?;
-        }
+        self.prepare_mir_args(args, &param_kinds, span)?;
         self.move_args_to_registers(&param_kinds)?;
         writeln!(self.out, "    leave ; unwind before named jump")?;
-        writeln!(self.out, "    jmp {} ; jump to fully applied function", of)?;
+        writeln!(
+            self.out,
+            "    jmp {} ; jump to fully applied function",
+            sig.name
+        )?;
         self.terminated = true;
         Ok(ExprValue::Word)
     }
@@ -1955,18 +1714,12 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
     fn emit_named_function_closure(
         &mut self,
         name: &str,
-        sig: &FunctionSig,
-        allocation: Option<&MirEnvAllocation>,
-    ) -> Result<(), CompileError> {
-        let param_kinds = sig.param_kinds();
-        let pointer_offsets = env_pointer_offsets(&param_kinds, self.symbols);
+        env_param_kinds: &[SigKind],
+    ) -> Result<(), Error> {
+        let pointer_offsets = env_pointer_offsets_from_kinds(env_param_kinds);
         let metadata_size = env_metadata_size(pointer_offsets.len());
-        let (env_size, heap_size) = if let Some(plan) = allocation {
-            (plan.env_size, plan.heap_size)
-        } else {
-            let env_size = env_size_bytes(&param_kinds, self.symbols);
-            (env_size, env_size + metadata_size)
-        };
+        let env_size = env_size_bytes_from_kinds(env_param_kinds);
+        let heap_size = env_size + metadata_size;
         self.emit_mmap(heap_size)?;
         writeln!(self.out, "    mov rdx, rax ; store env base pointer")?;
         if env_size > 0 {
@@ -2000,80 +1753,16 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 meta_offset, offset
             )?;
         }
-        let wrapper = closure_wrapper_label(name);
+        let unwrapper = mir::closure_unwrapper_label(name);
         writeln!(
             self.out,
-            "    mov rax, {} ; load wrapper entry point",
-            wrapper
+            "    mov rax, {} ; load unwrapper entry point",
+            unwrapper
         )?;
         Ok(())
     }
 
-    fn is_self_owned_binding(&self, binding: &MirFunctionBinding) -> bool {
-        self.mir.owns_self
-            && binding.function_name == self.mir.name
-            && self.root_env_symbol.is_some()
-    }
-
-    fn emit_self_owned_closure(
-        &mut self,
-        binding: &MirFunctionBinding,
-        sig: &FunctionSig,
-    ) -> Result<ClosureState, CompileError> {
-        let param_kinds = sig.param_kinds();
-        let has_variadic = sig.is_variadic();
-        let slot = self
-            .root_env_symbol
-            .as_ref()
-            .ok_or_else(|| {
-                CompileError::new(
-                    CompileErrorCode::Codegen,
-                    "missing root env slot",
-                    binding.span,
-                )
-            })?
-            .clone();
-        let reuse_label = self.next_internal_label("root_env_reuse");
-        let done_label = self.next_internal_label("root_env_done");
-        writeln!(
-            self.out,
-            "    mov rdx, [rel {}] ; load cached root env pointer",
-            slot
-        )?;
-        writeln!(self.out, "    test rdx, rdx ; check for cached env")?;
-        writeln!(self.out, "    jne {}", reuse_label)?;
-        self.emit_named_function_closure(
-            &binding.function_name,
-            sig,
-            binding.env_allocation.as_ref(),
-        )?;
-        writeln!(
-            self.out,
-            "    mov [rel {}], rdx ; cache root env pointer",
-            slot
-        )?;
-        writeln!(self.out, "    jmp {}", done_label)?;
-        writeln!(self.out, "{}:", reuse_label)?;
-        let wrapper = closure_wrapper_label(&binding.function_name);
-        writeln!(
-            self.out,
-            "    mov rax, {} ; reuse cached root entry point",
-            wrapper
-        )?;
-        writeln!(self.out, "{}:", done_label)?;
-        let env_size = binding
-            .env_allocation
-            .as_ref()
-            .map(|allocation| allocation.env_size)
-            .unwrap_or_else(|| env_size_bytes(&param_kinds, self.symbols));
-        Ok(ClosureState::new(
-            param_kinds.clone(),
-            env_size,
-            has_variadic,
-        ))
-    }
-
-    fn emit_mmap(&mut self, size: usize) -> Result<(), CompileError> {
+    fn emit_mmap(&mut self, size: usize) -> Result<(), Error> {
         writeln!(self.out, "    mov rax, {} ; mmap syscall", SYSCALL_MMAP)?;
         writeln!(self.out, "    xor rdi, rdi ; addr = NULL hint")?;
         writeln!(
@@ -2097,241 +1786,31 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn prepare_call_args(&mut self, args: &[Arg], params: &[SigKind]) -> Result<(), CompileError> {
-        let total_slots: usize = params
-            .iter()
-            .map(|ty| slots_for_type(ty, self.symbols))
-            .sum();
+    fn prepare_mir_args(
+        &mut self,
+        args: &[MirArg],
+        params: &[SigKind],
+        span: Span,
+    ) -> Result<(), Error> {
+        let total_slots: usize = params.iter().map(|ty| slots_for_type(ty)).sum();
         if total_slots > ARG_REGS.len() {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
+            return Err(Error::new(
+                Code::Codegen,
                 format!(
                     "functions support at most {} argument slots",
                     ARG_REGS.len()
                 ),
-                self.mir.span,
+                span,
             ));
         }
-        for (arg, ty) in args.iter().zip(params).rev() {
-            let value = self.emit_arg_value(arg)?;
-            self.ensure_value_matches(&value, ty, arg.span)?;
+        for arg in args.iter().rev() {
+            let value = self.emit_mir_arg_value(arg, span)?;
             self.push_value(&value)?;
         }
         Ok(())
     }
 
-    fn push_exec_layout(
-        &mut self,
-        layout: &[ExecArgKind],
-        params: &[SigKind],
-        callee: &str,
-        span: Span,
-    ) -> Result<(), CompileError> {
-        let total_slots: usize = params
-            .iter()
-            .map(|ty| slots_for_type(ty, self.symbols))
-            .sum();
-        if total_slots > ARG_REGS.len() {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
-                format!(
-                    "functions support at most {} argument slots",
-                    ARG_REGS.len()
-                ),
-                self.mir.span,
-            ));
-        }
-        for (kind, ty) in layout.iter().zip(params).rev() {
-            match kind {
-                ExecArgKind::Normal(arg) => {
-                    let value = self.emit_arg_value(arg)?;
-                    self.ensure_value_matches(&value, ty, arg.span)?;
-                    self.push_value(&value)?;
-                }
-                ExecArgKind::Variadic(slice) => {
-                    let value = self.emit_variadic_array_arg(callee, ty, slice, span)?;
-                    self.push_value(&value)?;
-                }
-            }
-        }
-        Ok(())
-    }
-
-    fn push_variadic_call_args(
-        &mut self,
-        args: &[Arg],
-        params: &[SigKind],
-        callee: &str,
-        span: Span,
-        layout: &MirVariadicExecInfo,
-    ) -> Result<(), CompileError> {
-        if args.len() < layout.required_arguments() {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
-                format!(
-                    "function '{callee}' expected at least {} arguments but got {}",
-                    layout.required_arguments(),
-                    args.len()
-                ),
-                span,
-            ));
-        }
-        let prefix_required = layout.prefix_len;
-        let suffix_required = layout.suffix_len;
-        let suffix_arg_start = args.len() - suffix_required;
-        if suffix_arg_start < prefix_required {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
-                format!(
-                    "function '{callee}' expected at least {} arguments but got {}",
-                    layout.required_arguments(),
-                    args.len()
-                ),
-                span,
-            ));
-        }
-        let mut call_layout = Vec::with_capacity(params.len());
-        for idx in 0..prefix_required {
-            call_layout.push(ExecArgKind::Normal(&args[idx]));
-        }
-        call_layout.push(ExecArgKind::Variadic(
-            &args[prefix_required..suffix_arg_start],
-        ));
-        for idx in 0..suffix_required {
-            call_layout.push(ExecArgKind::Normal(&args[suffix_arg_start + idx]));
-        }
-        self.push_exec_layout(&call_layout, params, callee, span)
-    }
-
-    fn emit_variadic_array_arg(
-        &mut self,
-        callee: &str,
-        param_ty: &SigKind,
-        args: &[Arg],
-        span: Span,
-    ) -> Result<ExprValue, CompileError> {
-        let element_ty = variadic_element_type(param_ty, self.symbols).ok_or_else(|| {
-            CompileError::new(
-                CompileErrorCode::Codegen,
-                format!(
-                    "cannot determine element type for variadic parameter of '{}'",
-                    callee
-                ),
-                span,
-            )
-        })?;
-        self.ctx.ensure_array_builtins();
-        let element_kind = resolved_type_kind(&element_ty, self.symbols);
-        let element_size = bytes_for_type(&element_ty, self.symbols);
-        let payload_size = element_size * args.len() + VARIADIC_LENGTH_FIELD_SIZE;
-        let params = continuation_params_for_type(param_ty, self.symbols);
-        let call_slot_size = env_size_bytes(&params, self.symbols);
-        let mut nth_slot_size = 0usize;
-        if let Some(ok_type) = params.get(0) {
-            let ok_params = continuation_params_for_type(ok_type, self.symbols);
-            if let Some(nth_type) = ok_params.get(1) {
-                let nth_params = continuation_params_for_type(nth_type, self.symbols);
-                nth_slot_size = env_size_bytes(&nth_params, self.symbols);
-            }
-        }
-        let exec_slot_size = call_slot_size.max(nth_slot_size);
-        let env_size = payload_size + exec_slot_size;
-        let pointer_count = if element_kind == ValueKind::Closure {
-            args.len()
-        } else {
-            0
-        };
-        let metadata_size = env_metadata_size(pointer_count);
-        let heap_size = env_size + metadata_size + ARRAY_METADATA_EXTRA_FIELD_SIZE;
-        self.emit_mmap(heap_size)?;
-        writeln!(
-            self.out,
-            "    mov r14, rax ; stash base pointer for variadic array"
-        )?;
-        let mut offset = 0usize;
-        let mut closure_offsets = Vec::with_capacity(args.len());
-        for arg in args {
-            let value = self.emit_arg_value(arg)?;
-            self.ensure_value_matches(&value, &element_ty, arg.span)?;
-            match element_kind {
-                ValueKind::Word => {
-                    writeln!(
-                        self.out,
-                        "    mov [r14+{}], rax ; store variadic argument '{}'",
-                        offset, arg.name
-                    )?;
-                }
-                ValueKind::Closure => {
-                    writeln!(
-                        self.out,
-                        "    mov [r14+{}], rax ; store variadic closure code",
-                        offset
-                    )?;
-                    writeln!(
-                        self.out,
-                        "    mov [r14+{}], rdx ; store variadic closure env_end",
-                        offset + 8
-                    )?;
-                    closure_offsets.push(offset + 8);
-                }
-            }
-            offset += element_size;
-        }
-        writeln!(
-            self.out,
-            "    mov qword [r14+{}], {} ; record variadic argument length",
-            payload_size - VARIADIC_LENGTH_FIELD_SIZE,
-            args.len()
-        )?;
-        writeln!(self.out, "    mov rdx, r14 ; env base pointer for array")?;
-        if env_size > 0 {
-            writeln!(
-                self.out,
-                "    add rdx, {} ; env_end pointer for array closure",
-                env_size
-            )?;
-        }
-        writeln!(
-            self.out,
-            "    mov qword [rdx], {} ; env size metadata for array",
-            env_size
-        )?;
-        writeln!(
-            self.out,
-            "    mov qword [rdx+{}], {} ; heap size metadata for array",
-            ENV_METADATA_FIELD_SIZE, heap_size
-        )?;
-        writeln!(
-            self.out,
-            "    mov qword [rdx+{}], {} ; pointer count metadata for array",
-            ENV_METADATA_POINTER_COUNT_OFFSET,
-            closure_offsets.len()
-        )?;
-        for (idx, slot_offset) in closure_offsets.iter().enumerate() {
-            let meta_offset = ENV_METADATA_POINTER_LIST_OFFSET + idx * ENV_METADATA_FIELD_SIZE;
-            writeln!(
-                self.out,
-                "    mov qword [rdx+{}], {} ; closure env pointer offset",
-                meta_offset, slot_offset
-            )?;
-        }
-        let array_extra_offset =
-            ARRAY_METADATA_EXTRA_BASE_OFFSET + closure_offsets.len() * ENV_METADATA_FIELD_SIZE;
-        writeln!(
-            self.out,
-            "    mov qword [rdx+{}], {} ; exec slot metadata for array",
-            array_extra_offset, exec_slot_size
-        )?;
-        writeln!(
-            self.out,
-            "    mov rax, internal_array_str ; builtin array closure entry"
-        )?;
-        Ok(ExprValue::Closure(ClosureState::new(
-            params, env_size, false,
-        )))
-    }
-
-    fn push_value(&mut self, value: &ExprValue) -> Result<(), CompileError> {
+    fn push_value(&mut self, value: &ExprValue) -> Result<(), Error> {
         match value {
             ExprValue::Word => {
                 writeln!(self.out, "    push rax ; stack arg: scalar")?;
@@ -2344,10 +1823,10 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn move_args_to_registers(&mut self, params: &[SigKind]) -> Result<(), CompileError> {
+    fn move_args_to_registers(&mut self, params: &[SigKind]) -> Result<(), Error> {
         let mut slot = 0usize;
         for ty in params {
-            match resolved_type_kind(ty, self.symbols) {
+            match resolved_type_kind(ty) {
                 ValueKind::Word => {
                     let reg = ARG_REGS[slot];
                     writeln!(
@@ -2359,10 +1838,10 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 }
                 ValueKind::Closure => {
                     if slot + 1 >= ARG_REGS.len() {
-                        return Err(CompileError::new(
-                            CompileErrorCode::Codegen,
+                        return Err(Error::new(
+                            Code::Codegen,
                             "continuations require two argument slots",
-                            self.mir.span,
+                            self.mir.sig.span,
                         ));
                     }
                     let code_reg = ARG_REGS[slot];
@@ -2379,12 +1858,13 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                     )?;
                     slot += 2;
                 }
+                ValueKind::Variadic => {}
             }
         }
         Ok(())
     }
 
-    fn clone_closure_argument(&mut self) -> Result<(), CompileError> {
+    fn clone_closure_argument(&mut self) -> Result<(), Error> {
         writeln!(
             self.out,
             "    mov [rsp+16], rax ; stash closure code pointer for clone"
@@ -2460,32 +1940,38 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
     fn apply_closure(
         &mut self,
         state: ClosureState,
-        args: &[Arg],
+        args: &[MirArg],
         span: Span,
         invoke_when_ready: bool,
-    ) -> Result<ExprValue, CompileError> {
-        if args.len() > state.remaining().len() && !state.has_variadic() {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
+    ) -> Result<ExprValue, Error> {
+        let remaining_len = state.remaining().len();
+        let allows_extra_result =
+            remaining_len == 0 && args.len() == 1 && args[0].name == "__result";
+        if args.len() > remaining_len && !allows_extra_result {
+            return Err(Error::new(
+                Code::Codegen,
                 "too many arguments for closure",
                 span,
             ));
         }
-        writeln!(
-            self.out,
-            "    sub rsp, 24 ; allocate temporary stack for closure state"
-        )?;
-        writeln!(
-            self.out,
-            "    mov [rsp], rax ; save closure code pointer temporarily"
-        )?;
-        writeln!(
-            self.out,
-            "    mov [rsp+8], rdx ; save closure env_end pointer temporarily"
-        )?;
+        let saved_closure_state = !args.is_empty();
+        if saved_closure_state {
+            writeln!(
+                self.out,
+                "    sub rsp, 24 ; allocate temporary stack for closure state"
+            )?;
+            writeln!(
+                self.out,
+                "    mov [rsp], rax ; save closure code pointer temporarily"
+            )?;
+            writeln!(
+                self.out,
+                "    mov [rsp+8], rdx ; save closure env_end pointer temporarily"
+            )?;
+        }
 
         let remaining = state.remaining();
-        let suffix_sizes = remaining_suffix_sizes(remaining, self.symbols);
+        let suffix_sizes = remaining_suffix_sizes(remaining);
         let applied = args.len().min(state.remaining().len());
         let next_state = state.after_applying(applied);
         let needs_clone =
@@ -2554,9 +2040,8 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             )?;
         }
         for (idx, (arg, ty)) in args.iter().zip(remaining.iter()).enumerate() {
-            let value = self.emit_arg_value(arg)?;
-            self.ensure_value_matches(&value, ty, arg.span)?;
-            match resolved_type_kind(ty, self.symbols) {
+            self.emit_mir_arg_value(arg, span)?;
+            match resolved_type_kind(ty) {
                 ValueKind::Word => {
                     writeln!(self.out, "    mov rbx, [rsp+8] ; env_end pointer")?;
                     writeln!(
@@ -2582,19 +2067,22 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                         "    mov [rbx+8], rdx ; store closure env_end for arg"
                     )?;
                 }
+                ValueKind::Variadic => {}
             }
         }
 
         let remaining = next_state;
-        writeln!(
-            self.out,
-            "    mov rax, [rsp] ; restore closure code pointer"
-        )?;
-        writeln!(
-            self.out,
-            "    mov rdx, [rsp+8] ; restore closure env_end pointer"
-        )?;
-        writeln!(self.out, "    add rsp, 24 ; pop temporary closure state")?;
+        if saved_closure_state {
+            writeln!(
+                self.out,
+                "    mov rax, [rsp] ; restore closure code pointer"
+            )?;
+            writeln!(
+                self.out,
+                "    mov rdx, [rsp+8] ; restore closure env_end pointer"
+            )?;
+            writeln!(self.out, "    add rsp, 24 ; pop temporary closure state")?;
+        }
 
         if remaining.remaining().is_empty() {
             if invoke_when_ready {
@@ -2614,190 +2102,42 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         }
     }
 
-    fn ensure_value_matches(
-        &self,
-        value: &ExprValue,
-        ty: &SigKind,
-        span: Span,
-    ) -> Result<(), CompileError> {
-        match (value, resolved_type_kind(ty, self.symbols)) {
-            (ExprValue::Word, ValueKind::Word) => Ok(()),
-            (ExprValue::Closure(_), ValueKind::Closure) => Ok(()),
-            (ExprValue::Word, ValueKind::Closure) => Err(CompileError::new(
-                CompileErrorCode::Codegen,
-                "expected a closure value",
-                span,
-            )),
-            (ExprValue::Closure(_), ValueKind::Word) => Err(CompileError::new(
-                CompileErrorCode::Codegen,
-                "expected a scalar value",
-                span,
-            )),
-        }
-    }
-
-    fn next_internal_label(&mut self, kind: &str) -> String {
-        let idx = self.label_counter;
-        self.label_counter += 1;
-        format!("{}_{}_{}", self.sanitized_func_name(), kind, idx)
-    }
-
     fn next_write_loop_labels(&mut self) -> (String, String) {
         let idx = self.write_loop_counter;
         self.write_loop_counter += 1;
-        let prefix = self.sanitized_func_name();
+        let prefix = sanitize_function_name(&self.mir.sig.name);
         (
             format!("{}_write_strlen_loop_{}", prefix, idx),
             format!("{}_write_strlen_done_{}", prefix, idx),
         )
     }
 
-    fn sanitized_func_name(&self) -> String {
-        self.mir
-            .name
-            .chars()
-            .map(|c| {
-                if c.is_ascii_alphanumeric() || c == '_' {
-                    c
-                } else {
-                    '_'
-                }
-            })
-            .collect()
+    fn new_label(&mut self, suffix: &str) -> String {
+        let idx = self.label_counter;
+        self.label_counter += 1;
+        format!(
+            "{}_{}_{}",
+            sanitize_function_name(&self.mir.sig.name),
+            suffix,
+            idx
+        )
     }
 }
 
-fn emit_closure_wrapper<W: Write>(
-    mir: &MirFunction,
-    symbols: &SymbolRegistry,
-    out: &mut W,
-) -> Result<(), CompileError> {
-    let total_slots: usize = mir
-        .params
-        .iter()
-        .map(|p| slots_for_type(&p.ty.kind, symbols))
-        .sum();
-    if total_slots > ARG_REGS.len() {
-        return Err(CompileError::new(
-            CompileErrorCode::Codegen,
-            format!(
-                "function '{}' exceeds supported continuation argument slots",
-                mir.name
-            ),
-            mir.span,
-        ));
-    }
-    let label = closure_wrapper_label(&mir.name);
-    writeln!(out, "{}:", label)?;
-    writeln!(out, "    push rbp ; save caller frame pointer")?;
-    writeln!(out, "    mov rbp, rsp ; establish wrapper frame")?;
-    writeln!(
-        out,
-        "    sub rsp, 16 ; reserve space for env metadata scratch"
-    )?;
-    writeln!(
-        out,
-        "    mov [rbp-8], rdi ; stash env_end pointer for release"
-    )?;
-    writeln!(out, "    push rbx ; preserve base register")?;
-    writeln!(out, "    mov rbx, rdi ; rdi points to env_end when invoked")?;
-    let param_types: Vec<SigKind> = mir.params.iter().map(|p| p.ty.kind.clone()).collect();
-    let env_size = env_size_bytes(&param_types, symbols);
-    if env_size > 0 {
-        writeln!(out, "    sub rbx, {} ; compute env base", env_size)?;
-    }
-    let mut reg_slot = 0usize;
-    let mut saved_regs: Vec<&str> = Vec::new();
-    for (idx, param) in mir.params.iter().enumerate() {
-        match resolved_type_kind(&param.ty.kind, symbols) {
-            ValueKind::Word => {
-                let offset = env_offset(&mir.params, idx, symbols);
-                let reg = ARG_REGS[reg_slot];
-                writeln!(
-                    out,
-                    "    mov {}, [rbx+{}] ; load scalar param from env",
-                    reg, offset
-                )?;
-                writeln!(out, "    push {} ; preserve parameter register", reg)?;
-                saved_regs.push(reg);
-                reg_slot += 1;
-            }
-            ValueKind::Closure => {
-                let offset = env_offset(&mir.params, idx, symbols);
-                let reg_code = ARG_REGS[reg_slot];
-                let reg_env = ARG_REGS[reg_slot + 1];
-                writeln!(
-                    out,
-                    "    mov {}, [rbx+{}] ; load continuation code pointer",
-                    reg_code, offset
-                )?;
-                writeln!(
-                    out,
-                    "    push {} ; preserve closure code register",
-                    reg_code
-                )?;
-                saved_regs.push(reg_code);
-                writeln!(
-                    out,
-                    "    mov {}, [rbx+{}] ; load continuation env_end pointer",
-                    reg_env,
-                    offset + 8
-                )?;
-                writeln!(
-                    out,
-                    "    push {} ; preserve closure env_end register",
-                    reg_env
-                )?;
-                saved_regs.push(reg_env);
-                reg_slot += 2;
-            }
+enum IntComparison {
+    Equal,
+    Less,
+    Greater,
+}
+
+impl IntComparison {
+    fn false_jump(&self) -> &'static str {
+        match self {
+            IntComparison::Equal => "jne",
+            IntComparison::Less => "jge",
+            IntComparison::Greater => "jle",
         }
     }
-    writeln!(out, "    mov rdx, [rbp-8] ; load saved env_end pointer")?;
-    writeln!(out, "    mov rcx, [rdx] ; read env size metadata")?;
-    writeln!(
-        out,
-        "    mov rsi, [rdx+{}] ; read heap size metadata",
-        ENV_METADATA_FIELD_SIZE
-    )?;
-    writeln!(out, "    mov rbx, rdx ; env_end pointer for release")?;
-    writeln!(out, "    sub rbx, rcx ; compute env base pointer")?;
-    writeln!(out, "    mov rdi, rbx ; munmap base pointer")?;
-    writeln!(out, "    mov rax, {} ; munmap syscall", SYSCALL_MUNMAP)?;
-    writeln!(out, "    syscall ; release wrapper closure environment")?;
-    for reg in saved_regs.iter().rev() {
-        writeln!(out, "    pop {} ; restore parameter register", reg)?;
-    }
-    writeln!(out, "    pop rbx ; restore saved base register")?;
-    writeln!(out, "    leave ; epilogue: restore rbp of caller")?;
-    writeln!(out, "    jmp {} ; jump into actual function", mir.name)?;
-    Ok(())
-}
-
-fn closure_wrapper_label(name: &str) -> String {
-    format!("{}_closure_entry", name)
-}
-fn signature_kinds(sig: &Signature) -> Vec<SigKind> {
-    sig.items.iter().map(|item| item.ty.kind.clone()).collect()
-}
-
-fn env_offset(params: &[SigItem], idx: usize, symbols: &SymbolRegistry) -> usize {
-    params
-        .iter()
-        .take(idx)
-        .map(|p| bytes_for_type(&p.ty.kind, symbols))
-        .sum()
-}
-
-fn remaining_suffix_sizes(params: &[SigKind], symbols: &SymbolRegistry) -> Vec<usize> {
-    let mut sizes = Vec::with_capacity(params.len());
-    let mut acc = 0;
-    for param in params.iter().rev() {
-        acc += bytes_for_type(param, symbols);
-        sizes.push(acc);
-    }
-    sizes.reverse();
-    sizes
 }
 
 fn align_to(value: usize, align: usize) -> usize {
@@ -2807,305 +2147,10 @@ fn align_to(value: usize, align: usize) -> usize {
     ((value + align - 1) / align) * align
 }
 
-fn slots_for_type(ty: &SigKind, symbols: &SymbolRegistry) -> usize {
-    match resolved_type_kind(ty, symbols) {
-        ValueKind::Word => 1,
-        ValueKind::Closure => 2,
-    }
-}
-
-// TODO: Remove this usage, replace it with other one
-
-fn bytes_for_type(ty: &SigKind, symbols: &SymbolRegistry) -> usize {
-    match resolved_type_kind(ty, symbols) {
-        ValueKind::Word => WORD_SIZE,
-        ValueKind::Closure => WORD_SIZE * 2,
-    }
-}
-
-fn env_size_bytes(params: &[SigKind], symbols: &SymbolRegistry) -> usize {
-    params.iter().map(|ty| bytes_for_type(ty, symbols)).sum()
-}
-
-fn env_pointer_offsets(params: &[SigKind], symbols: &SymbolRegistry) -> Vec<usize> {
-    let mut offsets = Vec::new();
-    let mut current = 0usize;
-    for ty in params {
-        match resolved_type_kind(ty, symbols) {
-            ValueKind::Word => current += 8,
-            ValueKind::Closure => {
-                offsets.push(current + 8);
-                current += 16;
-            }
-        }
-    }
-    offsets
-}
-
-fn resolved_type_kind(ty: &SigKind, symbols: &SymbolRegistry) -> ValueKind {
-    let mut visited = HashSet::new();
-    resolved_type_kind_inner(ty, symbols, &mut visited)
-}
-
-// TODO: This is a good place to start the refactor
-fn resolved_type_kind_inner(
-    ty: &SigKind,
-    symbols: &SymbolRegistry,
-    visited: &mut HashSet<String>,
-) -> ValueKind {
-    match ty {
-        SigKind::Int | SigKind::Str | SigKind::CompileTimeInt | SigKind::CompileTimeStr => {
-            ValueKind::Word
-        }
-        SigKind::Tuple(_) => ValueKind::Closure,
-        SigKind::Ident(ident) => {
-            let name = &ident.name;
-            if visited.contains(name) {
-                ValueKind::Closure
-            } else if let Some(info) = symbols.get_type_info(name) {
-                visited.insert(name.clone());
-                let kind = resolved_type_kind_inner(&info.target, symbols, visited);
-                visited.remove(name);
-                kind
-            } else {
-                ValueKind::Word
-            }
-        }
-        SigKind::GenericInst { name, .. } => {
-            if visited.contains(name) {
-                ValueKind::Closure
-            } else if let Some(info) = symbols.get_type_info(name) {
-                visited.insert(name.clone());
-                let kind = resolved_type_kind_inner(&info.target, symbols, visited);
-                visited.remove(name);
-                kind
-            } else {
-                ValueKind::Word
-            }
-        }
-        SigKind::Generic(_) => ValueKind::Word,
-    }
-}
-
-fn continuation_params_for_type(ty: &SigKind, symbols: &SymbolRegistry) -> Vec<SigKind> {
-    let mut visited = HashSet::new();
-    continuation_params_for_type_inner(ty, symbols, &mut visited)
-}
-
-fn continuation_params_for_type_inner(
-    ty: &SigKind,
-    symbols: &SymbolRegistry,
-    visited: &mut HashSet<String>,
-) -> Vec<SigKind> {
-    match ty {
-        SigKind::Tuple(params) => signature_kinds(params),
-        SigKind::Ident(ident) => {
-            let name = &ident.name;
-            if visited.contains(name) {
-                Vec::new()
-            } else if let Some(info) = symbols.get_type_info(name) {
-                visited.insert(name.clone());
-                let result = continuation_params_for_type_inner(&info.target, symbols, visited);
-                visited.remove(name);
-                result
-            } else {
-                Vec::new()
-            }
-        }
-        SigKind::GenericInst { name, .. } => {
-            if visited.contains(name) {
-                Vec::new()
-            } else if let Some(info) = symbols.get_type_info(name) {
-                visited.insert(name.clone());
-                let result = continuation_params_for_type_inner(&info.target, symbols, visited);
-                visited.remove(name);
-                result
-            } else {
-                Vec::new()
-            }
-        }
-        SigKind::Generic(_) => Vec::new(),
-        _ => Vec::new(),
-    }
-}
-
-fn variadic_element_type(ty: &SigKind, symbols: &SymbolRegistry) -> Option<SigKind> {
-    let mut visited = HashSet::new();
-    let expanded = expand_alias_chain(ty, symbols, &mut visited);
-    let mut current_params = if let SigKind::Tuple(params) = expanded {
-        signature_kinds(&params)
-    } else {
-        return None;
-    };
-    loop {
-        if current_params.len() == 1 {
-            if let SigKind::Tuple(inner) = &current_params[0] {
-                current_params = signature_kinds(inner);
-                continue;
-            }
-        }
-        break;
-    }
-    if current_params.len() > 1 {
-        let nth_type = current_params[1].clone();
-        let mut visited = HashSet::new();
-        let nth_expanded = expand_alias_chain(&nth_type, symbols, &mut visited);
-        if let SigKind::Tuple(nth_params) = nth_expanded {
-            let nth_items = signature_kinds(&nth_params);
-            if nth_items.len() > 2 {
-                let mut visited = HashSet::new();
-                let one_expanded = expand_alias_chain(&nth_items[2], symbols, &mut visited);
-                if let SigKind::Tuple(one_params) = one_expanded {
-                    return one_params.items.get(0).map(|item| item.ty.kind.clone());
-                }
-            }
-        }
-    }
-    None
-}
-
-// TODO: might come useful
-/// Emits a generic libc wrapper that follows the System V AMD64 ABI:
-/// - Arguments 1-6 are passed in rdi, rsi, rdx, rcx, r8, r9 (up to 6 word-sized args)
-/// - Arguments beyond 6 are spilled onto the stack (8-byte aligned)
-/// - Stack must be 16-byte aligned before the `call` instruction
-/// - Return value comes back in rax (for int/pointer) or xmm0 (for float, not used yet)
-/// - This wrapper preserves the continuation (code pointer in rax, env_end in rdx)
-///   and jumps to it after the libc call completes
-///
-/// NOTE: This is a template for future libc wrappers. Currently, printf/sprintf/puts
-/// require special handling (printf/sprintf for formatting, puts for simple output),
-/// so they use custom implementations. As more libc functions are needed, this generic
-/// approach can be refined and used for simpler functions like strlen, strncat, etc.
-// fn emit_generic_libc_wrapper<W: Write>(
-//     ctx: &mut CodegenContext,
-//     out: &mut W,
-//     libc_function_name: &str,
-//     param_types: &[SigKind],
-//     symbols: &SymbolRegistry,
-// ) -> Result<(), CompileError> {
-//     let wrapper_label = format!("rgo_{}", libc_function_name);
-//     writeln!(out, "global {}", wrapper_label)?;
-//     writeln!(out, "{}:", wrapper_label)?;
-
-//     // Prologue: save caller frame pointer and establish new frame
-//     writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
-//     writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
-
-//     // Preserve the rgo continuation (code pointer and env_end pointer)
-//     // These were passed as the last two arguments (implicit in rgo's convention)
-//     writeln!(out, "    push rsi ; preserve continuation code pointer")?;
-//     writeln!(out, "    push rdx ; preserve continuation env_end pointer")?;
-
-//     // Calculate total argument slots and validate
-//     let total_slots: usize = param_types
-//         .iter()
-//         .map(|ty| {
-//             if resolved_type_kind(ty, symbols) == ValueKind::Closure {
-//                 2 // closure = code ptr + env_end ptr
-//             } else {
-//                 1 // word-sized
-//             }
-//         })
-//         .sum();
-
-//     // System V ABI limit: 6 registers available for integer/pointer arguments
-//     if total_slots > 6 {
-//         // Additional arguments will be on the stack; we need to ensure proper alignment
-//         let stack_args = total_slots - 6;
-//         writeln!(
-//             out,
-//             "    ; Note: {} argument slots will be spilled to stack",
-//             stack_args
-//         )?;
-//     }
-
-//     // At this point, arguments have been pushed in reverse order by prepare_call_args,
-//     // and move_args_to_registers has restored them to the proper ABI registers.
-//     // The caller is responsible for ensuring correct argument setup before calling this wrapper.
-
-//     // Ensure 16-byte stack alignment before variadic call
-//     // Stack is currently misaligned by 1 qword (due to the call instruction earlier),
-//     // and we've pushed 2 values (rsi, rdx), so we need to align for the libc call
-//     writeln!(
-//         out,
-//         "    sub rsp, 8 ; align stack to 16-byte boundary for call"
-//     )?;
-
-//     // Emit the actual libc call
-//     ctx.add_extern(libc_function_name);
-//     writeln!(
-//         out,
-//         "    call {} ; invoke libc function",
-//         libc_function_name
-//     )?;
-
-//     // Clean up the alignment adjustment
-//     writeln!(out, "    add rsp, 8")?;
-
-//     // Return value is now in rax (for int/pointer) or xmm0 (for float)
-//     // For now, we handle only int/pointer returns (xmm0 not yet supported)
-
-//     // Restore the rgo continuation
-//     writeln!(out, "    pop rdx ; restore continuation env_end pointer")?;
-//     writeln!(out, "    pop rsi ; restore continuation code pointer")?;
-
-//     // Prepare to jump to continuation
-//     // Move rax (return value) to the continuation's input if needed
-//     // For now, we assume the continuation doesn't need the return value
-//     // (The specific wrappers like printf can override this behavior)
-//     writeln!(out, "    mov rax, rsi ; continuation entry point")?;
-//     writeln!(
-//         out,
-//         "    mov rdi, rdx ; pass env_end pointer to continuation"
-//     )?;
-
-//     // Epilogue and jump
-//     writeln!(out, "    leave ; epilogue: unwind before jump")?;
-//     writeln!(out, "    jmp rax ; jump into continuation")?;
-//     writeln!(out)?;
-
-//     Ok(())
-// }
-
-fn emit_builtin_write<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result<(), CompileError> {
-    writeln!(out, "global rgo_write")?;
-    writeln!(out, "rgo_write:")?;
-    writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
-    writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
-    writeln!(out, "    push rsi ; preserve continuation code pointer")?;
-    writeln!(out, "    push rdx ; preserve continuation env_end pointer")?;
-    writeln!(out, "    mov r8, rdi ; keep string pointer")?;
-    writeln!(out, "    xor rcx, rcx ; reset length counter")?;
-    writeln!(out, "write_strlen_loop:")?;
-    writeln!(out, "    mov dl, byte [r8+rcx] ; load current character")?;
-    writeln!(out, "    cmp dl, 0 ; stop at terminator")?;
-    writeln!(out, "    je write_strlen_done")?;
-    writeln!(out, "    inc rcx ; advance char counter")?;
-    writeln!(out, "    jmp write_strlen_loop")?;
-    writeln!(out, "write_strlen_done:")?;
-    writeln!(out, "    mov rdx, rcx ; length to write")?;
-    writeln!(out, "    mov rsi, r8 ; buffer start")?;
-    writeln!(out, "    mov rdi, 1 ; stdout fd")?;
-    ctx.add_extern("write");
-    writeln!(out, "    call write ; invoke libc write")?;
-    writeln!(out, "    pop rdx ; restore continuation env_end pointer")?;
-    writeln!(out, "    pop rsi ; restore continuation code pointer")?;
-    writeln!(out, "    mov rax, rsi ; continuation entry point")?;
-    writeln!(
-        out,
-        "    mov rdi, rdx ; pass env_end pointer to continuation"
-    )?;
-    writeln!(out, "    leave ; epilogue: unwind before jump")?;
-    writeln!(out, "    jmp rax ; jump into continuation")?;
-    writeln!(out)?;
-    Ok(())
-}
-
-fn emit_builtin_puts<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result<(), CompileError> {
+fn emit_builtin_puts<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result<(), Error> {
     writeln!(out, "global rgo_puts")?;
     writeln!(out, "rgo_puts:")?;
-    writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
+    writeln!(out, "    push rbp ; prologue: save executor frame pointer")?;
     writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
     writeln!(out, "    push rsi ; preserve continuation code pointer")?;
     writeln!(out, "    push rdx ; preserve continuation env_end pointer")?;
@@ -3125,274 +2170,13 @@ fn emit_builtin_puts<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result<
     Ok(())
 }
 
-fn emit_builtin_add<W: Write>(out: &mut W) -> Result<(), CompileError> {
-    writeln!(out, "global add")?;
-    writeln!(out, "add:")?;
-    writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
-    writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
-    writeln!(out, "    push rdx ; preserve continuation code pointer")?;
-    writeln!(out, "    push rcx ; preserve continuation env_end pointer")?;
-    writeln!(out, "    mov rax, rdi ; load first integer")?;
-    writeln!(out, "    add rax, rsi ; add second integer")?;
-    writeln!(
-        out,
-        "    mov r8, [rbp-16] ; keep env_end pointer intact for continuation"
-    )?;
-    writeln!(
-        out,
-        "    lea rcx, [r8-8] ; reserve slot for result before metadata"
-    )?;
-    writeln!(out, "    mov [rcx], rax ; store sum")?;
-    writeln!(out, "    mov rax, [rbp-8] ; continuation entry point")?;
-    writeln!(
-        out,
-        "    mov rdi, r8 ; pass env_end pointer (metadata start) unchanged"
-    )?;
-    writeln!(out, "    leave ; unwind before jump")?;
-    writeln!(out, "    jmp rax ; jump into continuation")?;
-    writeln!(out)?;
-    Ok(())
-}
-
-fn emit_builtin_sub<W: Write>(out: &mut W) -> Result<(), CompileError> {
-    writeln!(out, "global sub")?;
-    writeln!(out, "sub:")?;
-    writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
-    writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
-    writeln!(out, "    push rdx ; preserve continuation code pointer")?;
-    writeln!(out, "    push rcx ; preserve continuation env_end pointer")?;
-    writeln!(out, "    mov rax, rdi ; load minuend")?;
-    writeln!(out, "    sub rax, rsi ; subtract subtrahend")?;
-    writeln!(
-        out,
-        "    mov r8, [rbp-16] ; keep env_end pointer intact for continuation"
-    )?;
-    writeln!(
-        out,
-        "    lea rcx, [r8-8] ; reserve slot for result before metadata"
-    )?;
-    writeln!(out, "    mov [rcx], rax ; store difference")?;
-    writeln!(out, "    mov rax, [rbp-8] ; continuation entry point")?;
-    writeln!(
-        out,
-        "    mov rdi, r8 ; pass env_end pointer (metadata start) unchanged"
-    )?;
-    writeln!(out, "    leave ; unwind before jump")?;
-    writeln!(out, "    jmp rax ; jump into continuation")?;
-    writeln!(out)?;
-    Ok(())
-}
-
-fn emit_builtin_mul<W: Write>(out: &mut W) -> Result<(), CompileError> {
-    writeln!(out, "global mul")?;
-    writeln!(out, "mul:")?;
-    writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
-    writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
-    writeln!(out, "    push rdx ; preserve continuation code pointer")?;
-    writeln!(out, "    push rcx ; preserve continuation env_end pointer")?;
-    writeln!(out, "    mov rax, rdi ; load multiplicand")?;
-    writeln!(out, "    imul rax, rsi ; multiply by multiplier")?;
-    writeln!(
-        out,
-        "    mov r8, [rbp-16] ; keep env_end pointer intact for continuation"
-    )?;
-    writeln!(
-        out,
-        "    lea rcx, [r8-8] ; reserve slot for result before metadata"
-    )?;
-    writeln!(out, "    mov [rcx], rax ; store product")?;
-    writeln!(out, "    mov rax, [rbp-8] ; continuation entry point")?;
-    writeln!(
-        out,
-        "    mov rdi, r8 ; pass env_end pointer (metadata start) unchanged"
-    )?;
-    writeln!(out, "    leave ; unwind before jump")?;
-    writeln!(out, "    jmp rax ; jump into continuation")?;
-    writeln!(out)?;
-    Ok(())
-}
-
-fn emit_builtin_div<W: Write>(out: &mut W) -> Result<(), CompileError> {
-    writeln!(out, "global div")?;
-    writeln!(out, "div:")?;
-    writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
-    writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
-    writeln!(out, "    push rdx ; preserve continuation code pointer")?;
-    writeln!(out, "    push rcx ; preserve continuation env_end pointer")?;
-    writeln!(out, "    mov rax, rdi ; load dividend")?;
-    writeln!(out, "    cqo ; sign extend dividend before divide")?;
-    writeln!(out, "    idiv rsi ; divide by divisor")?;
-    writeln!(
-        out,
-        "    mov r8, [rbp-16] ; keep env_end pointer intact for continuation"
-    )?;
-    writeln!(
-        out,
-        "    lea rcx, [r8-8] ; reserve slot for result before metadata"
-    )?;
-    writeln!(out, "    mov [rcx], rax ; store quotient")?;
-    writeln!(out, "    mov rax, [rbp-8] ; continuation entry point")?;
-    writeln!(
-        out,
-        "    mov rdi, r8 ; pass env_end pointer (metadata start) unchanged"
-    )?;
-    writeln!(out, "    leave ; unwind before jump")?;
-    writeln!(out, "    jmp rax ; jump into continuation")?;
-    writeln!(out)?;
-    Ok(())
-}
-
-fn emit_builtin_gt<W: Write>(out: &mut W) -> Result<(), CompileError> {
-    writeln!(out, "global gt")?;
-    writeln!(out, "gt:")?;
-    writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
-    writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
-    writeln!(out, "    push rdx ; preserve true continuation entry")?;
-    writeln!(out, "    push rcx ; preserve true continuation env_end")?;
-    writeln!(out, "    push r8 ; preserve false continuation entry")?;
-    writeln!(out, "    push r9 ; preserve false continuation env_end")?;
-    writeln!(out, "    cmp rdi, rsi ; compare integer arguments")?;
-    writeln!(out, "    jg gt_true")?;
-    writeln!(out, "gt_false:")?;
-    writeln!(
-        out,
-        "    mov rax, [rbp-24] ; false continuation entry point"
-    )?;
-    writeln!(
-        out,
-        "    mov rdi, [rbp-32] ; false continuation env_end pointer"
-    )?;
-    writeln!(out, "    leave")?;
-    writeln!(out, "    jmp rax")?;
-    writeln!(out, "gt_true:")?;
-    writeln!(out, "    mov rax, [rbp-8] ; true continuation entry point")?;
-    writeln!(
-        out,
-        "    mov rdi, [rbp-16] ; true continuation env_end pointer"
-    )?;
-    writeln!(out, "    leave")?;
-    writeln!(out, "    jmp rax")?;
-    writeln!(out)?;
-    Ok(())
-}
-
-fn emit_builtin_lt<W: Write>(out: &mut W) -> Result<(), CompileError> {
-    writeln!(out, "global lt")?;
-    writeln!(out, "lt:")?;
-    writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
-    writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
-    writeln!(out, "    push rdx ; preserve true continuation entry")?;
-    writeln!(out, "    push rcx ; preserve true continuation env_end")?;
-    writeln!(out, "    push r8 ; preserve false continuation entry")?;
-    writeln!(out, "    push r9 ; preserve false continuation env_end")?;
-    writeln!(out, "    cmp rdi, rsi ; compare integer arguments")?;
-    writeln!(out, "    jl lt_true")?;
-    writeln!(out, "lt_false:")?;
-    writeln!(
-        out,
-        "    mov rax, [rbp-24] ; false continuation entry point"
-    )?;
-    writeln!(
-        out,
-        "    mov rdi, [rbp-32] ; false continuation env_end pointer"
-    )?;
-    writeln!(out, "    leave")?;
-    writeln!(out, "    jmp rax")?;
-    writeln!(out, "lt_true:")?;
-    writeln!(out, "    mov rax, [rbp-8] ; true continuation entry point")?;
-    writeln!(
-        out,
-        "    mov rdi, [rbp-16] ; true continuation env_end pointer"
-    )?;
-    writeln!(out, "    leave")?;
-    writeln!(out, "    jmp rax")?;
-    writeln!(out)?;
-    Ok(())
-}
-
-fn emit_builtin_eqi<W: Write>(out: &mut W) -> Result<(), CompileError> {
-    writeln!(out, "global eqi")?;
-    writeln!(out, "eqi:")?;
-    writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
-    writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
-    writeln!(out, "    push rdx ; preserve true continuation entry")?;
-    writeln!(out, "    push rcx ; preserve true continuation env_end")?;
-    writeln!(out, "    push r8 ; preserve false continuation entry")?;
-    writeln!(out, "    push r9 ; preserve false continuation env_end")?;
-    writeln!(out, "    cmp rdi, rsi ; compare integer arguments")?;
-    writeln!(out, "    jne eqi_false")?;
-    writeln!(out, "eqi_true:")?;
-    writeln!(out, "    mov rax, [rbp-8] ; true continuation entry point")?;
-    writeln!(
-        out,
-        "    mov rdi, [rbp-16] ; true continuation env_end pointer"
-    )?;
-    writeln!(out, "    leave")?;
-    writeln!(out, "    jmp rax")?;
-    writeln!(out, "eqi_false:")?;
-    writeln!(
-        out,
-        "    mov rax, [rbp-24] ; false continuation entry point"
-    )?;
-    writeln!(
-        out,
-        "    mov rdi, [rbp-32] ; false continuation env_end pointer"
-    )?;
-    writeln!(out, "    leave")?;
-    writeln!(out, "    jmp rax")?;
-    writeln!(out)?;
-    Ok(())
-}
-
-fn emit_builtin_eqs<W: Write>(out: &mut W) -> Result<(), CompileError> {
-    writeln!(out, "global eqs")?;
-    writeln!(out, "eqs:")?;
-    writeln!(out, "    push rbp ; prologue: save caller frame pointer")?;
-    writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
-    writeln!(out, "    push rdx ; preserve true continuation entry")?;
-    writeln!(out, "    push rcx ; preserve true continuation env_end")?;
-    writeln!(out, "    push r8 ; preserve false continuation entry")?;
-    writeln!(out, "    push r9 ; preserve false continuation env_end")?;
-    writeln!(out, "    mov r10, rdi ; pointer to first string")?;
-    writeln!(out, "    mov r11, rsi ; pointer to second string")?;
-    writeln!(out, "eqs_loop:")?;
-    writeln!(out, "    mov al, byte [r10]")?;
-    writeln!(out, "    mov dl, byte [r11]")?;
-    writeln!(out, "    cmp al, dl")?;
-    writeln!(out, "    jne eqs_false")?;
-    writeln!(out, "    test al, al")?;
-    writeln!(out, "    je eqs_true")?;
-    writeln!(out, "    inc r10")?;
-    writeln!(out, "    inc r11")?;
-    writeln!(out, "    jmp eqs_loop")?;
-    writeln!(out, "eqs_true:")?;
-    writeln!(out, "    mov rax, [rbp-8] ; true continuation entry point")?;
-    writeln!(
-        out,
-        "    mov rdi, [rbp-16] ; true continuation env_end pointer"
-    )?;
-    writeln!(out, "    leave")?;
-    writeln!(out, "    jmp rax")?;
-    writeln!(out, "eqs_false:")?;
-    writeln!(
-        out,
-        "    mov rax, [rbp-24] ; false continuation entry point"
-    )?;
-    writeln!(
-        out,
-        "    mov rdi, [rbp-32] ; false continuation env_end pointer"
-    )?;
-    writeln!(out, "    leave")?;
-    writeln!(out, "    jmp rax")?;
-    writeln!(out)?;
-    Ok(())
-}
-
-fn emit_builtin_itoa<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result<(), CompileError> {
-    let min_value_label = ctx.string_literal_label("-9223372036854775808");
+fn emit_builtin_itoa<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result<(), Error> {
+    const ITOA_MIN_LABEL: &str = "itoa_min_value";
+    const ITOA_MIN_VALUE: &str = "-9223372036854775808";
+    ctx.add_string_literal(ITOA_MIN_LABEL, ITOA_MIN_VALUE);
     writeln!(out, "global itoa")?;
     writeln!(out, "itoa:")?;
-    writeln!(out, "    push rbp ; save caller frame pointer")?;
+    writeln!(out, "    push rbp ; save executor frame pointer")?;
     writeln!(out, "    mov rbp, rsp ; establish new frame")?;
     writeln!(out, "    push rsi ; preserve continuation code pointer")?;
     writeln!(out, "    push rdx ; preserve continuation env pointer")?;
@@ -3455,7 +2239,7 @@ fn emit_builtin_itoa<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result<
     writeln!(
         out,
         "    lea r8, [rel {}] ; reuse static string",
-        min_value_label
+        ITOA_MIN_LABEL
     )?;
     writeln!(out, "    jmp itoa_tail")?;
     writeln!(out, "itoa_tail:")?;
@@ -3483,14 +2267,61 @@ fn emit_builtin_itoa<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result<
     Ok(())
 }
 
-fn size_of(ty: &mir::Type) -> usize {
-    match ty {
-        mir::Type::Int => WORD_SIZE,
-        mir::Type::Str => WORD_SIZE,
-        mir::Type::CodePtr => WORD_SIZE,
-        mir::Type::Struct(fields) => fields.iter().map(size_of).sum(),
+fn env_size_bytes_from_kinds(params: &[SigKind]) -> usize {
+    params.iter().map(bytes_for_type).sum()
+}
+
+fn remaining_suffix_sizes(params: &[SigKind]) -> Vec<usize> {
+    let mut sizes = Vec::with_capacity(params.len());
+    let mut acc = 0;
+    for param in params.iter().rev() {
+        acc += bytes_for_type(param);
+        sizes.push(acc);
+    }
+    sizes.reverse();
+    sizes
+}
+
+fn bytes_for_type(ty: &SigKind) -> usize {
+    match resolved_type_kind(ty) {
+        ValueKind::Word => WORD_SIZE,
+        ValueKind::Closure => WORD_SIZE * 2,
+        ValueKind::Variadic => 0,
     }
 }
 
-#[cfg(test)]
-mod tests {}
+fn slots_for_type(ty: &SigKind) -> usize {
+    match resolved_type_kind(ty) {
+        ValueKind::Word => 1,
+        ValueKind::Closure => 2,
+        ValueKind::Variadic => 0,
+    }
+}
+
+fn env_pointer_offsets_from_kinds(params: &[SigKind]) -> Vec<usize> {
+    let mut offsets = Vec::new();
+    let mut current = 0usize;
+    for ty in params {
+        match resolved_type_kind(ty) {
+            ValueKind::Word => current += 8,
+            ValueKind::Closure => {
+                offsets.push(current + 8);
+                current += 16;
+            }
+            ValueKind::Variadic => {}
+        }
+    }
+    offsets
+}
+
+fn resolved_type_kind(ty: &SigKind) -> ValueKind {
+    match ty {
+        SigKind::Int | SigKind::Str | SigKind::CompileTimeInt | SigKind::CompileTimeStr => {
+            ValueKind::Word
+        }
+        SigKind::Variadic => ValueKind::Variadic,
+        SigKind::Sig(_) => ValueKind::Closure,
+        SigKind::Ident(_) => ValueKind::Word,
+        _ => unreachable!("unexpected type kind in env: {:#?}", ty),
+    }
+}

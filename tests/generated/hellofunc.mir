@@ -1,0 +1,44 @@
+_0_foo_w(ok: (), s: str) {
+    __result = @write(s)
+    ok(__result)
+}
+
+_0_foo_w_unwrapper(env_end: int) {
+    ok: () = env_end - 3 words (ok)
+    s: str = env_end - 1 words (s)
+    _0_foo_w(ok, s)
+}
+
+foo(x: str, ok: ()) {
+    _0_foo_w(ok, x)
+}
+
+foo_unwrapper(env_end: int) {
+    x: str = env_end - 3 words (x)
+    ok: () = env_end - 2 words (ok)
+    foo(x, ok)
+}
+
+_3_lambda() {
+    _4 = 0
+    exit(_4)
+}
+
+_3_lambda_unwrapper(env_end: int) {
+    _3_lambda()
+}
+
+exit(code: int) {
+    syscall exit(code)
+}
+
+exit_unwrapper(env_end: int) {
+    code: int = env_end - 1 words (code)
+    exit(code)
+}
+
+_start() {
+    _1 = "hello world"
+    _3_lambda = _3_lambda()
+    foo(_1, _3_lambda)
+}

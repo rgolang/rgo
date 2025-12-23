@@ -2,13 +2,12 @@
 @/exit
 @/write
 arr: <T>((int, (int, (), (T))))
-foo: (items: arr<str>){
-    _foo_0: "done"
-    _foo_1: _foo_2()
-    write(_foo_0, _foo_1)
+_4_foo: (){
+    _5: 0
+    exit(_5)
 }
 
-_foo_2: (){
-    _foo__foo_2_0: 0
-    exit(_foo__foo_2_0)
+foo: (items:((int, (int, (), (str))))){
+    _2: "done"
+    write(_2, _4_foo)
 }

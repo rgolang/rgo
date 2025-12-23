@@ -1,0 +1,24 @@
+_1_lambda() {
+    _2 = 0
+    exit(_2)
+}
+
+_1_lambda_unwrapper(env_end: int) {
+    _1_lambda()
+}
+
+exit(code: int) {
+    syscall exit(code)
+}
+
+exit_unwrapper(env_end: int) {
+    code: int = env_end - 1 words (code)
+    exit(code)
+}
+
+_start() {
+    x = "Hello world!\n"
+    _1_lambda = _1_lambda()
+    __result = @write(x)
+    _1_lambda(__result)
+}

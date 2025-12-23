@@ -1,0 +1,37 @@
+_3_lambda(n: int) {
+    _4 = 0
+    exit(_4)
+}
+
+_3_lambda_unwrapper(env_end: int) {
+    n: int = env_end - 1 words (n)
+    _3_lambda(n)
+}
+
+exit(code: int) {
+    syscall exit(code)
+}
+
+exit_unwrapper(env_end: int) {
+    code: int = env_end - 1 words (code)
+    exit(code)
+}
+
+add(x: int, y: int, ok: (int)) {
+    res = @add(x, y);
+    ok(res)
+}
+
+add_unwrapper(env_end: int) {
+    x: int = env_end - 4 words (x)
+    y: int = env_end - 3 words (y)
+    ok: (int) = env_end - 2 words (ok)
+    add(x, y, ok)
+}
+
+_start() {
+    _0 = 1
+    _1 = 2
+    _3_lambda = _3_lambda()
+    add(_0, _1, _3_lambda)
+}

@@ -3,24 +3,22 @@
 @/add
 @/sub
 @/printf
-bar: (){
-    _bar_0: "outer bar"
-    _bar_1: _bar_2()
-    printf(_bar_0, _bar_1)
+_2_bar: (){
+    _3: 0
+    exit(_3)
 }
 
-_bar_2: (){
-    _bar__bar_2_0: 0
-    exit(_bar__bar_2_0)
+bar: (){
+    _0: "outer bar"
+    printf(_0, _2_bar)
+}
+
+_5_foo_bar: (ok:()){
+    _6: "inner bar\n"
+    printf(_6, ok)
 }
 
 foo: (ok:()){
-    _foo_bar_0: _foo_bar_0
-    _foo_bar_0(ok)
-}
-
-_foo_bar_0: (ok:()){
-    _foo__foo_bar_0_0: "inner bar\n"
-    printf(_foo__foo_bar_0_0, ok)
+    _5_foo_bar(ok)
 }
 foo(bar)

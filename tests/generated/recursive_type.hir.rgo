@@ -2,25 +2,23 @@
 @/str
 @/exit
 tail: (int, tail)
-identity: (node: tail){
-    _identity_0: "unused\n"
-    _identity_1: _identity_2()
-    printf(_identity_0, _identity_1)
+_4_identity: (){
+    _5: 0
+    exit(_5)
 }
 
-_identity_2: (){
-    _identity__identity_2_0: 0
-    exit(_identity__identity_2_0)
+identity: (node:(int, ())){
+    _2: "unused\n"
+    printf(_2, _4_identity)
+}
+
+_9_hello: (){
+    _10: 0
+    exit(_10)
 }
 
 hello: (){
-    _hello_0: "hi\n"
-    _hello_1: _hello_2()
-    printf(_hello_0, _hello_1)
-}
-
-_hello_2: (){
-    _hello__hello_2_0: 0
-    exit(_hello__hello_2_0)
+    _7: "hi\n"
+    printf(_7, _9_hello)
 }
 hello()

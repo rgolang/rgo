@@ -3,26 +3,25 @@
 @/printf
 @/exit
 foo: (ok:(str)){
-    _foo_0: "charlie"
-    ok(_foo_0)
+    _1: "charlie"
+    ok(_1)
 }
 
 baz: (ok:(str, str)){
-    _baz_0: "bob"
-    _baz_ok_1: ok(_baz_0)
-    foo(_baz_ok_1)
+    _4: "bob"
+    _5_ok: ok(_4)
+    foo(_5_ok)
+}
+
+_8_bar: (){
+    _9: 0
+    exit(_9)
 }
 
 bar: (name0: str, name1: str, name2: str){
-    _bar_0: "hello %s, %s and %s\n"
-    _bar_1: _bar_2()
-    printf(_bar_0, name0, name1, name2, _bar_1)
+    _6: "hello %s, %s and %s\n"
+    printf(_6, name0, name1, name2, _8_bar)
 }
-
-_bar_2: (){
-    _bar__bar_2_0: 0
-    exit(_bar__bar_2_0)
-}
-_0: "alice"
-_bar_1: bar(_0)
-baz(_bar_1)
+_11: "alice"
+_12_bar: bar(_11)
+baz(_12_bar)

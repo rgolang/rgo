@@ -1,9 +1,8 @@
 @/write
 @/exit
 x: "Hello world!\n"
-_1: (){
-    __1_0: 0
-    exit(__1_0)
+_1_lambda: (){
+    _2: 0
+    exit(_2)
 }
-_0: _1()
-write(x, _0)
+write(x, _1_lambda)

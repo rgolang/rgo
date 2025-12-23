@@ -53,27 +53,19 @@
             params: Signature {
                 items: [
                     SigItem {
-                        name: Some(
-                            "ok",
-                        ),
-                        ty: SigType {
-                            kind: Tuple(
-                                Signature {
-                                    items: [],
-                                    span: Span {
-                                        line: 0,
-                                        column: 0,
-                                        offset: 0,
-                                    },
+                        name: "ok",
+                        ty: Sig(
+                            Signature {
+                                items: [],
+                                span: Span {
+                                    line: 7,
+                                    column: 10,
+                                    offset: 57,
                                 },
-                            ),
-                            span: Span {
-                                line: 7,
-                                column: 10,
-                                offset: 57,
+                                generics: [],
                             },
-                        },
-                        is_variadic: false,
+                        ),
+                        has_bang: false,
                         span: Span {
                             line: 7,
                             column: 7,
@@ -86,6 +78,7 @@
                     column: 6,
                     offset: 53,
                 },
+                generics: [],
             },
             body: Block {
                 items: [

@@ -1,0 +1,60 @@
+_3_print_sum(ok: (), total: int) {
+    _4 = "sum is %d\n"
+    __result = @printf(_4, total)
+    ok(__result)
+}
+
+_3_print_sum_unwrapper(env_end: int) {
+    ok: () = env_end - 3 words (ok)
+    total: int = env_end - 1 words (total)
+    _3_print_sum(ok, total)
+}
+
+print_sum(ok: ()) {
+    _0 = 3
+    _1 = 4
+    _5_print_sum = _3_print_sum(ok)
+    _5_print_sum.ok = ok
+
+    add(_0, _1, _5_print_sum)
+}
+
+print_sum_unwrapper(env_end: int) {
+    ok: () = env_end - 2 words (ok)
+    print_sum(ok)
+}
+
+add(x: int, y: int, ok: (int)) {
+    res = @add(x, y);
+    ok(res)
+}
+
+add_unwrapper(env_end: int) {
+    x: int = env_end - 4 words (x)
+    y: int = env_end - 3 words (y)
+    ok: (int) = env_end - 2 words (ok)
+    add(x, y, ok)
+}
+
+_7_lambda() {
+    _8 = 0
+    exit(_8)
+}
+
+_7_lambda_unwrapper(env_end: int) {
+    _7_lambda()
+}
+
+exit(code: int) {
+    syscall exit(code)
+}
+
+exit_unwrapper(env_end: int) {
+    code: int = env_end - 1 words (code)
+    exit(code)
+}
+
+_start() {
+    _7_lambda = _7_lambda()
+    print_sum(_7_lambda)
+}

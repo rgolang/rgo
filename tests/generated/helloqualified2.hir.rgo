@@ -3,14 +3,12 @@
 @/write
 @/exit
 x: "Hello world!\n"
-foo: (x: str){
-    _foo_0: _foo_1()
-    write(x, _foo_0)
+_1_foo: (){
+    _2: 0
+    exit(_2)
 }
 
-_foo_1: (){
-    _foo__foo_1_0: 0
-    exit(_foo__foo_1_0)
+foo: (x: str){
+    write(x, _1_foo)
 }
-_foo_0: foo(x)
-_foo_0()
+foo(x)

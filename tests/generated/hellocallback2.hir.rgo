@@ -2,18 +2,17 @@
 @/printf
 @/exit
 foo: (f:(str, ()), ok:()){
-    _foo_0: "42"
-    f(_foo_0, ok)
+    _2: "42"
+    f(_2, ok)
 }
 
 print: (n: str, ok:()){
-    _print_0: "The winning number is %s\n"
-    printf(_print_0, n, ok)
+    _3: "The winning number is %s\n"
+    printf(_3, n, ok)
 }
 
-_1: (){
-    __1_0: 0
-    exit(__1_0)
+_5_lambda: (){
+    _6: 0
+    exit(_6)
 }
-_0: _1()
-foo(print, _0)
+foo(print, _5_lambda)

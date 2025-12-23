@@ -1,18 +1,18 @@
 @/write
 bar: (ok:()){
-    _bar_0: "bar,"
-    write(_bar_0, ok)
+    _0: "bar,"
+    write(_0, ok)
 }
 
 baz: (ok:()){
-    _baz_0: "baz,"
-    write(_baz_0, ok)
+    _1: "baz,"
+    write(_1, ok)
 }
 
 foo: (){
-    _foo_0: "foo,"
-    _foo_baz_1: baz(foo)
-    _foo_bar_2: bar(_foo_baz_1)
-    write(_foo_0, _foo_bar_2)
+    _2: "foo,"
+    _3_baz: baz(foo)
+    _4_bar: bar(_3_baz)
+    write(_2, _4_bar)
 }
 foo()

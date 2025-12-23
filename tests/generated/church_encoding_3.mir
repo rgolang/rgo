@@ -1,0 +1,100 @@
+_7_three(f: (int, (int)), ok: (int), z: int) {
+    f(z, ok)
+}
+
+_7_three_unwrapper(env_end: int) {
+    f: (int, (int)) = env_end - 5 words (f)
+    ok: (int) = env_end - 3 words (ok)
+    z: int = env_end - 1 words (z)
+    _7_three(f, ok, z)
+}
+
+_5_three(f: (int, (int)), ok: (int), y: int) {
+    _8_three = _7_three(f, ok)
+    _8_three.f = f
+    _8_three.ok = ok
+
+    f(y, _8_three)
+}
+
+_5_three_unwrapper(env_end: int) {
+    f: (int, (int)) = env_end - 5 words (f)
+    ok: (int) = env_end - 3 words (ok)
+    y: int = env_end - 1 words (y)
+    _5_three(f, ok, y)
+}
+
+three(f: (int, (int)), x: int, ok: (int)) {
+    _9_three = _5_three(f, ok)
+    _9_three.f = f
+    _9_three.ok = ok
+
+    f(x, _9_three)
+}
+
+three_unwrapper(env_end: int) {
+    f: (int, (int)) = env_end - 5 words (f)
+    x: int = env_end - 3 words (x)
+    ok: (int) = env_end - 2 words (ok)
+    three(f, x, ok)
+}
+
+_12_lambda(x: int, ok: (int)) {
+    _13 = 10
+    add(x, _13, ok)
+}
+
+_12_lambda_unwrapper(env_end: int) {
+    x: int = env_end - 3 words (x)
+    ok: (int) = env_end - 2 words (ok)
+    _12_lambda(x, ok)
+}
+
+add(x: int, y: int, ok: (int)) {
+    res = @add(x, y);
+    ok(res)
+}
+
+add_unwrapper(env_end: int) {
+    x: int = env_end - 4 words (x)
+    y: int = env_end - 3 words (y)
+    ok: (int) = env_end - 2 words (ok)
+    add(x, y, ok)
+}
+
+_20_lambda() {
+    _21 = 0
+    exit(_21)
+}
+
+_20_lambda_unwrapper(env_end: int) {
+    _20_lambda()
+}
+
+exit(code: int) {
+    syscall exit(code)
+}
+
+exit_unwrapper(env_end: int) {
+    code: int = env_end - 1 words (code)
+    exit(code)
+}
+
+_17_lambda(x: int) {
+    _18 = "result: %d"
+    _20_lambda = _20_lambda()
+    __result = @printf(_18, x)
+    _20_lambda(__result)
+}
+
+_17_lambda_unwrapper(env_end: int) {
+    x: int = env_end - 1 words (x)
+    _17_lambda(x)
+}
+
+_start() {
+    _15 = 0
+    _12_lambda = _12_lambda()
+    _17_lambda = _17_lambda()
+    three(_12_lambda, _15, _17_lambda)
+}

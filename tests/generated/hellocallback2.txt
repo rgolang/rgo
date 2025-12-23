@@ -29,81 +29,59 @@
             params: Signature {
                 items: [
                     SigItem {
-                        name: Some(
-                            "f",
-                        ),
-                        ty: SigType {
-                            kind: Tuple(
-                                Signature {
-                                    items: [
-                                        SigItem {
-                                            name: None,
-                                            ty: SigType {
-                                                kind: Ident(
-                                                    SigIdent {
-                                                        name: "str",
-                                                        has_bang: false,
-                                                        span: Span {
-                                                            line: 5,
-                                                            column: 10,
-                                                            offset: 32,
-                                                        },
-                                                    },
-                                                ),
+                        name: "f",
+                        ty: Sig(
+                            Signature {
+                                items: [
+                                    SigItem {
+                                        name: "",
+                                        ty: Ident(
+                                            SigIdent {
+                                                name: "str",
                                                 span: Span {
-                                                    line: 0,
-                                                    column: 0,
-                                                    offset: 0,
+                                                    line: 5,
+                                                    column: 10,
+                                                    offset: 32,
                                                 },
                                             },
-                                            is_variadic: false,
-                                            span: Span {
-                                                line: 0,
-                                                column: 0,
-                                                offset: 0,
-                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: Span {
+                                            line: 5,
+                                            column: 10,
+                                            offset: 32,
                                         },
-                                        SigItem {
-                                            name: None,
-                                            ty: SigType {
-                                                kind: Tuple(
-                                                    Signature {
-                                                        items: [],
-                                                        span: Span {
-                                                            line: 0,
-                                                            column: 0,
-                                                            offset: 0,
-                                                        },
-                                                    },
-                                                ),
-                                                span: Span {
-                                                    line: 0,
-                                                    column: 0,
-                                                    offset: 0,
-                                                },
-                                            },
-                                            is_variadic: false,
-                                            span: Span {
-                                                line: 0,
-                                                column: 0,
-                                                offset: 0,
-                                            },
-                                        },
-                                    ],
-                                    span: Span {
-                                        line: 0,
-                                        column: 0,
-                                        offset: 0,
                                     },
+                                    SigItem {
+                                        name: "",
+                                        ty: Sig(
+                                            Signature {
+                                                items: [],
+                                                span: Span {
+                                                    line: 5,
+                                                    column: 15,
+                                                    offset: 37,
+                                                },
+                                                generics: [],
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: Span {
+                                            line: 5,
+                                            column: 15,
+                                            offset: 37,
+                                        },
+                                    },
+                                ],
+                                span: Span {
+                                    line: 5,
+                                    column: 9,
+                                    offset: 31,
                                 },
-                            ),
-                            span: Span {
-                                line: 5,
-                                column: 9,
-                                offset: 31,
+                                generics: [],
                             },
-                        },
-                        is_variadic: false,
+                        ),
+                        has_bang: false,
                         span: Span {
                             line: 5,
                             column: 7,
@@ -111,27 +89,19 @@
                         },
                     },
                     SigItem {
-                        name: Some(
-                            "ok",
-                        ),
-                        ty: SigType {
-                            kind: Tuple(
-                                Signature {
-                                    items: [],
-                                    span: Span {
-                                        line: 0,
-                                        column: 0,
-                                        offset: 0,
-                                    },
+                        name: "ok",
+                        ty: Sig(
+                            Signature {
+                                items: [],
+                                span: Span {
+                                    line: 5,
+                                    column: 23,
+                                    offset: 45,
                                 },
-                            ),
-                            span: Span {
-                                line: 5,
-                                column: 23,
-                                offset: 45,
+                                generics: [],
                             },
-                        },
-                        is_variadic: false,
+                        ),
+                        has_bang: false,
                         span: Span {
                             line: 5,
                             column: 20,
@@ -144,6 +114,7 @@
                     column: 6,
                     offset: 28,
                 },
+                generics: [],
             },
             body: Block {
                 items: [
@@ -206,28 +177,18 @@
             params: Signature {
                 items: [
                     SigItem {
-                        name: Some(
-                            "n",
-                        ),
-                        ty: SigType {
-                            kind: Ident(
-                                SigIdent {
-                                    name: "str",
-                                    has_bang: false,
-                                    span: Span {
-                                        line: 8,
-                                        column: 11,
-                                        offset: 75,
-                                    },
+                        name: "n",
+                        ty: Ident(
+                            SigIdent {
+                                name: "str",
+                                span: Span {
+                                    line: 8,
+                                    column: 11,
+                                    offset: 75,
                                 },
-                            ),
-                            span: Span {
-                                line: 8,
-                                column: 11,
-                                offset: 75,
                             },
-                        },
-                        is_variadic: false,
+                        ),
+                        has_bang: false,
                         span: Span {
                             line: 8,
                             column: 9,
@@ -235,27 +196,19 @@
                         },
                     },
                     SigItem {
-                        name: Some(
-                            "ok",
-                        ),
-                        ty: SigType {
-                            kind: Tuple(
-                                Signature {
-                                    items: [],
-                                    span: Span {
-                                        line: 0,
-                                        column: 0,
-                                        offset: 0,
-                                    },
+                        name: "ok",
+                        ty: Sig(
+                            Signature {
+                                items: [],
+                                span: Span {
+                                    line: 8,
+                                    column: 19,
+                                    offset: 83,
                                 },
-                            ),
-                            span: Span {
-                                line: 8,
-                                column: 19,
-                                offset: 83,
+                                generics: [],
                             },
-                        },
-                        is_variadic: false,
+                        ),
+                        has_bang: false,
                         span: Span {
                             line: 8,
                             column: 16,
@@ -268,6 +221,7 @@
                     column: 8,
                     offset: 72,
                 },
+                generics: [],
             },
             body: Block {
                 items: [

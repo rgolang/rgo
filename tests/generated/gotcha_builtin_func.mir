@@ -1,0 +1,35 @@
+write(n: int, ok: ()) {
+    _0 = "Gotcha: %d"
+    __result = @printf(_0, n)
+    ok(__result)
+}
+
+write_unwrapper(env_end: int) {
+    n: int = env_end - 3 words (n)
+    ok: () = env_end - 2 words (ok)
+    write(n, ok)
+}
+
+_3_lambda() {
+    _4 = 0
+    exit(_4)
+}
+
+_3_lambda_unwrapper(env_end: int) {
+    _3_lambda()
+}
+
+exit(code: int) {
+    syscall exit(code)
+}
+
+exit_unwrapper(env_end: int) {
+    code: int = env_end - 1 words (code)
+    exit(code)
+}
+
+_start() {
+    _1 = 1
+    _3_lambda = _3_lambda()
+    write(_1, _3_lambda)
+}

@@ -14,27 +14,23 @@ if: (cond:((), ()), yes:(), no:()){
     cond(yes, no)
 }
 
-__1_2: (){
-    __1___1_2_0: 0
-    exit(__1___1_2_0)
+_6_lambda: (){
+    _7: 0
+    exit(_7)
 }
 
-_1: (){
-    __1_0: "works"
-    __1_1: __1_2()
-    printf(__1_0, __1_1)
+_3_lambda: (){
+    _4: "works"
+    printf(_4, _6_lambda)
 }
 
-__3_2: (){
-    __3___3_2_0: 0
-    exit(__3___3_2_0)
+_14_lambda: (){
+    _15: 0
+    exit(_15)
 }
 
-_3: (){
-    __3_0: "doesn't work"
-    __3_1: __3_2()
-    printf(__3_0, __3_1)
+_11_lambda: (){
+    _12: "doesn't work"
+    printf(_12, _14_lambda)
 }
-_0: _1()
-_2: _3()
-if(true, _0, _2)
+if(true, _3_lambda, _11_lambda)

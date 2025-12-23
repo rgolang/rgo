@@ -43,28 +43,18 @@
         params: Signature {
             items: [
                 SigItem {
-                    name: Some(
-                        "x",
-                    ),
-                    ty: SigType {
-                        kind: Ident(
-                            SigIdent {
-                                name: "int",
-                                has_bang: false,
-                                span: Span {
-                                    line: 7,
-                                    column: 5,
-                                    offset: 39,
-                                },
+                    name: "x",
+                    ty: Ident(
+                        SigIdent {
+                            name: "int",
+                            span: Span {
+                                line: 7,
+                                column: 5,
+                                offset: 39,
                             },
-                        ),
-                        span: Span {
-                            line: 7,
-                            column: 5,
-                            offset: 39,
                         },
-                    },
-                    is_variadic: false,
+                    ),
+                    has_bang: false,
                     span: Span {
                         line: 7,
                         column: 2,
@@ -77,6 +67,7 @@
                 column: 1,
                 offset: 35,
             },
+            generics: [],
         },
         continuation: Block {
             items: [
@@ -88,6 +79,7 @@
                             column: 1,
                             offset: 55,
                         },
+                        generics: [],
                     },
                     continuation: Block {
                         items: [

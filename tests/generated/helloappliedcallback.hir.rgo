@@ -2,20 +2,19 @@
 @/printf
 @/exit
 bar: (m1: str, m2: str, ok:()){
-    _bar_0: "msg1: %s, msg2: %s\n"
-    printf(_bar_0, m1, m2, ok)
+    _0: "msg1: %s, msg2: %s\n"
+    printf(_0, m1, m2, ok)
 }
 
 foo: (cb:(str, ()), ok:()){
-    _foo_0: "bye"
-    cb(_foo_0, ok)
+    _3: "bye"
+    cb(_3, ok)
 }
 
-_3: (){
-    __3_0: 0
-    exit(__3_0)
+_7_lambda: (){
+    _8: 0
+    exit(_8)
 }
-_0: "hi"
-_bar_1: bar(_0)
-_2: _3()
-foo(_bar_1, _2)
+_4: "hi"
+_5_bar: bar(_4)
+foo(_5_bar, _7_lambda)

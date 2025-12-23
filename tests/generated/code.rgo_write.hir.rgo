@@ -1,9 +1,0 @@
-@/rgo_write
-@/exit
-_2: (){
-    __2_0: 0
-    exit(__2_0)
-}
-_0: "builtin\n"
-_1: _2()
-rgo_write(_0, _1)

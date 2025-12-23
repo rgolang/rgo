@@ -7,6 +7,5 @@ foo: (x: str, ok:()){
     write(x, ok)
 }
 _0: 0
-_exit_1: exit(_0)
-_foo_2: foo(x)
-_foo_2(_exit_1)
+_1_exit: exit(_0)
+foo(x, _1_exit)

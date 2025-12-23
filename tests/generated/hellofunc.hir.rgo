@@ -2,19 +2,17 @@
 @/int
 @/write
 @/exit
-foo: (x: str, ok:()){
-    _foo_w_0: _foo_w_0
-    _foo_w_0(ok, x)
-}
-
-_foo_w_0: (ok:(), s: str){
+_0_foo_w: (ok:(), s: str){
     write(s, ok)
 }
 
-_2: (){
-    __2_0: 0
-    exit(__2_0)
+foo: (x: str, ok:()){
+    _0_foo_w(ok, x)
 }
-_0: "hello world"
-_1: _2()
-foo(_0, _1)
+
+_3_lambda: (){
+    _4: 0
+    exit(_4)
+}
+_1: "hello world"
+foo(_1, _3_lambda)

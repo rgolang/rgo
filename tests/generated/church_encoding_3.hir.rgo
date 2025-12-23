@@ -3,36 +3,33 @@
 @/add
 @/printf
 @/exit
-three: (f:(int, (int)), x: int, ok:(int)){
-    _three_0: _three_1(f, ok)
-    f(x, _three_0)
-}
-
-_three__three_1_1: (f:(int, (int)), ok:(int), z: int){
+_7_three: (f:(int, (int)), ok:(int), z: int){
     f(z, ok)
 }
 
-_three_1: (f:(int, (int)), ok:(int), y: int){
-    _three__three_1_0: _three__three_1_1(f, ok)
-    f(y, _three__three_1_0)
+_5_three: (f:(int, (int)), ok:(int), y: int){
+    _8_three: _7_three(f, ok)
+    f(y, _8_three)
 }
 
-_1: (x: int, ok:(int)){
-    __1_0: 10
-    add(x, __1_0, ok)
+three: (f:(int, (int)), x: int, ok:(int)){
+    _9_three: _5_three(f, ok)
+    f(x, _9_three)
 }
 
-__4_2: (){
-    __4___4_2_0: 0
-    exit(__4___4_2_0)
+_12_lambda: (x: int, ok:(int)){
+    _13: 10
+    add(x, _13, ok)
 }
 
-_4: (x: int){
-    __4_0: "result: %d"
-    __4_1: __4_2()
-    printf(__4_0, x, __4_1)
+_20_lambda: (){
+    _21: 0
+    exit(_21)
 }
-_0: _1()
-_2: 0
-_3: _4()
-three(_0, _2, _3)
+
+_17_lambda: (x: int){
+    _18: "result: %d"
+    printf(_18, x, _20_lambda)
+}
+_15: 0
+three(_12_lambda, _15, _17_lambda)

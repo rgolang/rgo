@@ -1,0 +1,121 @@
+foo(x: int, y: int, ok: (int)) {
+    add(x, y, ok)
+}
+
+foo_unwrapper(env_end: int) {
+    x: int = env_end - 4 words (x)
+    y: int = env_end - 3 words (y)
+    ok: (int) = env_end - 2 words (ok)
+    foo(x, y, ok)
+}
+
+add(x: int, y: int, ok: (int)) {
+    res = @add(x, y);
+    ok(res)
+}
+
+add_unwrapper(env_end: int) {
+    x: int = env_end - 4 words (x)
+    y: int = env_end - 3 words (y)
+    ok: (int) = env_end - 2 words (ok)
+    add(x, y, ok)
+}
+
+_3_run_k(ok: (), x: int) {
+    _4 = "number: %d"
+    __result = @printf(_4, x)
+    ok(__result)
+}
+
+_3_run_k_unwrapper(env_end: int) {
+    ok: () = env_end - 3 words (ok)
+    x: int = env_end - 1 words (x)
+    _3_run_k(ok, x)
+}
+
+_8_run(a: ((int)), ok: ()) {
+    _9_k = _3_run_k(ok)
+    _9_k.ok = ok
+
+    a(_9_k)
+}
+
+_8_run_unwrapper(env_end: int) {
+    a: ((int)) = env_end - 4 words (a)
+    ok: () = env_end - 2 words (ok)
+    _8_run(a, ok)
+}
+
+_12_run(a: ((int)), ok: ()) {
+    _13_k = _3_run_k(ok)
+    _13_k.ok = ok
+
+    a(_13_k)
+}
+
+_12_run_unwrapper(env_end: int) {
+    a: ((int)) = env_end - 4 words (a)
+    ok: () = env_end - 2 words (ok)
+    _12_run(a, ok)
+}
+
+run(ok: ()) {
+    _1 = 1
+    _2 = 2
+    _5 = 1
+    _6 = 1
+    a = foo(_1, _2)
+    a.x = _1
+    a.y = _2
+
+    _10_run = _8_run(a, ok)
+    _10_run.a = a
+    _10_run.ok = ok
+
+    _14_run = _12_run(a, ok)
+    _14_run.a = a
+    _14_run.ok = ok
+
+    eqi(_5, _6, _10_run, _14_run)
+}
+
+run_unwrapper(env_end: int) {
+    ok: () = env_end - 2 words (ok)
+    run(ok)
+}
+
+eqi(left: int, right: int, ok: (), err: ()) {
+    __result = @eqi(left, right);
+    ok(__result)
+}
+
+eqi_unwrapper(env_end: int) {
+    left: int = env_end - 6 words (left)
+    right: int = env_end - 5 words (right)
+    ok: () = env_end - 4 words (ok)
+    err: () = env_end - 2 words (err)
+    eqi(left, right, ok, err)
+}
+
+_16_lambda() {
+    _17 = 0
+    exit(_17)
+}
+
+_16_lambda_unwrapper(env_end: int) {
+    _16_lambda()
+}
+
+exit(code: int) {
+    syscall exit(code)
+}
+
+exit_unwrapper(env_end: int) {
+    code: int = env_end - 1 words (code)
+    exit(code)
+}
+
+_start() {
+    _16_lambda = _16_lambda()
+    run(_16_lambda)
+}

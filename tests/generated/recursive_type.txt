@@ -25,72 +25,54 @@
     },
     SigDef {
         name: "tail",
-        term: Tuple(
-            Signature {
-                items: [
-                    SigItem {
-                        name: None,
-                        ty: SigType {
-                            kind: Ident(
-                                SigIdent {
-                                    name: "int",
-                                    has_bang: false,
-                                    span: Span {
-                                        line: 5,
-                                        column: 11,
-                                        offset: 33,
-                                    },
-                                },
-                            ),
+        sig: Signature {
+            items: [
+                SigItem {
+                    name: "",
+                    ty: Ident(
+                        SigIdent {
+                            name: "int",
                             span: Span {
-                                line: 0,
-                                column: 0,
-                                offset: 0,
+                                line: 5,
+                                column: 11,
+                                offset: 33,
                             },
                         },
-                        is_variadic: false,
-                        span: Span {
-                            line: 0,
-                            column: 0,
-                            offset: 0,
-                        },
+                    ),
+                    has_bang: false,
+                    span: Span {
+                        line: 0,
+                        column: 0,
+                        offset: 0,
                     },
-                    SigItem {
-                        name: None,
-                        ty: SigType {
-                            kind: Ident(
-                                SigIdent {
-                                    name: "tail",
-                                    has_bang: false,
-                                    span: Span {
-                                        line: 5,
-                                        column: 22,
-                                        offset: 44,
-                                    },
-                                },
-                            ),
-                            span: Span {
-                                line: 0,
-                                column: 0,
-                                offset: 0,
-                            },
-                        },
-                        is_variadic: false,
-                        span: Span {
-                            line: 0,
-                            column: 0,
-                            offset: 0,
-                        },
-                    },
-                ],
-                span: Span {
-                    line: 0,
-                    column: 0,
-                    offset: 0,
                 },
+                SigItem {
+                    name: "",
+                    ty: Ident(
+                        SigIdent {
+                            name: "tail",
+                            span: Span {
+                                line: 5,
+                                column: 22,
+                                offset: 44,
+                            },
+                        },
+                    ),
+                    has_bang: false,
+                    span: Span {
+                        line: 0,
+                        column: 0,
+                        offset: 0,
+                    },
+                },
+            ],
+            span: Span {
+                line: 5,
+                column: 7,
+                offset: 29,
             },
-        ),
-        generics: [],
+            generics: [],
+        },
         span: Span {
             line: 5,
             column: 1,
@@ -103,28 +85,18 @@
             params: Signature {
                 items: [
                     SigItem {
-                        name: Some(
-                            "node",
-                        ),
-                        ty: SigType {
-                            kind: Ident(
-                                SigIdent {
-                                    name: "tail",
-                                    has_bang: false,
-                                    span: Span {
-                                        line: 7,
-                                        column: 18,
-                                        offset: 68,
-                                    },
+                        name: "node",
+                        ty: Ident(
+                            SigIdent {
+                                name: "tail",
+                                span: Span {
+                                    line: 7,
+                                    column: 18,
+                                    offset: 68,
                                 },
-                            ),
-                            span: Span {
-                                line: 7,
-                                column: 18,
-                                offset: 68,
                             },
-                        },
-                        is_variadic: false,
+                        ),
+                        has_bang: false,
                         span: Span {
                             line: 7,
                             column: 12,
@@ -137,6 +109,7 @@
                     column: 11,
                     offset: 61,
                 },
+                generics: [],
             },
             body: Block {
                 items: [
@@ -214,6 +187,7 @@
                     column: 8,
                     offset: 118,
                 },
+                generics: [],
             },
             body: Block {
                 items: [

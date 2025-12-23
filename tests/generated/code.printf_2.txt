@@ -39,6 +39,7 @@
                 column: 1,
                 offset: 23,
             },
+            generics: [],
         },
         continuation: Block {
             items: [

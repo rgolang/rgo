@@ -25,6 +25,7 @@
                     column: 9,
                     offset: 24,
                 },
+                generics: [],
             },
             body: Block {
                 items: [

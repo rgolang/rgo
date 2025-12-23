@@ -8,10 +8,8 @@ pub enum BlockItem {
         span: Span,
     },
     SigDef {
-        // TODO: This can be a SigType directly
         name: String,
-        term: SigKind,
-        generics: Vec<String>,
+        sig: Signature,
         span: Span,
     },
     FunctionDef {
@@ -62,41 +60,23 @@ impl BlockItem {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SigKind {
-    Ident(SigIdent),                                  // `foo`, `str!`, `list`
-    Tuple(Signature), // Nested tuple signature: `(int, b:int, tail:list)`
-    GenericInst { name: String, args: Vec<SigType> }, // Generic instantiation: `arr<int, list>`
-    Generic(String),  // Unbound generic type parameter: `T`
+    Int,
+    Str,
+    Variadic, // TODO: This is before we have staged DSL
+    CompileTimeInt,
+    CompileTimeStr,
+    Ident(SigIdent),                                  // `foo`, `str`, `list`
+    Sig(Signature), // Nested tuple signature: `(int, b:int, tail:list)`
+    GenericInst { name: String, args: Vec<SigKind> }, // Generic instantiation: `arr<int, list>`
+    Generic(String), // Unbound generic type parameter: `T`
 }
 
 impl SigKind {
-    // TODO: This is very useful, maybe also add to hir?
     pub fn tuple<I>(items: I) -> SigKind
     where
         I: IntoIterator<Item = SigKind>,
     {
-        let sig_items = items
-            .into_iter()
-            .map(|kind| {
-                SigItem {
-                    name: None,
-                    ty: SigType {
-                        kind,
-                        span: Span::unknown(), // TODO: real span
-                    },
-                    is_variadic: false,
-                    span: Span::unknown(), // TODO:
-                }
-            })
-            .collect::<Vec<_>>();
-
-        SigKind::Tuple(Signature {
-            items: sig_items,
-            span: Span::unknown(), // TODO:
-        })
-    }
-
-    pub fn tuple_vec(items: Vec<SigKind>) -> SigKind {
-        Self::tuple(items)
+        SigKind::Sig(Signature::from_tuple(items, Span::unknown()))
     }
 }
 
@@ -106,13 +86,11 @@ pub struct Signature {
     pub items: Vec<SigItem>,
     /// Span of the entire `( ... )` tuple, including parens.
     pub span: Span,
+    /// Generic parameters declared just before the signature (e.g. `<T>`).
+    pub generics: Vec<String>,
 }
 
 impl Signature {
-    pub fn kinds(&self) -> Vec<SigKind> {
-        self.items.iter().map(|item| item.ty.kind.clone()).collect()
-    }
-
     pub fn from_kinds<I>(kinds: I, span: Span) -> Signature
     where
         I: IntoIterator<Item = SigKind>,
@@ -120,63 +98,70 @@ impl Signature {
         let items = kinds
             .into_iter()
             .map(|kind| SigItem {
-                name: None,
-                ty: SigType {
-                    kind,
-                    span: Span::unknown(),
-                },
-                is_variadic: false,
+                name: String::new(), // TODO: could avoid empty string...
+                ty: kind,
+                has_bang: false,
                 span: Span::unknown(),
             })
             .collect();
-        Signature { items, span }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SigType {
-    pub kind: SigKind,
-    /// Span for just the type part (not including param name or `...`).
-    pub span: Span,
-}
-
-// TODO: Add support for inferred types
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SigItem {
-    /// Optional name: `x: int` → Some("x"), `int` → None
-    pub name: Option<String>,
-    /// The type of this item (can itself be a tuple/signature)
-    pub ty: SigType,
-    /// `true` if prefixed with `...`
-    pub is_variadic: bool,
-    /// Span of the whole item: e.g. `"x:int"`, `"....items: arr<int>"`, `"int"`.
-    pub span: Span,
-}
-impl SigItem {
-    pub fn span(&self) -> Span {
-        self.span
+        Signature {
+            items,
+            span,
+            generics: Vec::new(),
+        }
     }
 
-    /// Returns the SigKind of the type.
-    /// (You may want to rename this to `kind()` later.)
-    pub fn ty_kind(&self) -> &SigKind {
-        &self.ty.kind
+    pub fn kinds(&self) -> Vec<SigKind> {
+        self.items.iter().map(|item| item.ty.clone()).collect()
     }
-
-    pub fn name(&self) -> Option<&str> {
-        self.name.as_deref()
+    pub fn from_tuple<I>(items: I, span: Span) -> Signature
+    where
+        I: IntoIterator<Item = SigKind>,
+    {
+        let sig_items = items
+            .into_iter()
+            .map(|kind| SigItem {
+                name: String::new(), // TODO: could avoid empty string...
+                ty: kind,            // TODO: Rename to kind
+                has_bang: false,
+                span: Span::unknown(),
+            })
+            .collect();
+        Signature {
+            items: sig_items,
+            span: span,
+            generics: Vec::new(),
+        }
     }
-
-    pub fn into_ty_kind(self) -> SigKind {
-        self.ty.kind
-    }
-
-    pub fn into_name(self) -> Option<String> {
-        self.name
-    }
-
     pub fn is_variadic(&self) -> bool {
-        self.is_variadic
+        self.items
+            .iter()
+            .any(|item| matches!(item.ty, SigKind::Variadic))
+    }
+    pub fn names(&self) -> Vec<String> {
+        self.items.iter().map(|item| item.name.clone()).collect()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SigItem {
+    pub name: String,
+    pub ty: SigKind,
+    pub has_bang: bool,
+    pub span: Span,
+}
+impl Eq for SigItem {}
+impl PartialEq for SigItem {
+    fn eq(&self, other: &Self) -> bool {
+        // name is ignored for comparison
+        self.ty == other.ty && self.has_bang == other.has_bang
+    }
+}
+
+impl std::hash::Hash for SigItem {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.ty.hash(state);
+        self.has_bang.hash(state);
     }
 }
 
@@ -184,24 +169,6 @@ impl SigItem {
 pub struct Block {
     pub items: Vec<BlockItem>,
     pub span: Span,
-}
-
-impl Block {
-    pub fn to_function(self, name: String) -> BlockItem {
-        BlockItem::FunctionDef {
-            name,
-            lambda: Lambda {
-                params: Signature {
-                    items: Vec::new(),
-                    span: Span::unknown(),
-                },
-                body: self,
-                args: Vec::new(),
-                span: Span::unknown(),
-            },
-            span: Span::unknown(),
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -253,7 +220,11 @@ pub struct Ident {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SigIdent {
     pub name: String,
-    pub has_bang: bool,
-    /// Span of just the identifier (including bang)
+    pub span: Span,
+}
+
+#[derive(Debug, Clone)]
+pub struct Arg {
+    pub name: String,
     pub span: Span,
 }

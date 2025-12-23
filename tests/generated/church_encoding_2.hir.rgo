@@ -3,31 +3,28 @@
 @/add
 @/printf
 @/exit
-two: (f:(int, (int)), x: int, ok:(int)){
-    _two_0: _two_1(f, ok)
-    f(x, _two_0)
-}
-
-_two_1: (f:(int, (int)), ok:(int), y: int){
+_5_two: (f:(int, (int)), ok:(int), y: int){
     f(y, ok)
 }
 
-_1: (x: int, ok:(int)){
-    __1_0: 10
-    add(x, __1_0, ok)
+two: (f:(int, (int)), x: int, ok:(int)){
+    _6_two: _5_two(f, ok)
+    f(x, _6_two)
 }
 
-__4_2: (){
-    __4___4_2_0: 0
-    exit(__4___4_2_0)
+_9_lambda: (x: int, ok:(int)){
+    _10: 10
+    add(x, _10, ok)
 }
 
-_4: (x: int){
-    __4_0: "result: %d"
-    __4_1: __4_2()
-    printf(__4_0, x, __4_1)
+_17_lambda: (){
+    _18: 0
+    exit(_18)
 }
-_0: _1()
-_2: 0
-_3: _4()
-two(_0, _2, _3)
+
+_14_lambda: (x: int){
+    _15: "result: %d"
+    printf(_15, x, _17_lambda)
+}
+_12: 0
+two(_9_lambda, _12, _14_lambda)

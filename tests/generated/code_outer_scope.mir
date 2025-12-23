@@ -1,0 +1,43 @@
+bar(v: str, ok: ()) {
+    __result = @write(v)
+    ok(__result)
+}
+
+bar_unwrapper(env_end: int) {
+    v: str = env_end - 3 words (v)
+    ok: () = env_end - 2 words (ok)
+    bar(v, ok)
+}
+
+_1_foo() {
+    _2 = 0
+    exit(_2)
+}
+
+_1_foo_unwrapper(env_end: int) {
+    _1_foo()
+}
+
+exit(code: int) {
+    syscall exit(code)
+}
+
+exit_unwrapper(env_end: int) {
+    code: int = env_end - 1 words (code)
+    exit(code)
+}
+
+foo(msg: str) {
+    _1_foo = _1_foo()
+    bar(msg, _1_foo)
+}
+
+foo_unwrapper(env_end: int) {
+    msg: str = env_end - 1 words (msg)
+    foo(msg)
+}
+
+_start() {
+    msg = "hi"
+    foo(msg)
+}

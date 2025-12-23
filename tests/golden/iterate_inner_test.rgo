@@ -1,0 +1,45 @@
+@/str
+@/int
+@/printf
+@/exit
+list: ((int, list), ())
+nil: (next:(int, list), end:()){
+    end()
+}
+
+cons: (head: int, tail: list, next:(int, list), end:()){
+    next(head, tail)
+}
+
+_iterate_0: (iterate: ((int, ()), list, ()), handler:(int, ()), end:(), head: int, tail: list){
+    _iterate__iterate_0_iterate_0: iterate(handler, tail, end)
+    handler(head, _iterate__iterate_0_iterate_0)
+}
+
+iterate: (handler:(int, ()), arr: list, end:()){
+    _iterate_1: _iterate_0(iterate, handler, end)
+    arr(_iterate_1, end)
+}
+_10: 1
+_11: 2
+_12: 3
+_13: 4
+_cons_14: cons(_13, nil)
+_cons_15: cons(_12, _cons_14)
+_cons_16: cons(_11, _cons_15)
+handler: (n: int, ok:()){
+    _handler_0: "%d, "
+    printf(_handler_0, n, ok)
+}
+
+_end_1: (){
+    _end__end_1_0: 0
+    exit(_end__end_1_0)
+}
+
+end: (){
+    _end_0: "end\n"
+    printf(_end_0, _end_1)
+}
+mylist: cons(_10, _cons_16)
+iterate(handler, mylist, end)

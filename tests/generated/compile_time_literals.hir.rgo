@@ -2,19 +2,18 @@
 @/int
 @/printf
 @/exit
-not_const_msg: (fmt: str, value: int!){
-    _not_const_msg_0: _not_const_msg_1()
-    printf(fmt, value, _not_const_msg_0)
+_1_not_const_msg: (){
+    _2: 0
+    exit(_2)
 }
 
-_not_const_msg_1: (){
-    _not_const_msg__not_const_msg_1_0: 0
-    exit(_not_const_msg__not_const_msg_1_0)
+not_const_msg: (fmt: str, value: int){
+    printf(fmt, value, _1_not_const_msg)
 }
 
-const_msg: (fmt: str!, value: int!){
+const_msg: (fmt: str, value: int){
     not_const_msg(fmt, value)
 }
-_0: "compile-time value %d\n"
-_1: 7
-const_msg(_0, _1)
+_4: "compile-time value %d\n"
+_5: 7
+const_msg(_4, _5)

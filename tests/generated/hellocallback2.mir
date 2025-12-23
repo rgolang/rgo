@@ -1,0 +1,46 @@
+foo(f: (str, ()), ok: ()) {
+    _2 = "42"
+    f(_2, ok)
+}
+
+foo_unwrapper(env_end: int) {
+    f: (str, ()) = env_end - 4 words (f)
+    ok: () = env_end - 2 words (ok)
+    foo(f, ok)
+}
+
+print(n: str, ok: ()) {
+    _3 = "The winning number is %s\n"
+    __result = @printf(_3, n)
+    ok(__result)
+}
+
+print_unwrapper(env_end: int) {
+    n: str = env_end - 3 words (n)
+    ok: () = env_end - 2 words (ok)
+    print(n, ok)
+}
+
+_5_lambda() {
+    _6 = 0
+    exit(_6)
+}
+
+_5_lambda_unwrapper(env_end: int) {
+    _5_lambda()
+}
+
+exit(code: int) {
+    syscall exit(code)
+}
+
+exit_unwrapper(env_end: int) {
+    code: int = env_end - 1 words (code)
+    exit(code)
+}
+
+_start() {
+    print = print()
+    _5_lambda = _5_lambda()
+    foo(print, _5_lambda)
+}

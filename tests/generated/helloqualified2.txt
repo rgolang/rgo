@@ -57,6 +57,7 @@
                     column: 6,
                     offset: 53,
                 },
+                generics: [],
             },
             body: Block {
                 items: [

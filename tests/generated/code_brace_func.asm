@@ -1,12 +1,56 @@
 bits 64
 default rel
 section .text
-global say_hi
-say_hi:
-    push rbp ; save caller frame pointer
+global _2_say_hi
+_2_say_hi:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov rax, 0 ; load literal integer
+    mov [rbp-16], rax ; save evaluated scalar in frame
+    mov rax, [rbp-16] ; load scalar from frame
+    push rax ; stack arg: scalar
+    pop rdi ; restore scalar arg into register
+    leave ; unwind before named jump
+    jmp exit ; jump to fully applied function
+global _2_say_hi_unwrapper
+_2_say_hi_unwrapper:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov [rbp-16], rdi ; store scalar arg in frame
+    leave ; unwind before named jump
+    jmp _2_say_hi ; jump to fully applied function
+global exit
+exit:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov [rbp-16], rdi ; store scalar arg in frame
+    ; load exit code
+    leave ; unwind before exiting
+    mov rax, 60 ; exit syscall
+    syscall ; terminate program
+global exit_unwrapper
+exit_unwrapper:
+    push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
     sub rsp, 32 ; reserve stack space for locals
-    lea rax, [rel str_literal_0] ; point to string literal
+    mov [rbp-16], rdi ; store scalar arg in frame
+    mov rax, [rbp-16] ; load scalar from frame
+    mov rax, [rax-8] ; load scalar env field
+    mov [rbp-32], rax ; save evaluated scalar in frame
+    mov rax, [rbp-32] ; load scalar from frame
+    push rax ; stack arg: scalar
+    pop rdi ; restore scalar arg into register
+    leave ; unwind before named jump
+    jmp exit ; jump to fully applied function
+global say_hi
+say_hi:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 48 ; reserve stack space for locals
+    lea rax, [rel _0] ; point to string literal
     mov [rbp-16], rax ; save evaluated scalar in frame
     mov rax, 9 ; mmap syscall
     xor rdi, rdi ; addr = NULL hint
@@ -20,19 +64,9 @@ say_hi:
     mov qword [rdx], 0 ; env size metadata
     mov qword [rdx+8], 24 ; heap size metadata
     mov qword [rdx+16], 0 ; pointer count metadata
-    mov rax, _say_hi_2_closure_entry ; load wrapper entry point
-    sub rsp, 24 ; allocate temporary stack for closure state
-    mov [rsp], rax ; save closure code pointer temporarily
-    mov [rsp+8], rdx ; save closure env_end pointer temporarily
-    mov rax, [rsp] ; restore closure code pointer
-    mov rdx, [rsp+8] ; restore closure env_end pointer
-    add rsp, 24 ; pop temporary closure state
+    mov rax, _2_say_hi_unwrapper ; load unwrapper entry point
     mov [rbp-32], rax ; update closure code pointer
     mov [rbp-24], rdx ; update closure environment pointer
-    mov rax, [rbp-32] ; load closure code pointer
-    mov rdx, [rbp-24] ; load closure env_end pointer
-    push rax ; preserve continuation code pointer
-    push rdx ; preserve continuation env_end pointer
     mov rax, [rbp-16] ; load scalar from frame
     push rax ; stack arg: scalar
     pop rdi ; restore scalar arg into register
@@ -45,70 +79,37 @@ say_hi_write_strlen_loop_0:
     inc rcx ; advance char counter
     jmp say_hi_write_strlen_loop_0
 say_hi_write_strlen_done_0:
-    mov rsi, r8 ; buffer start
     mov rdx, rcx ; length to write
+    mov rsi, r8 ; buffer start
     mov rdi, 1 ; stdout fd
     call write ; invoke libc write
-    pop rdx ; restore continuation env_end pointer
-    pop rax ; restore continuation code pointer
-    mov rdi, rdx ; pass env_end pointer to continuation
-    leave ; unwind before jumping
-    jmp rax ; jump into continuation
-say_hi_closure_entry:
-    push rbp ; save caller frame pointer
-    mov rbp, rsp ; establish wrapper frame
-    sub rsp, 16 ; reserve space for env metadata scratch
-    mov [rbp-8], rdi ; stash env_end pointer for release
-    push rbx ; preserve base register
-    mov rbx, rdi ; rdi points to env_end when invoked
-    mov rdx, [rbp-8] ; load saved env_end pointer
-    mov rcx, [rdx] ; read env size metadata
-    mov rsi, [rdx+8] ; read heap size metadata
-    mov rbx, rdx ; env_end pointer for release
-    sub rbx, rcx ; compute env base pointer
-    mov rdi, rbx ; munmap base pointer
-    mov rax, 11 ; munmap syscall
-    syscall ; release wrapper closure environment
-    pop rbx ; restore saved base register
-    leave ; epilogue: restore rbp of caller
-    jmp say_hi ; jump into actual function
-global _say_hi_2
-_say_hi_2:
-    push rbp ; save caller frame pointer
+    mov [rbp-48], rax ; save evaluated scalar in frame
+    mov rax, [rbp-32] ; load closure code for exec
+    mov rdx, [rbp-24] ; load closure env_end for exec
+    sub rsp, 24 ; allocate temporary stack for closure state
+    mov [rsp], rax ; save closure code pointer temporarily
+    mov [rsp+8], rdx ; save closure env_end pointer temporarily
+    mov rax, [rsp] ; restore closure code pointer
+    mov rdx, [rsp+8] ; restore closure env_end pointer
+    add rsp, 24 ; pop temporary closure state
+    mov rdi, rdx ; pass env_end pointer as parameter
+    leave ; unwind before calling closure
+    jmp rax ; jump into fully applied closure
+global say_hi_unwrapper
+say_hi_unwrapper:
+    push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
     sub rsp, 16 ; reserve stack space for locals
-    mov rax, 0 ; load literal integer
-    mov [rbp-16], rax ; save evaluated scalar in frame
-    mov rax, [rbp-16] ; load scalar from frame
-    mov rdi, rax ; pass exit code
-    leave ; unwind before exit
-    mov rax, 60 ; exit syscall
-    syscall ; exit program
-_say_hi_2_closure_entry:
-    push rbp ; save caller frame pointer
-    mov rbp, rsp ; establish wrapper frame
-    sub rsp, 16 ; reserve space for env metadata scratch
-    mov [rbp-8], rdi ; stash env_end pointer for release
-    push rbx ; preserve base register
-    mov rbx, rdi ; rdi points to env_end when invoked
-    mov rdx, [rbp-8] ; load saved env_end pointer
-    mov rcx, [rdx] ; read env size metadata
-    mov rsi, [rdx+8] ; read heap size metadata
-    mov rbx, rdx ; env_end pointer for release
-    sub rbx, rcx ; compute env base pointer
-    mov rdi, rbx ; munmap base pointer
-    mov rax, 11 ; munmap syscall
-    syscall ; release wrapper closure environment
-    pop rbx ; restore saved base register
-    leave ; epilogue: restore rbp of caller
-    jmp _say_hi_2 ; jump into actual function
+    mov [rbp-16], rdi ; store scalar arg in frame
+    leave ; unwind before named jump
+    jmp say_hi ; jump to fully applied function
 global _start
 _start:
-    push rbp ; save caller frame pointer
+    push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
     leave ; unwind before named jump
     jmp say_hi ; jump to fully applied function
 extern write
 section .rodata
-str_literal_0:
+_0:
     db "hi", 0

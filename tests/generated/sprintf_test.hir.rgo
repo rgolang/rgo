@@ -1,0 +1,15 @@
+@/str
+@/sprintf
+@/write
+@/exit
+_5_lambda: (){
+    _6: 0
+    exit(_6)
+}
+
+_3_lambda: (s: str){
+    write(s, _5_lambda)
+}
+_0: "result: %d"
+_1: 3
+sprintf(_0, _1, _3_lambda)

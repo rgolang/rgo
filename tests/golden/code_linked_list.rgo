@@ -1,0 +1,24 @@
+@/str
+@/int
+@/printf
+@/exit
+
+list: ((int, list), ())
+nil: (next:(int, list), end: ()){
+    end()
+}
+cons: (head:int, tail:list, next:(int, list), end: ()){
+    next(head, tail)
+}
+iterate: (handler: (int, ()), arr: list, end: ()){
+    hhh: (head:int, tail:list){ // TODO: Temporary for named visibility
+        handler(head, iterate(handler, tail, end))
+    }
+    arr(hhh, end)
+}
+mylist: cons(1, cons(2, cons(3, cons(4, nil))))
+handler: (n: int, ok: ()){
+    printf("%d, ", n, ok)
+}
+end: {printf("end\n", exit(0))}
+iterate(handler, mylist, end)

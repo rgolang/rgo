@@ -1,42 +1,44 @@
-use std::error::Error;
+use std::error::Error as StdError;
 use std::fmt::{self, Display, Formatter};
 use std::io;
 
 use crate::compiler::span::Span;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum CompileErrorCode {
+pub enum Code {
     Io,
     Lex,
     Parse,
+    HIR,
     Resolve,
     Codegen,
     Internal,
 }
 
-impl Display for CompileErrorCode {
+impl Display for Code {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let code = match self {
-            CompileErrorCode::Io => "io",
-            CompileErrorCode::Lex => "lex",
-            CompileErrorCode::Parse => "parse",
-            CompileErrorCode::Resolve => "resolve",
-            CompileErrorCode::Codegen => "codegen",
-            CompileErrorCode::Internal => "internal",
+            Code::Io => "io",
+            Code::Lex => "lex",
+            Code::Parse => "parse",
+            Code::HIR => "hir",
+            Code::Resolve => "resolve",
+            Code::Codegen => "codegen",
+            Code::Internal => "internal",
         };
         f.write_str(code)
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct CompileError {
-    pub code: CompileErrorCode,
+pub struct Error {
+    pub code: Code,
     pub message: String,
     pub span: Span,
 }
 
-impl CompileError {
-    pub fn new(code: CompileErrorCode, message: impl Into<String>, span: Span) -> Self {
+impl Error {
+    pub fn new(code: Code, message: impl Into<String>, span: Span) -> Self {
         Self {
             code,
             message: message.into(),
@@ -45,7 +47,15 @@ impl CompileError {
     }
 }
 
-impl Display for CompileError {
+pub fn new(code: Code, message: impl Into<String>, span: Span) -> Error {
+    return Error {
+        code,
+        message: message.into(),
+        span,
+    };
+}
+
+impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -55,10 +65,10 @@ impl Display for CompileError {
     }
 }
 
-impl Error for CompileError {}
+impl StdError for Error {}
 
-impl From<io::Error> for CompileError {
+impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
-        Self::new(CompileErrorCode::Io, err.to_string(), Span::unknown())
+        Self::new(Code::Io, err.to_string(), Span::unknown())
     }
 }

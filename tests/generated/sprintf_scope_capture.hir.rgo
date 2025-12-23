@@ -5,26 +5,23 @@
 @/write
 @/add
 @/exit
+_8_foo: (){
+    _9: 0
+    exit(_9)
+}
+
+_6_foo: (s: str){
+    write(s, _8_foo)
+}
+
+_3_foo: (x: int){
+    _4: "result: %d"
+    sprintf(_4, x, _6_foo)
+}
+
 foo: (){
-    _foo_0: 1
-    _foo_1: 2
-    _foo_2: _foo_3()
-    add(_foo_0, _foo_1, _foo_2)
-}
-
-_foo__foo_3__foo__foo_3_2_1: (){
-    _foo__foo_3__foo__foo_3_2__foo__foo_3__foo__foo_3_2_1_0: 0
-    exit(_foo__foo_3__foo__foo_3_2__foo__foo_3__foo__foo_3_2_1_0)
-}
-
-_foo__foo_3_2: (s: str){
-    _foo__foo_3__foo__foo_3_2_0: _foo__foo_3__foo__foo_3_2_1()
-    write(s, _foo__foo_3__foo__foo_3_2_0)
-}
-
-_foo_3: (x: int){
-    _foo__foo_3_0: "result: %d"
-    _foo__foo_3_1: _foo__foo_3_2()
-    sprintf(_foo__foo_3_0, x, _foo__foo_3_1)
+    _0: 1
+    _1: 2
+    add(_0, _1, _3_foo)
 }
 foo()

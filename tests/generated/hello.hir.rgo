@@ -1,10 +1,9 @@
 @/int
 @/printf
 @/exit
-_2: (){
-    __2_0: 0
-    exit(__2_0)
+_2_lambda: (){
+    _3: 0
+    exit(_3)
 }
 _0: "Hello, world!\n"
-_1: _2()
-printf(_0, _1)
+printf(_0, _2_lambda)

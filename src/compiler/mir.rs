@@ -1,930 +1,729 @@
-use std::collections::{HashMap, HashSet};
-use std::fmt;
+use std::collections::HashSet;
 
-use crate::compiler::error::{CompileError, CompileErrorCode};
+use crate::compiler::ast;
+use crate::compiler::builtins::MirInstKind;
+use crate::compiler::error::{Code, Error};
 use crate::compiler::hir;
-use crate::compiler::hir::{Apply, Arg, Block, BlockItem, Exec, Function, IntLiteral, StrLiteral};
-pub use crate::compiler::hir::{SigItem, SigKind};
-use crate::compiler::runtime::env_metadata_size;
+pub use crate::compiler::mir_ast::*;
 use crate::compiler::span::Span;
-use crate::compiler::symbol::{FunctionSig, SymbolRegistry};
-use crate::compiler::type_utils::expand_alias_chain;
+use crate::compiler::symbol::SymbolRegistry;
 
-#[derive(Clone, Debug)]
-pub enum Type {
-    Int,               // machine integer (size chosen by target)
-    Str,               // pointer to runtime string object
-    Struct(Vec<Type>), // product type (tuples, envs, closures and user structs)
-    CodePtr,           // pointer to a function (represented by FunctionId)
+pub const ENTRY_FUNCTION_NAME: &str = "_start";
+
+pub fn closure_unwrapper_label(name: &str) -> String {
+    format!("{}_unwrapper", name)
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct LocalId(pub u32);
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct FunctionId(pub usize);
-
-// TODO: Rename
-// fn lower_block_item2(
-//     item: &hir::BlockItem,
-// ) -> Result<(Vec<MirFunction>, Option<MirBlockItem>), CompileError> {
-//     match item {
-//         hir::BlockItem::FunctionDef(_)
-//         | hir::BlockItem::StrDef(_)
-//         | hir::BlockItem::SigDef { .. }
-//         | hir::BlockItem::Import { .. }
-//         | hir::BlockItem::IntDef(_)
-//         | hir::BlockItem::ApplyDef(_)
-//         | hir::BlockItem::Exec(_) => {}
-//     }
-// }
-
-#[derive(Clone, Debug)]
-pub struct MirFunction {
-    pub id: FunctionId,       // TODO: use the id to register in symbols
-    pub name: String,         // For debugging only
-    pub params: Vec<SigItem>, // TODO: deprecate params, use input
-    pub input: Vec<Type>,     // TODO: rename to params once done
-    pub locals: Vec<Type>,    // Local variables (including params)
-    pub block: MirBlock,
-    pub owns_self: bool,
-    pub span: Span,
-}
-
-impl MirFunction {
-    pub fn lower(func: &hir::Function, symbols: &mut SymbolRegistry) -> Result<Self, CompileError> {
-        register_function_signature(func, symbols)?;
-        let block = MirBlock::lower(&func.body, symbols, &func.sig.items)?;
-        let owns_self = detects_self_capture(&func.name, &block); // TODO: This needs to be fixed
-        Ok(Self {
-            id: FunctionId(0), // TODO: This needs to be fixed
-            name: func.name.clone(),
-            params: func.sig.items.clone(),
-            input: Vec::new(),
-            locals: Vec::new(),
-            block,
-            owns_self,
-            span: func.span,
-        })
-    }
-
-    pub fn builtin_internal_array_str_nth() -> Self {
-        Self {
-            id: FunctionId(0), // TODO: This needs to be fixed
-            name: "internal_array_str_nth".to_string(),
-            params: Vec::new(),
-            input: Vec::new(),
-            locals: Vec::new(),
-            block: MirBlock {
-                items: Vec::new(),
-                span: Span::unknown(),
-            },
-            owns_self: false,
-            span: Span::unknown(),
-        }
-    }
-
-    pub fn builtin_internal_array_str() -> Self {
-        Self {
-            id: FunctionId(0), // TODO: This needs to be fixed
-            name: "internal_array_str".to_string(),
-            params: Vec::new(),
-            input: Vec::new(),
-            locals: Vec::new(),
-            block: MirBlock {
-                items: Vec::new(),
-                span: Span::unknown(),
-            },
-            owns_self: false,
-            span: Span::unknown(),
-        }
-    }
-}
-
-impl fmt::Display for MirFunction {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let params = if self.params.is_empty() {
-            String::new()
-        } else {
-            let rendered = self
-                .params
-                .iter()
-                .map(|param| format!("{}: {}", param.name, format_type(&param.ty.kind)))
-                .collect::<Vec<_>>()
-                .join(", ");
-            rendered
-        };
-        let root_suffix = if self.owns_self { " [root]" } else { "" };
-        writeln!(f, "{}{}({}) {{", self.name, root_suffix, params)?;
-        for stmt in &self.block.items {
-            writeln!(f, "    {stmt}")?;
-        }
-        write!(f, "}}")
-    }
-}
-
-pub(crate) fn register_function_signature(
-    function: &Function,
+fn prepare_args(
     symbols: &mut SymbolRegistry,
-) -> Result<(), CompileError> {
-    let sig = FunctionSig {
-        name: function.name.clone(),
-        params: function.sig.items.clone(),
-        span: function.span,
-    };
-    symbols.declare_function(sig)?;
-    Ok(())
-}
-
-fn register_block_symbols(block: &Block, symbols: &mut SymbolRegistry) -> Result<(), CompileError> {
-    for item in &block.items {
-        match item {
-            BlockItem::FunctionDef(function) => {
-                register_function_signature(function, symbols)?;
-            }
-            BlockItem::SigDef {
-                name,
-                kind,
-                span,
-                generics,
-            } => {
-                register_type_def(name, kind, *span, generics, symbols)?;
-            }
-            _ => {}
+    locals: &mut HashSet<String>,
+    args: &[ast::Arg],
+    statements: &mut Vec<MirStmt>,
+    generated_functions: &mut Vec<MirFunction>,
+) -> Result<(), Error> {
+    for arg in args {
+        // checks whether this argument is already a local binding before generating a closure for it.
+        // This prevents re-wrapping a name that's already been bound/converted earlier
+        // (e.g., because it was already turned into a captured closure or defined locally) and keeps the argument list stable.
+        if locals.contains(arg.name.as_str()) {
+            continue;
+        }
+        if let Some(closure) =
+            create_closure(symbols, &arg.name, arg.span, generated_functions, None)?
+        {
+            let name = closure.name.clone();
+            statements.push(MirStmt::Closure(closure));
+            locals.insert(name.clone());
         }
     }
     Ok(())
 }
 
-fn register_type_def(
-    name: &str,
-    kind: &SigKind,
+fn create_closure(
+    symbols: &mut SymbolRegistry,
+    target: &str,
     span: Span,
-    _generics: &[String],
-    symbols: &mut SymbolRegistry,
-) -> Result<(), CompileError> {
-    symbols.install_type(name.to_string(), kind.clone(), span, Vec::new())?;
-    Ok(())
-}
-
-pub fn register_sig_def(
-    name: &str,
-    kind: &SigKind,
-    span: Span,
-    generics: &[String],
-    symbols: &mut SymbolRegistry,
-) -> Result<(), CompileError> {
-    register_type_def(name, kind, span, generics, symbols)
-}
-
-fn detects_self_capture(name: &str, block: &MirBlock) -> bool {
-    block.items.iter().any(|stmt| {
-        matches!(
-            stmt,
-            MirStatement::FunctionDef(binding) if binding.function_name == name
-        )
-    })
-}
-
-#[derive(Clone, Debug)]
-pub struct MirBlock {
-    pub items: Vec<MirStatement>,
-    pub span: Span,
-}
-
-impl MirBlock {
-    fn lower(
-        block: &Block,
-        symbols: &mut SymbolRegistry,
-        params: &[SigItem],
-    ) -> Result<Self, CompileError> {
-        register_block_symbols(block, symbols)?;
-        let release_plan = compute_release_plan(block, symbols, params);
-        // TODO: deep_copy_plan is computed but not used yet - needs proper integration
-        let _deep_copy_plan = compute_deep_copy_plan(block, symbols, params);
-        let mut items = Vec::new();
-        let mut ctx = BlockLoweringContext::new(params, symbols);
-
-        for (idx, item) in block.items.iter().enumerate() {
-            // Insert releases before the item if needed
-            if let Some(releases) = release_plan.get(&idx) {
-                for release in releases {
-                    items.push(MirStatement::ReleaseEnv(release.clone()));
-                }
-            }
-
-            let lowered = lower_block_item(item, symbols, &mut ctx)?;
-            items.extend(lowered);
-        }
-
-        Ok(Self {
-            items,
-            span: block.span,
-        })
-    }
-}
-struct BlockLoweringContext<'a> {
-    symbols: &'a SymbolRegistry,
-    bound_names: HashSet<String>,
-    temp_counter: usize,
-}
-
-impl<'a> BlockLoweringContext<'a> {
-    fn new(params: &[SigItem], symbols: &'a SymbolRegistry) -> Self {
-        let mut bound_names = HashSet::new();
-        for param in params {
-            bound_names.insert(param.name.clone());
-        }
-        Self {
-            symbols,
-            bound_names,
-            temp_counter: 0,
-        }
+    generated_functions: &mut Vec<MirFunction>,
+    sig_override: Option<&mut FunctionSig>,
+) -> Result<Option<MirClosure>, Error> {
+    if let Some(sig) = sig_override {
+        handle_builtin_for_sig(symbols, sig, generated_functions)?;
+        return Ok(None);
     }
 
-    fn bind(&mut self, name: &str) {
-        self.bound_names.insert(name.to_string());
-    }
-
-    fn ensure_function_arg(
-        &mut self,
-        arg: &mut Arg,
-        statements: &mut Vec<MirStatement>,
-    ) -> Result<(), CompileError> {
-        if self.bound_names.contains(arg.name.as_str()) {
-            return Ok(());
-        }
-        if let Some(sig) = self.symbols.get_function(&arg.name) {
-            if sig.is_variadic() {
-                return Ok(());
-            }
-        }
-        if let Some(binding) = self.create_function_binding(&arg.name, arg.span)? {
-            let temp_name = binding.name.clone();
-            statements.push(MirStatement::FunctionDef(binding));
-            self.bind(&temp_name);
-            arg.name = temp_name;
-        }
-        Ok(())
-    }
-
-    fn create_function_binding(
-        &mut self,
-        target: &str,
-        span: Span,
-    ) -> Result<Option<MirFunctionBinding>, CompileError> {
-        let allocation = match function_env_allocation(target, self.symbols) {
-            Some(plan) => plan,
-            None => return Ok(None),
-        };
-        let temp_name = format!("__mir_fn_{}", self.temp_counter);
-        self.temp_counter += 1;
-        Ok(Some(MirFunctionBinding {
-            name: temp_name,
-            function_name: target.to_string(),
+    if let Some(orig_sig) = symbols.get_function(target) {
+        let mut cloned_sig = orig_sig.clone();
+        handle_builtin_for_sig(symbols, &mut cloned_sig, generated_functions)?;
+        return Ok(Some(MirClosure {
+            target: MirExecTarget::Function(cloned_sig),
+            args: Vec::new(),
+            name: target.to_string(),
             span,
-            env_allocation: Some(allocation),
-        }))
+        }));
     }
+
+    Ok(None)
 }
 
-#[derive(Clone, Debug)]
-pub enum MirStatement {
-    FunctionDef(MirFunctionBinding),
-    StrDef(StrLiteral),
-    IntDef(IntLiteral),
-    StructDef(MirStruct),
-    Exec(MirExec),
-    ReleaseEnv(ReleaseEnv),
-    DeepCopy(DeepCopy),
-}
-
-impl fmt::Display for MirStatement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            MirStatement::FunctionDef(binding) => {
-                let label = if binding.name == binding.function_name {
-                    "<function>".to_string()
-                } else {
-                    format!("<function {}>", binding.function_name)
-                };
-                if let Some(allocation) = &binding.env_allocation {
-                    write!(
-                        f,
-                        "{} = {}; mmap env_size={} heap_size={}",
-                        binding.name, label, allocation.env_size, allocation.heap_size
-                    )
-                } else {
-                    write!(f, "{} = {}", binding.name, label)
-                }
+fn handle_builtin_for_sig(
+    symbols: &mut SymbolRegistry,
+    sig: &mut FunctionSig,
+    generated_functions: &mut Vec<MirFunction>,
+) -> Result<(), Error> {
+    if let Some(builtin_kind) = sig.builtin {
+        match builtin_kind {
+            builtin @ (MirBuiltin::Instruction(_) | MirBuiltin::SysCall(_)) => {
+                let mut generated = ensure_builtin_bridge_generated_once(symbols, builtin, sig);
+                generated_functions.append(&mut generated);
             }
-            MirStatement::StrDef(StrLiteral { name, value, .. }) => {
-                write!(f, "{} = \"{}\"", name, escape_literal(value))
-            }
-            MirStatement::IntDef(IntLiteral { name, value, .. }) => {
-                write!(f, "{} = {}", name, value)
-            }
-            MirStatement::StructDef(apply) => {
-                let args = render_args(&apply.value.args);
-                write!(f, "{} = {}({})", apply.value.name, apply.value.of, args)
-            }
-            MirStatement::Exec(exec) => {
-                let args = render_args(&exec.exec.args);
-                if let Some(result) = &exec.exec.result {
-                    write!(f, "{} = {}({})", result, exec.exec.of, args)
-                } else {
-                    write!(f, "{}({})", exec.exec.of, args)
-                }
-            }
-            MirStatement::ReleaseEnv(ReleaseEnv { name, .. }) => {
-                write!(f, "munmap {}", name)
-            }
-            MirStatement::DeepCopy(DeepCopy { original, copy, .. }) => {
-                write!(f, "{} = deepcopy {}", copy, original)
+            MirBuiltin::Call(_) => {
+                // MirCall builtin functions are executed directly without additional bridging.
             }
         }
     }
+
+    Ok(())
 }
 
-#[derive(Clone, Debug)]
-pub struct MirFunctionBinding {
-    pub name: String,
-    pub function_name: String,
-    pub span: Span,
-    pub env_allocation: Option<MirEnvAllocation>,
-}
-
-#[derive(Clone, Debug)]
-pub struct MirEnvAllocation {
-    pub env_size: usize,
-    pub heap_size: usize,
-}
-
-#[derive(Clone, Debug)]
-pub struct MirStruct {
-    pub value: Apply,
-    pub variadic: Option<MirVariadicExecInfo>,
-}
-
-#[derive(Clone, Debug)]
-pub struct MirExec {
-    pub exec: Exec,
-    pub variadic: Option<MirVariadicExecInfo>,
-}
-
-#[derive(Clone, Debug)]
-pub struct MirVariadicExecInfo {
-    pub variadic_param_index: usize,
-    pub prefix_len: usize,
-    pub suffix_len: usize,
-}
-
-impl MirVariadicExecInfo {
-    pub fn required_arguments(&self) -> usize {
-        self.prefix_len + self.suffix_len
+pub fn entry_function(
+    entry_items: Vec<hir::BlockItem>,
+    symbols: &mut SymbolRegistry,
+) -> Result<Vec<MirFunction>, Error> {
+    let mut items: Vec<MirStmt> = Vec::new();
+    let mut locals = HashSet::new();
+    let mut generated_functions = Vec::new();
+    for item in entry_items.iter() {
+        match item {
+            hir::BlockItem::Import { .. }
+            | hir::BlockItem::FunctionDef { .. }
+            | hir::BlockItem::SigDef { .. } => {} // already handled
+            _ => {
+                let stmt =
+                    lower_block_item(item.clone(), &mut locals, symbols, &mut generated_functions)?;
+                items.extend(stmt);
+            }
+        }
     }
+    generated_functions.push(MirFunction {
+        sig: FunctionSig {
+            name: ENTRY_FUNCTION_NAME.into(),
+            params: Vec::new(),
+            span: Span::unknown(),
+            builtin: None,
+        },
+        items,
+    });
+    Ok(generated_functions)
 }
 
-#[derive(Clone, Debug)]
-pub struct ReleaseEnv {
-    pub name: String,
-    pub span: Span,
-}
+pub fn lower_function(
+    func: &hir::Function,
+    symbols: &mut SymbolRegistry,
+) -> Result<Vec<MirFunction>, Error> {
+    let params = func.sig.items.clone();
+    let sig = FunctionSig {
+        name: func.name.clone(),
+        params: params.clone(),
+        span: func.span,
+        builtin: None,
+    };
+    symbols.declare_function(sig.clone())?;
 
-#[derive(Clone, Debug)]
-pub struct DeepCopy {
-    pub original: String,
-    pub copy: String,
-    pub span: Span,
+    let mut locals = HashSet::new();
+    for param in func.sig.items.iter() {
+        locals.insert(param.name.clone());
+    }
+
+    let mut lowered_items = Vec::new();
+    let mut generated_functions = Vec::new();
+    for item in func.body.items.iter() {
+        let lowered =
+            lower_block_item(item.clone(), &mut locals, symbols, &mut generated_functions)?;
+        lowered_items.extend(lowered);
+    }
+
+    let function = MirFunction {
+        sig: sig.clone(),
+        items: lowered_items,
+    };
+
+    let mut functions = vec![function.clone()];
+    if let Some(unwrapper) = build_closure_unwrapper(&function) {
+        functions.push(unwrapper);
+    }
+    functions.extend(generated_functions.into_iter());
+    Ok(functions)
 }
 
 fn lower_block_item(
-    item: &BlockItem,
-    symbols: &SymbolRegistry,
-    ctx: &mut BlockLoweringContext, // TODO: This is such crazy duplication...
-) -> Result<Vec<MirStatement>, CompileError> {
-    match item {
-        BlockItem::Import { .. } => Ok(vec![]), // TODO: maybe need to define stuff here
-        BlockItem::FunctionDef(function) => {
-            let binding = lower_function_binding(function, symbols)?;
-            ctx.bind(&binding.name);
-            Ok(vec![MirStatement::FunctionDef(binding)])
+    item: hir::BlockItem,
+    locals: &mut HashSet<String>,
+    symbols: &mut SymbolRegistry,
+    generated_functions: &mut Vec<MirFunction>,
+) -> Result<Vec<MirStmt>, Error> {
+    let lowered = match item {
+        hir::BlockItem::FunctionDef(..) => {
+            // TODO: This should be unreachable?!
+            vec![]
         }
-        BlockItem::StrDef(literal) => {
-            ctx.bind(&literal.name);
-            Ok(vec![MirStatement::StrDef(literal.clone())])
+        hir::BlockItem::StrDef { name, literal } => {
+            locals.insert(name.clone());
+            vec![MirStmt::StrDef { name, literal }]
         }
-        BlockItem::IntDef(literal) => {
-            ctx.bind(&literal.name);
-            Ok(vec![MirStatement::IntDef(literal.clone())])
+        hir::BlockItem::IntDef { name, literal } => {
+            locals.insert(name.clone());
+            vec![MirStmt::IntDef { name, literal }]
         }
-        BlockItem::SigDef { name, .. } => {
-            ctx.bind(name);
-            Ok(vec![])
+        hir::BlockItem::ClosureDef(closure) => {
+            lower_closure(&closure, symbols, locals, generated_functions)?
         }
-        BlockItem::ApplyDef(apply) => lower_apply_statements(apply, symbols, ctx),
-        BlockItem::Exec(exec) => lower_exec_statements(exec, symbols, ctx),
-    }
+        hir::BlockItem::Exec(exec) => lower_exec(&exec, symbols, locals, generated_functions)?,
+        _ => unreachable!("unexpected block item: {:#?}", item),
+    };
+    Ok(lowered)
 }
 
-fn lower_apply_statements(
-    apply: &Apply,
-    symbols: &SymbolRegistry,
-    ctx: &mut BlockLoweringContext,
-) -> Result<Vec<MirStatement>, CompileError> {
-    let mut statements = Vec::new();
-    let mut apply = apply.clone();
-    for arg in &mut apply.args {
-        ctx.ensure_function_arg(arg, &mut statements)?;
+fn ensure_target(
+    symbols: &mut SymbolRegistry,
+    locals: &mut HashSet<String>,
+    args: &[ast::Arg],
+    target_name: &str,
+    span: Span,
+    generated_functions: &mut Vec<MirFunction>,
+) -> Result<(Vec<MirStmt>, MirExecTarget, Vec<MirArg>), Error> {
+    let mut block_items = Vec::new();
+    prepare_args(symbols, locals, args, &mut block_items, generated_functions)?;
+    let mut target = resolve_target(target_name, symbols);
+    let args = extract_closure_sig_info(&mut target, args);
+    if let MirExecTarget::Function(sig) = &mut target {
+        create_closure(symbols, target_name, span, generated_functions, Some(sig))?;
     }
-    let lowered = lower_apply(&apply, symbols)?;
-    ctx.bind(&apply.name);
-    statements.push(MirStatement::StructDef(lowered));
-    Ok(statements)
+    Ok((block_items, target, args))
 }
 
-fn lower_exec_statements(
-    exec: &Exec,
-    symbols: &SymbolRegistry,
-    ctx: &mut BlockLoweringContext,
-) -> Result<Vec<MirStatement>, CompileError> {
-    // Validate builtin function arguments before transforming them
-    validate_builtin_exec(exec, symbols)?;
-
-    let mut statements = Vec::new();
-    let mut exec = exec.clone();
-    for arg in &mut exec.args {
-        ctx.ensure_function_arg(arg, &mut statements)?;
-    }
-    let lowered = lower_exec(&exec, symbols)?;
-    if let Some(result) = &exec.result {
-        ctx.bind(result);
-    }
-    statements.push(MirStatement::Exec(lowered));
-    Ok(statements)
-}
-
-fn lower_function_binding(
-    function: &Function,
-    symbols: &SymbolRegistry,
-) -> Result<MirFunctionBinding, CompileError> {
-    create_binding_for_function(
-        function.name.clone(),
-        &function.name,
-        function.span,
+// TODO: ABC: This is the target
+fn lower_closure(
+    closure: &hir::Closure,
+    symbols: &mut SymbolRegistry,
+    locals: &mut HashSet<String>,
+    generated_functions: &mut Vec<MirFunction>,
+) -> Result<Vec<MirStmt>, Error> {
+    let (mut block_items, target, args) = ensure_target(
         symbols,
-    )
+        locals,
+        &closure.args,
+        &closure.of,
+        closure.span,
+        generated_functions,
+    )?;
+    locals.insert(closure.name.clone());
+    block_items.push(MirStmt::Closure(MirClosure {
+        name: closure.name.clone(),
+        target,
+        args,
+        span: closure.span,
+    }));
+    Ok(block_items)
 }
 
-fn create_binding_for_function(
-    binding_name: String,
-    function_name: &str,
+fn lower_exec(
+    exec: &hir::Exec,
+    symbols: &mut SymbolRegistry,
+    locals: &mut HashSet<String>,
+    generated_functions: &mut Vec<MirFunction>,
+) -> Result<Vec<MirStmt>, Error> {
+    let exec = exec.clone();
+    let (mut block_items, target, args) = ensure_target(
+        symbols,
+        locals,
+        &exec.args,
+        &exec.of,
+        exec.span,
+        generated_functions,
+    )?;
+    if let MirExecTarget::Function(sig) = &target {
+        if let Some(MirBuiltin::Call(kind)) = sig.builtin {
+            let builtin_items = lower_builtin_call(sig, kind, args, exec.span)?;
+            block_items.extend(builtin_items);
+            return Ok(block_items);
+        }
+    }
+    block_items.push(MirStmt::Exec(MirExec {
+        target,
+        args,
+        span: exec.span,
+    }));
+    Ok(block_items)
+}
+
+fn lower_builtin_call(
+    sig: &FunctionSig,
+    kind: MirCallKind,
+    mut args: Vec<MirArg>,
     span: Span,
-    symbols: &SymbolRegistry,
-) -> Result<MirFunctionBinding, CompileError> {
-    let allocation = function_env_allocation(function_name, symbols).ok_or_else(|| {
-        CompileError::new(
-            CompileErrorCode::Codegen,
-            format!("compiler bug: unknown function '{}'", function_name),
-            span,
-        )
-    })?;
-    Ok(MirFunctionBinding {
-        name: binding_name,
-        function_name: function_name.to_string(),
-        span,
-        env_allocation: Some(allocation),
-    })
-}
-
-fn function_env_allocation(
-    function_name: &str,
-    symbols: &SymbolRegistry,
-) -> Option<MirEnvAllocation> {
-    symbols.get_function(function_name).map(|sig| {
-        let env_size = env_size_bytes(&sig.params, symbols);
-        let pointer_count = env_pointer_count(&sig.params, symbols);
-        MirEnvAllocation {
-            env_size,
-            heap_size: env_size + env_metadata_size(pointer_count),
-        }
-    })
-}
-
-fn lower_apply(apply: &Apply, symbols: &SymbolRegistry) -> Result<MirStruct, CompileError> {
-    let variadic = compute_variadic_call_info(&apply.of, apply.args.len(), apply.span, symbols)?;
-    Ok(MirStruct {
-        value: apply.clone(),
-        variadic,
-    })
-}
-
-fn validate_builtin_exec(exec: &Exec, symbols: &SymbolRegistry) -> Result<(), CompileError> {
-    let name = exec.of.as_str();
-
-    // Validate printf continuation
-    if name == "printf" {
-        if exec.args.len() < 2 {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
-                "printf requires a format string and a continuation",
-                exec.span,
-            ));
-        }
-
-        let continuation_arg = &exec.args[exec.args.len() - 1];
-        if let Some(sig) = symbols.get_function(&continuation_arg.name) {
-            if !sig.params.is_empty() {
-                return Err(CompileError::new(
-                    CompileErrorCode::Codegen,
-                    "printf continuation must accept no arguments",
-                    continuation_arg.span,
-                ));
-            }
-        }
-    }
-
-    // Validate sprintf continuation
-    if name == "sprintf" {
-        if exec.args.len() < 2 {
-            return Err(CompileError::new(
-                CompileErrorCode::Codegen,
-                "sprintf requires a format string and a continuation",
-                exec.span,
-            ));
-        }
-
-        let continuation_arg = &exec.args[exec.args.len() - 1];
-        if let Some(sig) = symbols.get_function(&continuation_arg.name) {
-            if sig.params.is_empty() {
-                return Err(CompileError::new(
-                    CompileErrorCode::Codegen,
-                    "sprintf continuation must accept at least one string argument",
-                    continuation_arg.span,
-                ));
-            }
-            if sig.params[0].ty.kind != SigKind::Str {
-                return Err(CompileError::new(
-                    CompileErrorCode::Codegen,
-                    "sprintf continuation must accept a string argument",
-                    continuation_arg.span,
-                ));
-            }
-        }
-    }
-
-    Ok(())
-}
-
-fn lower_exec(exec: &Exec, symbols: &SymbolRegistry) -> Result<MirExec, CompileError> {
-    validate_builtin_exec(exec, symbols)?;
-    let variadic = compute_variadic_call_info(&exec.of, exec.args.len(), exec.span, symbols)?;
-    Ok(MirExec {
-        exec: exec.clone(),
-        variadic,
-    })
-}
-
-fn compute_variadic_call_info(
-    of: &str,
-    args_len: usize,
-    span: Span,
-    symbols: &SymbolRegistry,
-) -> Result<Option<MirVariadicExecInfo>, CompileError> {
-    let sig = match symbols.get_function(of) {
-        Some(sig) => sig,
-        None => return Ok(None),
-    };
-    let mut variadic_index = None;
-    for (idx, param) in sig.params.iter().enumerate() {
-        if param.is_variadic {
-            if variadic_index.is_some() {
-                return Err(CompileError::new(
-                    CompileErrorCode::Codegen,
-                    format!("multiple variadic parameters are not supported for '{of}'"),
-                    span,
-                ));
-            }
-            variadic_index = Some(idx);
-        }
-    }
-    let variadic_idx = match variadic_index {
-        Some(idx) => idx,
-        None => return Ok(None),
-    };
-    let prefix_required = variadic_idx;
-    let suffix_required = sig.params.len().saturating_sub(variadic_idx + 1);
-    let required = prefix_required + suffix_required;
-    if args_len < required {
-        return Err(CompileError::new(
-            CompileErrorCode::Codegen,
-            format!("function '{of}' expected at least {required} arguments but got {args_len}"),
+) -> Result<Vec<MirStmt>, Error> {
+    if args.is_empty() {
+        return Err(Error::new(
+            Code::Internal,
+            format!("{} requires a continuation argument", kind.name()),
             span,
         ));
     }
-    let suffix_arg_start = args_len - suffix_required;
-    if suffix_arg_start < prefix_required {
-        return Err(CompileError::new(
-            CompileErrorCode::Codegen,
-            format!("function '{of}' expected at least {required} arguments but got {args_len}"),
+
+    let continuation_arg = args.pop().unwrap();
+    if args.is_empty() {
+        return Err(Error::new(
+            Code::Internal,
+            format!(
+                "{} requires at least one argument before the continuation",
+                kind.name()
+            ),
             span,
         ));
     }
-    Ok(Some(MirVariadicExecInfo {
-        variadic_param_index: variadic_idx,
-        prefix_len: prefix_required,
-        suffix_len: suffix_required,
-    }))
-}
 
-fn env_size_bytes(params: &[SigItem], symbols: &SymbolRegistry) -> usize {
-    params
+    let call_args = args;
+    let call_arg_kinds = call_args
         .iter()
-        .map(|ty| bytes_for_type(&ty.ty.kind, symbols))
-        .sum()
-}
-
-fn env_pointer_count(params: &[SigItem], symbols: &SymbolRegistry) -> usize {
-    params
-        .iter()
-        .map(|ty| pointer_slots_for_type(&ty.ty.kind, symbols))
-        .sum()
-}
-
-fn bytes_for_type(ty: &SigKind, symbols: &SymbolRegistry) -> usize {
-    let mut visited = HashSet::new();
-    if is_closure_type(ty, symbols, &mut visited) {
-        16
-    } else {
-        8
-    }
-}
-
-fn pointer_slots_for_type(ty: &SigKind, symbols: &SymbolRegistry) -> usize {
-    let mut visited = HashSet::new();
-    if is_closure_type(ty, symbols, &mut visited) {
-        1
-    } else {
-        0
-    }
-}
-
-fn compute_release_plan(
-    block: &Block,
-    symbols: &SymbolRegistry,
-    params: &[SigItem],
-) -> HashMap<usize, Vec<ReleaseEnv>> {
-    let mut plan = HashMap::new();
-    let closure_params = closure_param_names(params, symbols);
-    if closure_params.is_empty() {
-        return plan;
-    }
-    let last_tail_call_idx = block
-        .items
-        .iter()
-        .rposition(|item| matches!(item, BlockItem::Exec(inv) if inv.result.is_none()));
-    if let Some(idx) = last_tail_call_idx {
-        if let BlockItem::Exec(exec) = &block.items[idx] {
-            let captured = captured_closure_params(&block.items, &closure_params);
-            let mut releases = Vec::new();
-            for param in &closure_params {
-                if captured.contains(param) {
-                    continue;
-                }
-                if should_release_closure_param(param, exec) {
-                    releases.push(ReleaseEnv {
-                        name: param.clone(),
-                        span: exec.span,
-                    });
-                }
-            }
-            if !releases.is_empty() {
-                plan.insert(idx, releases);
-            }
-        }
-    }
-    plan
-}
-
-/// Analyzes closure usage patterns to determine where deep copies are needed
-/// Returns a map of item index -> (closure name -> copy name for subsequent uses)
-fn compute_deep_copy_plan(
-    block: &Block,
-    symbols: &SymbolRegistry,
-    params: &[SigItem],
-) -> HashMap<usize, HashMap<String, String>> {
-    let mut plan = HashMap::new();
-    let closure_params = closure_param_names(params, symbols);
-    if closure_params.is_empty() {
-        return plan;
-    }
-
-    // Track usage count for each closure
-    let mut usage_counts: HashMap<String, usize> = HashMap::new();
-    let mut usage_indices: HashMap<String, Vec<usize>> = HashMap::new();
-
-    for (item_idx, item) in block.items.iter().enumerate() {
-        match item {
-            BlockItem::Import { .. } => {}
-            BlockItem::ApplyDef(Apply { of, args, .. }) => {
-                if closure_params.contains(of) {
-                    *usage_counts.entry(of.clone()).or_insert(0) += 1;
-                    usage_indices
-                        .entry(of.clone())
-                        .or_insert_with(Vec::new)
-                        .push(item_idx);
-                }
-                for arg in args {
-                    if closure_params.contains(&arg.name) {
-                        *usage_counts.entry(arg.name.clone()).or_insert(0) += 1;
-                        usage_indices
-                            .entry(arg.name.clone())
-                            .or_insert_with(Vec::new)
-                            .push(item_idx);
-                    }
-                }
-            }
-            BlockItem::Exec(exec) => {
-                if closure_params.contains(&exec.of) {
-                    *usage_counts.entry(exec.of.clone()).or_insert(0) += 1;
-                    usage_indices
-                        .entry(exec.of.clone())
-                        .or_insert_with(Vec::new)
-                        .push(item_idx);
-                }
-                for arg in &exec.args {
-                    if closure_params.contains(&arg.name) {
-                        *usage_counts.entry(arg.name.clone()).or_insert(0) += 1;
-                        usage_indices
-                            .entry(arg.name.clone())
-                            .or_insert_with(Vec::new)
-                            .push(item_idx);
-                    }
-                }
-            }
-            BlockItem::FunctionDef(_)
-            | BlockItem::StrDef(_)
-            | BlockItem::IntDef(_)
-            | BlockItem::SigDef { .. } => {}
-        }
-    }
-
-    // For closures used multiple times, insert deep copies before subsequent uses
-    let mut copy_counter = 0;
-    for closure_name in &closure_params {
-        if let Some(count) = usage_counts.get(closure_name) {
-            if *count > 1 {
-                // Need to create copies for uses after the first
-                if let Some(indices) = usage_indices.get(closure_name) {
-                    // Skip the first index, create copies for subsequent ones
-                    for &idx in indices.iter().skip(1) {
-                        let copy_name = format!("__closure_copy_{}_{}", closure_name, copy_counter);
-                        copy_counter += 1;
-                        plan.entry(idx)
-                            .or_insert_with(HashMap::new)
-                            .insert(closure_name.clone(), copy_name);
-                    }
-                }
-            }
-        }
-    }
-
-    plan
-}
-
-fn closure_param_names(params: &[SigItem], symbols: &SymbolRegistry) -> Vec<String> {
-    params
-        .iter()
-        .filter(|param| is_closure_param(&param.ty.kind, symbols))
-        .map(|param| param.name.clone())
-        .collect()
-}
-
-fn captured_closure_params(items: &[BlockItem], closure_params: &[String]) -> HashSet<String> {
-    let closure_names: HashSet<&str> = closure_params.iter().map(|name| name.as_str()).collect();
-    let mut captured = HashSet::new();
-
-    for item in items {
-        match item {
-            BlockItem::Import { .. } => {}
-            BlockItem::ApplyDef(Apply { of, args, .. }) => {
-                if closure_names.contains(of.as_str()) {
-                    captured.insert(of.clone());
-                }
-                for arg in args {
-                    if closure_names.contains(arg.name.as_str()) {
-                        captured.insert(arg.name.clone());
-                    }
-                }
-            }
-            BlockItem::Exec(exec) => {
-                if closure_names.contains(exec.of.as_str()) {
-                    captured.insert(exec.of.clone());
-                }
-                for arg in &exec.args {
-                    if closure_names.contains(arg.name.as_str()) {
-                        captured.insert(arg.name.clone());
-                    }
-                }
-                if let Some(result) = &exec.result {
-                    if closure_names.contains(result.as_str()) {
-                        captured.insert(result.clone());
-                    }
-                }
-            }
-            BlockItem::FunctionDef(_)
-            | BlockItem::StrDef(_)
-            | BlockItem::IntDef(_)
-            | BlockItem::SigDef { .. } => {}
-        }
-    }
-
-    captured
-}
-
-fn should_release_closure_param(param_name: &str, exec: &Exec) -> bool {
-    if exec.of == param_name {
-        return false;
-    }
-    !exec.args.iter().any(|arg| arg.name == param_name)
-}
-
-fn is_closure_param(ty: &SigKind, symbols: &SymbolRegistry) -> bool {
-    let mut visited = HashSet::new();
-    is_closure_type(ty, symbols, &mut visited)
-}
-
-fn is_closure_type(ty: &SigKind, symbols: &SymbolRegistry, visited: &mut HashSet<String>) -> bool {
-    match ty {
-        SigKind::Int | SigKind::Str | SigKind::CompileTimeInt | SigKind::CompileTimeStr => false,
-        SigKind::Tuple(_) => true,
-        SigKind::Ident(ident) => {
-            let name = &ident.name;
-            if visited.contains(name) {
-                return true;
-            }
-            if let Some(info) = symbols.get_type_info(name) {
-                visited.insert(name.clone());
-                let result = is_closure_type(&info.target, symbols, visited);
-                visited.remove(name);
-                return result;
-            }
-            false
-        }
-        SigKind::GenericInst { .. } => {
-            let mut expand_visited = HashSet::new();
-            let expanded = expand_alias_chain(ty, symbols, &mut expand_visited);
-            is_closure_type(&expanded, symbols, visited)
-        }
-        SigKind::Generic(_) => false,
-    }
-}
-
-fn render_args(args: &[crate::compiler::hir::Arg]) -> String {
-    args.iter()
+        .map(|arg| arg.kind.clone())
+        .collect::<Vec<_>>();
+    let (_, continuation_params) = split_inputs_and_continuations(&sig.params);
+    let continuation_signature = extract_continuation_signature(&continuation_params);
+    let outputs = build_continuation_outputs(continuation_signature.clone(), sig.span);
+    let result_name = outputs
+        .first()
         .map(|arg| arg.name.clone())
-        .collect::<Vec<_>>()
-        .join(", ")
+        .unwrap_or_else(String::new);
+
+    let continuation = ast::Arg {
+        name: continuation_arg.name.clone(),
+        span,
+    };
+
+    let mut stmts = Vec::new();
+    let call_stmt = MirStmt::Call(MirCall {
+        result: result_name.clone(),
+        name: kind.name().to_string(),
+        args: call_args,
+        arg_kinds: call_arg_kinds,
+        continuation,
+        span,
+    });
+    stmts.push(call_stmt);
+
+    if let Some((_, _)) = continuation_signature {
+        stmts.push(MirStmt::Exec(MirExec {
+            target: MirExecTarget::Closure {
+                name: continuation_arg.name,
+            },
+            args: outputs,
+            span,
+        }));
+    }
+
+    Ok(stmts)
 }
 
-fn escape_literal(value: &str) -> String {
-    value
-        .chars()
-        .map(|c| match c {
-            '\\' => "\\\\".to_string(),
-            '\"' => "\\\"".to_string(),
-            '\n' => "\\n".to_string(),
-            '\r' => "\\r".to_string(),
-            '\t' => "\\t".to_string(),
-            other => other.to_string(),
+// TODO: Simplify this.
+fn resolve_target(name: &str, symbols: &SymbolRegistry) -> MirExecTarget {
+    if let Some(sig) = symbols.get_function(name) {
+        return MirExecTarget::Function(sig.clone());
+    }
+    MirExecTarget::Closure {
+        name: name.to_string(),
+    }
+}
+
+fn build_closure_unwrapper(function: &MirFunction) -> Option<MirFunction> {
+    if function.sig.name == ENTRY_FUNCTION_NAME {
+        return None;
+    }
+
+    let env_param = SigItem {
+        name: "env_end".to_string(),
+        ty: SigKind::Int,
+        has_bang: false,
+        span: function.sig.span,
+    };
+
+    Some(build_unwrapper_function(
+        closure_unwrapper_label(&function.sig.name),
+        function.sig.clone(),
+        env_param,
+        function.sig.params.clone(),
+        function.sig.span,
+    ))
+}
+
+fn extract_closure_sig_info(target: &MirExecTarget, args: &[Arg]) -> Vec<MirArg> {
+    if let Some(params) = target_signature(target) {
+        return consume_signature_for_args(params, args);
+    }
+    let fallback_args = args
+        .iter()
+        .map(|arg| MirArg {
+            name: arg.name.clone(),
+            kind: SigKind::Int,
         })
-        .collect::<Vec<_>>()
-        .join("")
+        .collect();
+    fallback_args
 }
 
-pub fn format_type(ty: &SigKind) -> String {
-    match ty {
-        SigKind::Int => "int".to_string(),
-        SigKind::Str => "str".to_string(),
-        SigKind::CompileTimeInt => "int!".to_string(),
-        SigKind::CompileTimeStr => "str!".to_string(),
-        SigKind::Tuple(params) => {
-            let inner = params
-                .items
-                .iter()
-                .map(|item| format_type(&item.ty.kind))
-                .collect::<Vec<_>>();
-            format!("({})", inner.join(", "))
+fn target_signature<'a>(target: &'a MirExecTarget) -> Option<&'a [SigItem]> {
+    match target {
+        MirExecTarget::Function(sig) => Some(&sig.params),
+        MirExecTarget::Closure { .. } => None,
+    }
+}
+
+fn consume_signature_for_args(params: &[SigItem], args: &[Arg]) -> Vec<MirArg> {
+    let mut consumed = 0;
+    let mut sig_index = 0;
+    let total = params.len();
+    let mut mir_args = Vec::with_capacity(args.len());
+    while consumed < args.len() && sig_index < total {
+        match &params[sig_index].ty {
+            SigKind::Variadic => {
+                let remaining_args = args.len() - consumed;
+                let final_items = total.saturating_sub(sig_index + 1);
+                let variadic_count = remaining_args.saturating_sub(final_items);
+                for _ in 0..variadic_count {
+                    mir_args.push(MirArg {
+                        name: args[consumed].name.clone(),
+                        kind: SigKind::Int,
+                    });
+                    consumed += 1;
+                }
+                sig_index += 1;
+            }
+            ty => {
+                mir_args.push(MirArg {
+                    name: args[consumed].name.clone(),
+                    kind: ty.clone(),
+                });
+                consumed += 1;
+                sig_index += 1;
+            }
         }
-        SigKind::Ident(ident) => ident.name.clone(),
-        SigKind::GenericInst { name, args } => format!(
-            "{}<{}>",
+    }
+
+    while consumed < args.len() {
+        mir_args.push(MirArg {
+            name: args[consumed].name.clone(),
+            kind: SigKind::Int,
+        });
+        consumed += 1;
+    }
+
+    mir_args
+}
+
+fn build_unwrapper_function(
+    name: String,
+    target_sig: FunctionSig,
+    env_param: SigItem,
+    field_sig_items: Vec<SigItem>,
+    span: Span,
+) -> MirFunction {
+    let env_word_count = env_word_count_from_params(&field_sig_items);
+    let offsets = env_word_offsets_from_params(&field_sig_items);
+    let mut items = Vec::with_capacity(field_sig_items.len() + 1);
+
+    for (idx, sig_item) in field_sig_items.iter().enumerate() {
+        let offset_from_end = env_word_count - offsets[idx];
+        items.push(MirStmt::EnvField(MirEnvField {
+            result: sig_item.name.clone(),
+            env_end: env_param.name.clone(),
+            field_name: sig_item.name.clone(),
+            offset_from_end,
+            ty: sig_item.ty.clone(),
+            continuation_params: continuation_params_for_type(&sig_item.ty),
+            span: sig_item.span,
+        }));
+    }
+
+    let exec_args = field_sig_items
+        .iter()
+        .map(|item| MirArg {
+            name: item.name.clone(),
+            kind: item.ty.clone(),
+        })
+        .collect::<Vec<_>>();
+
+    items.push(MirStmt::Exec(MirExec {
+        target: MirExecTarget::Function(target_sig),
+        args: exec_args,
+        span,
+    }));
+
+    MirFunction {
+        sig: FunctionSig {
             name,
-            args.iter()
-                .map(|arg| format_type(&arg))
-                .collect::<Vec<_>>()
-                .join(", ")
+            params: vec![env_param],
+            span,
+            builtin: None,
+        },
+        items,
+    }
+}
+
+fn env_word_count_from_params(params: &[SigItem]) -> usize {
+    params.iter().map(|param| words_for_type(&param.ty)).sum()
+}
+
+fn env_word_offsets_from_params(params: &[SigItem]) -> Vec<usize> {
+    let mut offsets = Vec::with_capacity(params.len());
+    let mut current = 0usize;
+    for param in params {
+        offsets.push(current);
+        current += words_for_type(&param.ty);
+    }
+    offsets
+}
+
+fn words_for_type(ty: &SigKind) -> usize {
+    match resolved_type_kind(ty) {
+        ValueKind::Word => 1,
+        ValueKind::Closure => 2,
+        ValueKind::Variadic => 0,
+    }
+}
+
+fn resolved_type_kind(ty: &SigKind) -> ValueKind {
+    match ty {
+        SigKind::Int | SigKind::Str | SigKind::CompileTimeInt | SigKind::CompileTimeStr => {
+            ValueKind::Word
+        }
+        SigKind::Variadic => ValueKind::Variadic,
+        SigKind::Sig(_) => ValueKind::Closure,
+        SigKind::Ident(_) => ValueKind::Word,
+        _ => unreachable!("unexpected type kind in env: {:#?}", ty),
+    }
+}
+
+// TODO: supicious, we should not need this to be public.
+pub fn continuation_params_for_type(ty: &SigKind) -> Vec<SigKind> {
+    match ty {
+        SigKind::Sig(signature) => signature.kinds(),
+        SigKind::Ident(_) => Vec::new(),
+        _ => Vec::new(),
+    }
+}
+
+fn build_builtin_bridge_function(builtin: MirBuiltin, sig: &FunctionSig) -> MirFunction {
+    let (input_params, continuation_params) = split_inputs_and_continuations(&sig.params);
+    let continuation_signature = extract_continuation_signature(&continuation_params);
+    let outputs = build_continuation_outputs(continuation_signature.clone(), sig.span);
+
+    let mir_inputs = input_params
+        .iter()
+        .map(|param| MirArg {
+            name: param.name.clone(),
+            kind: param.ty.clone(),
+        })
+        .collect::<Vec<_>>();
+    let output_names = outputs
+        .iter()
+        .map(|arg| arg.name.clone())
+        .collect::<Vec<_>>();
+
+    let stmt = match builtin {
+        MirBuiltin::Instruction(kind) => MirStmt::Op(MirInstruction {
+            kind,
+            opcode: kind.name(),
+            operand_comments: builtin_comments(kind),
+            inputs: mir_inputs.clone(),
+            outputs: output_names.clone(),
+            span: sig.span,
+        }),
+        MirBuiltin::SysCall(kind) => MirStmt::SysCall(MirSysCall {
+            kind,
+            operand_comments: syscall_comments(kind),
+            args: mir_inputs.clone(),
+            outputs: output_names.clone(),
+            span: sig.span,
+        }),
+        MirBuiltin::Call(kind) => {
+            let continuation_arg = continuation_signature
+                .as_ref()
+                .map(|(continuation, _)| Arg {
+                    name: continuation.name.clone(),
+                    span: continuation.span,
+                });
+            let arg_kinds = input_params
+                .iter()
+                .map(|param| param.ty.clone())
+                .collect::<Vec<_>>();
+            let continuation = continuation_arg.clone().unwrap_or_else(|| Arg {
+                name: String::new(),
+                span: sig.span,
+            });
+            let result_name = "__result".to_string();
+            MirStmt::Call(MirCall {
+                result: result_name,
+                name: kind.name().to_string(),
+                args: mir_inputs.clone(),
+                arg_kinds,
+                continuation,
+                span: sig.span,
+            })
+        }
+    };
+
+    let mut items = vec![stmt];
+    if let Some((continuation, _)) = continuation_signature {
+        items.push(MirStmt::Exec(MirExec {
+            target: MirExecTarget::Closure {
+                name: continuation.name.clone(),
+            },
+            args: outputs.clone(),
+            span: sig.span,
+        }));
+    }
+
+    MirFunction {
+        sig: sig.clone(),
+        items,
+    }
+}
+
+fn ensure_generated_once<F>(
+    symbols: &mut SymbolRegistry,
+    trigger_name: &str,
+    generate: F,
+) -> Vec<MirFunction>
+where
+    F: FnOnce(&mut SymbolRegistry) -> Vec<MirFunction>,
+{
+    if symbols.builtin_function_generated(trigger_name) {
+        return Vec::new();
+    }
+
+    let functions = generate(symbols);
+    for function in &functions {
+        symbols.mark_builtin_function_generated(&function.sig.name);
+    }
+    functions
+}
+
+fn ensure_builtin_bridge_generated_once(
+    symbols: &mut SymbolRegistry,
+    builtin: MirBuiltin,
+    sig: &FunctionSig,
+) -> Vec<MirFunction> {
+    ensure_generated_once(symbols, sig.name.as_str(), move |_symbols| {
+        let builtin_fn = build_builtin_bridge_function(builtin, sig);
+        let mut functions = vec![builtin_fn.clone()];
+        if let Some(unwrapper) = build_closure_unwrapper(&builtin_fn) {
+            functions.push(unwrapper);
+        }
+        functions
+    })
+}
+
+fn extract_continuation_signature(
+    continuation_params: &[SigItem],
+) -> Option<(SigItem, ast::Signature)> {
+    continuation_params.first().and_then(|continuation| {
+        if let SigKind::Sig(signature) = &continuation.ty {
+            Some((continuation.clone(), signature.clone()))
+        } else {
+            None
+        }
+    })
+}
+
+fn build_continuation_outputs(
+    continuation_signature: Option<(SigItem, ast::Signature)>,
+    _sig_span: Span,
+) -> Vec<MirArg> {
+    if let Some((continuation, signature)) = continuation_signature {
+        let mut outputs = signature
+            .items
+            .iter()
+            .enumerate()
+            .map(|(idx, item)| {
+                let name = if !item.name.is_empty() {
+                    item.name.clone()
+                } else if continuation.name.is_empty() {
+                    format!("result_{}", idx)
+                } else {
+                    format!("{}_{}", continuation.name, idx)
+                };
+                MirArg {
+                    name,
+                    kind: item.ty.clone(),
+                }
+            })
+            .collect::<Vec<_>>();
+        if outputs.is_empty() {
+            outputs.push(MirArg {
+                name: "__result".to_string(),
+                kind: SigKind::Int,
+            });
+        }
+        outputs
+    } else {
+        Vec::new()
+    }
+}
+
+pub fn args_to_kinds(args: &[MirArg]) -> Vec<SigKind> {
+    args.iter().map(|arg| arg.kind.clone()).collect()
+}
+
+fn split_inputs_and_continuations(params: &[SigItem]) -> (Vec<SigItem>, Vec<SigItem>) {
+    let mut inputs = Vec::new();
+    let mut continuations = Vec::new();
+    let mut seen_continuation = false;
+    for param in params {
+        if matches!(param.ty, SigKind::Sig(_)) {
+            seen_continuation = true;
+            continuations.push(param.clone());
+        } else if seen_continuation {
+            continuations.push(param.clone());
+        } else {
+            inputs.push(param.clone());
+        }
+    }
+    (inputs, continuations)
+}
+
+fn builtin_comments(kind: MirInstKind) -> (&'static str, &'static str, &'static str) {
+    match kind {
+        MirInstKind::Add => ("load first integer", "add second integer", "store sum"),
+        MirInstKind::Sub => ("load minuend", "subtract subtrahend", "store difference"),
+        MirInstKind::Mul => (
+            "load multiplicand",
+            "multiply by multiplier",
+            "store product",
         ),
-        SigKind::Generic(name) => name.clone(),
+        MirInstKind::Div => ("load dividend", "divide by divisor", "store quotient"),
+        MirInstKind::EqInt => (
+            "load first integer",
+            "compare to second integer",
+            "jump to selected continuation",
+        ),
+        MirInstKind::EqStr => (
+            "load first string pointer",
+            "compare bytes with second string",
+            "jump to selected continuation",
+        ),
+        MirInstKind::Lt => (
+            "load first integer",
+            "compare to second integer",
+            "branch to lesser continuation",
+        ),
+        MirInstKind::Gt => (
+            "load first integer",
+            "compare to second integer",
+            "branch to greater continuation",
+        ),
+    }
+}
+
+fn syscall_comments(kind: MirSysCallKind) -> (&'static str, &'static str, &'static str) {
+    match kind {
+        MirSysCallKind::Exit => ("load exit code", "", "terminate program"),
     }
 }

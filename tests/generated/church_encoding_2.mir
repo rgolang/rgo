@@ -1,0 +1,85 @@
+_5_two(f: (int, (int)), ok: (int), y: int) {
+    f(y, ok)
+}
+
+_5_two_unwrapper(env_end: int) {
+    f: (int, (int)) = env_end - 5 words (f)
+    ok: (int) = env_end - 3 words (ok)
+    y: int = env_end - 1 words (y)
+    _5_two(f, ok, y)
+}
+
+two(f: (int, (int)), x: int, ok: (int)) {
+    _6_two = _5_two(f, ok)
+    _6_two.f = f
+    _6_two.ok = ok
+
+    f(x, _6_two)
+}
+
+two_unwrapper(env_end: int) {
+    f: (int, (int)) = env_end - 5 words (f)
+    x: int = env_end - 3 words (x)
+    ok: (int) = env_end - 2 words (ok)
+    two(f, x, ok)
+}
+
+_9_lambda(x: int, ok: (int)) {
+    _10 = 10
+    add(x, _10, ok)
+}
+
+_9_lambda_unwrapper(env_end: int) {
+    x: int = env_end - 3 words (x)
+    ok: (int) = env_end - 2 words (ok)
+    _9_lambda(x, ok)
+}
+
+add(x: int, y: int, ok: (int)) {
+    res = @add(x, y);
+    ok(res)
+}
+
+add_unwrapper(env_end: int) {
+    x: int = env_end - 4 words (x)
+    y: int = env_end - 3 words (y)
+    ok: (int) = env_end - 2 words (ok)
+    add(x, y, ok)
+}
+
+_17_lambda() {
+    _18 = 0
+    exit(_18)
+}
+
+_17_lambda_unwrapper(env_end: int) {
+    _17_lambda()
+}
+
+exit(code: int) {
+    syscall exit(code)
+}
+
+exit_unwrapper(env_end: int) {
+    code: int = env_end - 1 words (code)
+    exit(code)
+}
+
+_14_lambda(x: int) {
+    _15 = "result: %d"
+    _17_lambda = _17_lambda()
+    __result = @printf(_15, x)
+    _17_lambda(__result)
+}
+
+_14_lambda_unwrapper(env_end: int) {
+    x: int = env_end - 1 words (x)
+    _14_lambda(x)
+}
+
+_start() {
+    _12 = 0
+    _9_lambda = _9_lambda()
+    _14_lambda = _14_lambda()
+    two(_9_lambda, _12, _14_lambda)
+}

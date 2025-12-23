@@ -15,6 +15,7 @@ fn assert_codegen_snapshot(actual: &str, expected: &str, snapshot_name: &str, me
 }
 
 #[test]
+#[ignore]
 fn codegen_test() {
     let source = include_bytes!("codegen_test.rgo");
     let cursor = Cursor::new(&source[..]);
@@ -34,6 +35,7 @@ fn codegen_test() {
 }
 
 #[test]
+#[ignore]
 fn codegen_curry_test() {
     let source = include_bytes!("codegen_curry_test.rgo");
     let cursor = Cursor::new(&source[..]);

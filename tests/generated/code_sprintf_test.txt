@@ -1,0 +1,159 @@
+[
+    Import {
+        name: "/str",
+        span: Span {
+            line: 1,
+            column: 1,
+            offset: 0,
+        },
+    },
+    Import {
+        name: "/sprintf",
+        span: Span {
+            line: 2,
+            column: 1,
+            offset: 6,
+        },
+    },
+    Import {
+        name: "/write",
+        span: Span {
+            line: 3,
+            column: 1,
+            offset: 16,
+        },
+    },
+    Import {
+        name: "/exit",
+        span: Span {
+            line: 4,
+            column: 1,
+            offset: 24,
+        },
+    },
+    Ident(
+        Ident {
+            name: "sprintf",
+            args: [
+                String(
+                    StrLiteral {
+                        value: "result: %d",
+                        span: Span {
+                            line: 6,
+                            column: 9,
+                            offset: 40,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 3,
+                        span: Span {
+                            line: 6,
+                            column: 23,
+                            offset: 54,
+                        },
+                    },
+                ),
+                Lambda(
+                    Lambda {
+                        params: Signature {
+                            items: [
+                                SigItem {
+                                    name: "s",
+                                    ty: Ident(
+                                        SigIdent {
+                                            name: "str",
+                                            span: Span {
+                                                line: 6,
+                                                column: 29,
+                                                offset: 60,
+                                            },
+                                        },
+                                    ),
+                                    has_bang: false,
+                                    span: Span {
+                                        line: 6,
+                                        column: 27,
+                                        offset: 58,
+                                    },
+                                },
+                            ],
+                            span: Span {
+                                line: 6,
+                                column: 26,
+                                offset: 57,
+                            },
+                            generics: [],
+                        },
+                        body: Block {
+                            items: [
+                                Ident(
+                                    Ident {
+                                        name: "write",
+                                        args: [
+                                            Ident(
+                                                Ident {
+                                                    name: "s",
+                                                    args: [],
+                                                    span: Span {
+                                                        line: 7,
+                                                        column: 11,
+                                                        offset: 76,
+                                                    },
+                                                },
+                                            ),
+                                            Ident(
+                                                Ident {
+                                                    name: "exit",
+                                                    args: [
+                                                        Int(
+                                                            IntLiteral {
+                                                                value: 0,
+                                                                span: Span {
+                                                                    line: 7,
+                                                                    column: 19,
+                                                                    offset: 84,
+                                                                },
+                                                            },
+                                                        ),
+                                                    ],
+                                                    span: Span {
+                                                        line: 7,
+                                                        column: 14,
+                                                        offset: 79,
+                                                    },
+                                                },
+                                            ),
+                                        ],
+                                        span: Span {
+                                            line: 7,
+                                            column: 5,
+                                            offset: 70,
+                                        },
+                                    },
+                                ),
+                            ],
+                            span: Span {
+                                line: 6,
+                                column: 33,
+                                offset: 64,
+                            },
+                        },
+                        args: [],
+                        span: Span {
+                            line: 6,
+                            column: 26,
+                            offset: 57,
+                        },
+                    },
+                ),
+            ],
+            span: Span {
+                line: 6,
+                column: 1,
+                offset: 32,
+            },
+        },
+    ),
+]

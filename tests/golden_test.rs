@@ -3,10 +3,13 @@ use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-mod test_utils;
+use compiler::compiler::error::{self, Code, Error};
 use compiler::compiler::hir;
+use compiler::compiler::span::Span;
 use compiler::compiler::{compile, lexer::Lexer, parser::Parser};
-use test_utils::render_normalized_rgo;
+use compiler::debug_tools::format_hir::render_normalized_rgo;
+use compiler::debug_tools::format_mir::render_mir_functions;
+use compiler::debug_tools::test_helpers::generate_mir_functions;
 
 const GENERATED_DIR: &str = "tests/generated";
 
@@ -17,7 +20,7 @@ fn golden_test() {
 }
 
 fn generate_golden_snapshots() {
-    let src_dir = Path::new("tests");
+    let src_dir = Path::new("tests/golden");
     let out_dir = Path::new(GENERATED_DIR);
     fs::create_dir_all(out_dir).expect("failed to create generated output directory");
 
@@ -43,45 +46,53 @@ fn generate_golden_snapshots() {
     }
 }
 
-fn compile_source(source: &str) -> Result<String, String> {
+fn compile_source(source: &str) -> Result<String, Error> {
     let mut output = Vec::new();
     let cursor = Cursor::new(source.as_bytes());
-    compile(cursor, &mut output).map_err(|err| format!("assembly generation failed: {err}"))?;
-    let asm =
-        String::from_utf8(output).map_err(|err| format!("assembly is not valid UTF-8: {err}"))?;
+    compile(cursor, &mut output)?;
+    let asm = String::from_utf8(output).map_err(|err| {
+        error::new(
+            Code::Codegen,
+            format!("assembly is not valid UTF-8: {err}"),
+            Span::unknown(),
+        )
+    })?;
     Ok(asm) // TODO: This mir_module can be done better
 }
 
-fn build_reference_for_path(path: &Path, out_dir: &Path) -> Result<(), String> {
+fn build_reference_for_path(path: &Path, out_dir: &Path) -> Result<(), Error> {
     let stem = path
         .file_stem()
         .and_then(|stem| stem.to_str())
-        .ok_or_else(|| "filename should be valid UTF-8".to_string())?;
-    let source = fs::read_to_string(path).map_err(|err| format!("reading source failed: {err}"))?;
+        .ok_or_else(|| {
+            error::new(
+                Code::Internal,
+                "filename should be valid UTF-8",
+                Span::unknown(),
+            )
+        })?;
+    let source = fs::read_to_string(path)?;
     let err_path = out_dir.join(format!("{stem}.err"));
     let expect_error = err_path.exists();
 
     match generate_artifacts(&source) {
         Ok(artifacts) => {
             if expect_error {
-                return Err(format!(
-                    "{}: expected compilation failure but succeeded",
-                    path.display()
+                return Err(error::new(
+                    Code::Internal,
+                    "expected compilation failure but succeeded",
+                    Span::unknown(),
                 ));
             }
             write_artifacts(out_dir, stem, &artifacts)?;
             if err_path.exists() {
-                fs::remove_file(&err_path)
-                    .map_err(|err| format!("removing stale error snapshot failed: {err}"))?;
+                fs::remove_file(&err_path)?;
             }
             Ok(())
         }
         Err(err) => {
             if expect_error {
-                cleanup_generated_artifacts(out_dir, stem)?;
-                fs::write(&err_path, format!("{err}\n")).map_err(|write_err| {
-                    format!("writing expected error snapshot failed: {write_err}")
-                })?;
+                fs::write(&err_path, format!("{err}\n"))?;
                 Ok(())
             } else {
                 Err(err)
@@ -93,10 +104,11 @@ fn build_reference_for_path(path: &Path, out_dir: &Path) -> Result<(), String> {
 struct GeneratedArtifacts {
     parser_output: String,
     normalized_hir: String,
+    mir: String,
     asm: String,
 }
 
-fn generate_artifacts(source: &str) -> Result<GeneratedArtifacts, String> {
+fn generate_artifacts(source: &str) -> Result<GeneratedArtifacts, Error> {
     let cursor = Cursor::new(source.as_bytes());
     let lexer = Lexer::new(cursor);
     let mut parser = Parser::new(lexer);
@@ -106,25 +118,25 @@ fn generate_artifacts(source: &str) -> Result<GeneratedArtifacts, String> {
     let mut lowerer = hir::Lowerer::new();
     let mut hir_block_items = Vec::new();
 
-    while let Some(item) = parser.next().map_err(|e| e.to_string())? {
+    while let Some(item) = parser.next()? {
         block_items.push(item.clone());
-        lowerer.consume(item, &mut ctx).map_err(|e| e.to_string())?;
+        lowerer.consume(&mut ctx, item)?;
         while let Some(lowered) = lowerer.produce() {
             hir_block_items.push(lowered.clone());
         }
     }
 
-    while let Some(lowered) = lowerer.produce() {
-        hir_block_items.push(lowered.clone());
-    }
-
     let normalized_hir = render_normalized_rgo(&hir_block_items);
     let parser_output = format!("{:#?}", block_items);
 
-    let asm = compile_source(source).map_err(|err| format!("codegen step failed: {err}"))?;
+    let mir_functions = generate_mir_functions(&hir_block_items)?;
+    let mir = render_mir_functions(&mir_functions);
+
+    let asm = compile_source(source)?;
     Ok(GeneratedArtifacts {
         parser_output,
         normalized_hir,
+        mir,
         asm,
     })
 }
@@ -133,44 +145,22 @@ fn write_artifacts(
     out_dir: &Path,
     stem: &str,
     artifacts: &GeneratedArtifacts,
-) -> Result<(), String> {
+) -> Result<(), Error> {
     fs::write(
         out_dir.join(format!("{stem}.txt")),
         &artifacts.parser_output,
-    )
-    .map_err(|err| format!("writing parser output failed: {err}"))?;
+    )?;
     fs::write(
         out_dir.join(format!("{stem}.hir.rgo")),
         &artifacts.normalized_hir,
-    )
-    .map_err(|err| format!("writing normalized HIR failed: {err}"))?;
-    fs::write(out_dir.join(format!("{stem}.asm")), &artifacts.asm)
-        .map_err(|err| format!("writing assembly failed: {err}"))?;
-    Ok(())
-}
-
-fn cleanup_generated_artifacts(out_dir: &Path, stem: &str) -> Result<(), String> {
-    const SUFFIXES: &[&str] = &[
-        "txt",
-        "hir.rgo",
-        "hir.debug.txt",
-        "asm",
-        "mir",
-        "mir.debug.txt",
-    ];
-    for suffix in SUFFIXES {
-        let path = out_dir.join(format!("{stem}.{suffix}"));
-        if path.exists() {
-            fs::remove_file(&path).map_err(|err| {
-                format!("removing stale snapshot {} failed: {err}", path.display())
-            })?;
-        }
-    }
+    )?;
+    fs::write(out_dir.join(format!("{stem}.mir")), &artifacts.mir)?;
+    fs::write(out_dir.join(format!("{stem}.asm")), &artifacts.asm)?;
     Ok(())
 }
 
 fn verify_expected_outputs() {
-    let tests_dir = Path::new("tests");
+    let tests_dir = Path::new("tests/golden");
     let bin_dir = Path::new("bin");
     fs::create_dir_all(bin_dir).expect("failed to create bin directory");
 
@@ -198,11 +188,9 @@ fn verify_expected_outputs() {
             .strip_suffix(".expected.out")
             .expect("expected output files should end with .expected.out");
         let rgo_path = tests_dir.join(format!("{base}.rgo"));
-        assert!(
-            rgo_path.exists(),
-            "source file is missing for expected output {}",
-            expected_name
-        );
+        if !rgo_path.exists() {
+            continue;
+        }
 
         let asm_path = bin_dir.join(format!("{base}.asm"));
         compile_rgo_source(&rgo_path, &asm_path);

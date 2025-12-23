@@ -1,0 +1,93 @@
+foo(p: (()), ok: ()) {
+    p(ok)
+}
+
+foo_unwrapper(env_end: int) {
+    p: (()) = env_end - 4 words (p)
+    ok: () = env_end - 2 words (ok)
+    foo(p, ok)
+}
+
+print1(n: str, ok: ()) {
+    _1 = "The losing number is %s\n"
+    __result = @printf(_1, n)
+    ok(__result)
+}
+
+print1_unwrapper(env_end: int) {
+    n: str = env_end - 3 words (n)
+    ok: () = env_end - 2 words (ok)
+    print1(n, ok)
+}
+
+print2(n: str, ok: ()) {
+    _2 = "The winning number is %s\n"
+    __result = @printf(_2, n)
+    ok(__result)
+}
+
+print2_unwrapper(env_end: int) {
+    n: str = env_end - 3 words (n)
+    ok: () = env_end - 2 words (ok)
+    print2(n, ok)
+}
+
+p1(ok: ()) {
+    _3 = "41"
+    print1(_3, ok)
+}
+
+p1_unwrapper(env_end: int) {
+    ok: () = env_end - 2 words (ok)
+    p1(ok)
+}
+
+p2(ok: ()) {
+    _4 = "42"
+    print2(_4, ok)
+}
+
+p2_unwrapper(env_end: int) {
+    ok: () = env_end - 2 words (ok)
+    p2(ok)
+}
+
+_8_lambda() {
+    _9 = 0
+    exit(_9)
+}
+
+_8_lambda_unwrapper(env_end: int) {
+    _8_lambda()
+}
+
+exit(code: int) {
+    syscall exit(code)
+}
+
+exit_unwrapper(env_end: int) {
+    code: int = env_end - 1 words (code)
+    exit(code)
+}
+
+_6_lambda(foo: ((()), ()), p2: (())) {
+    _8_lambda = _8_lambda()
+    foo(p2, _8_lambda)
+}
+
+_6_lambda_unwrapper(env_end: int) {
+    foo: ((()), ()) = env_end - 4 words (foo)
+    p2: (()) = env_end - 2 words (p2)
+    _6_lambda(foo, p2)
+}
+
+_start() {
+    foo = foo()
+    p2 = p2()
+    _11_ = _6_lambda(foo, p2)
+    _11_.foo = foo
+    _11_.p2 = p2
+
+    p1 = p1()
+    foo(p1, _11_)
+}

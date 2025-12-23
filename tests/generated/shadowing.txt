@@ -49,6 +49,7 @@
                     column: 6,
                     offset: 40,
                 },
+                generics: [],
             },
             body: Block {
                 items: [
@@ -122,27 +123,19 @@
             params: Signature {
                 items: [
                     SigItem {
-                        name: Some(
-                            "ok",
-                        ),
-                        ty: SigType {
-                            kind: Tuple(
-                                Signature {
-                                    items: [],
-                                    span: Span {
-                                        line: 0,
-                                        column: 0,
-                                        offset: 0,
-                                    },
+                        name: "ok",
+                        ty: Sig(
+                            Signature {
+                                items: [],
+                                span: Span {
+                                    line: 10,
+                                    column: 10,
+                                    offset: 88,
                                 },
-                            ),
-                            span: Span {
-                                line: 10,
-                                column: 10,
-                                offset: 88,
+                                generics: [],
                             },
-                        },
-                        is_variadic: false,
+                        ),
+                        has_bang: false,
                         span: Span {
                             line: 10,
                             column: 7,
@@ -155,6 +148,7 @@
                     column: 6,
                     offset: 84,
                 },
+                generics: [],
             },
             body: Block {
                 items: [
@@ -168,6 +162,7 @@
                                     column: 10,
                                     offset: 103,
                                 },
+                                generics: [],
                             },
                             body: Block {
                                 items: [

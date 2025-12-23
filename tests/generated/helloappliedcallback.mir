@@ -1,0 +1,50 @@
+bar(m1: str, m2: str, ok: ()) {
+    _0 = "msg1: %s, msg2: %s\n"
+    __result = @printf(_0, m1, m2)
+    ok(__result)
+}
+
+bar_unwrapper(env_end: int) {
+    m1: str = env_end - 4 words (m1)
+    m2: str = env_end - 3 words (m2)
+    ok: () = env_end - 2 words (ok)
+    bar(m1, m2, ok)
+}
+
+foo(cb: (str, ()), ok: ()) {
+    _3 = "bye"
+    cb(_3, ok)
+}
+
+foo_unwrapper(env_end: int) {
+    cb: (str, ()) = env_end - 4 words (cb)
+    ok: () = env_end - 2 words (ok)
+    foo(cb, ok)
+}
+
+_7_lambda() {
+    _8 = 0
+    exit(_8)
+}
+
+_7_lambda_unwrapper(env_end: int) {
+    _7_lambda()
+}
+
+exit(code: int) {
+    syscall exit(code)
+}
+
+exit_unwrapper(env_end: int) {
+    code: int = env_end - 1 words (code)
+    exit(code)
+}
+
+_start() {
+    _4 = "hi"
+    _5_bar = bar(_4)
+    _5_bar.m1 = _4
+
+    _7_lambda = _7_lambda()
+    foo(_5_bar, _7_lambda)
+}

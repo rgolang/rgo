@@ -1,0 +1,120 @@
+nil(next: (int, ((int, ()), ())), end: ()) {
+    end()
+}
+
+nil_unwrapper(env_end: int) {
+    next: (int, ((int, ()), ())) = env_end - 4 words (next)
+    end: () = env_end - 2 words (end)
+    nil(next, end)
+}
+
+cons(head: int, tail: ((int, ()), ()), next: (int, ((int, ()), ())), end: ()) {
+    next(head, tail)
+}
+
+cons_unwrapper(env_end: int) {
+    head: int = env_end - 7 words (head)
+    tail: ((int, ()), ()) = env_end - 6 words (tail)
+    next: (int, ((int, ()), ())) = env_end - 4 words (next)
+    end: () = env_end - 2 words (end)
+    cons(head, tail, next, end)
+}
+
+iterate_inner(iterate: ((int, ()), ((int, ()), ()), ()), handler: (int, ()), end: (), head: int, tail: ((int, ()), ())) {
+    x = iterate(handler, tail, end)
+    handler(head, x)
+}
+
+iterate_inner_unwrapper(env_end: int) {
+    iterate: ((int, ()), ((int, ()), ()), ()) = env_end - 9 words (iterate)
+    handler: (int, ()) = env_end - 7 words (handler)
+    end: () = env_end - 5 words (end)
+    head: int = env_end - 3 words (head)
+    tail: ((int, ()), ()) = env_end - 2 words (tail)
+    iterate_inner(iterate, handler, end, head, tail)
+}
+
+iterate(handler: (int, ()), arr: ((int, ()), ()), end: ()) {
+    iterate = iterate()
+    _17_iterate_inner = iterate_inner(iterate, handler, end)
+    _17_iterate_inner.iterate = iterate
+    _17_iterate_inner.handler = handler
+    _17_iterate_inner.end = end
+
+    arr(_17_iterate_inner, end)
+}
+
+iterate_unwrapper(env_end: int) {
+    handler: (int, ()) = env_end - 6 words (handler)
+    arr: ((int, ()), ()) = env_end - 4 words (arr)
+    end: () = env_end - 2 words (end)
+    iterate(handler, arr, end)
+}
+
+handler(n: int, ok: ()) {
+    _18 = "%d, "
+    __result = @printf(_18, n)
+    ok(__result)
+}
+
+handler_unwrapper(env_end: int) {
+    n: int = env_end - 3 words (n)
+    ok: () = env_end - 2 words (ok)
+    handler(n, ok)
+}
+
+_21_end() {
+    _22 = 0
+    exit(_22)
+}
+
+_21_end_unwrapper(env_end: int) {
+    _21_end()
+}
+
+exit(code: int) {
+    syscall exit(code)
+}
+
+exit_unwrapper(env_end: int) {
+    code: int = env_end - 1 words (code)
+    exit(code)
+}
+
+end() {
+    _19 = "end\n"
+    _21_end = _21_end()
+    __result = @printf(_19)
+    _21_end(__result)
+}
+
+end_unwrapper(env_end: int) {
+    end()
+}
+
+_start() {
+    _24 = 1
+    _25 = 2
+    _26 = 3
+    _27 = 4
+    nil = nil()
+    _28_cons = cons(_27, nil)
+    _28_cons.head = _27
+    _28_cons.tail = nil
+
+    _29_cons = cons(_26, _28_cons)
+    _29_cons.head = _26
+    _29_cons.tail = _28_cons
+
+    _30_cons = cons(_25, _29_cons)
+    _30_cons.head = _25
+    _30_cons.tail = _29_cons
+
+    mylist = cons(_24, _30_cons)
+    mylist.head = _24
+    mylist.tail = _30_cons
+
+    handler = handler()
+    end = end()
+    iterate(handler, mylist, end)
+}

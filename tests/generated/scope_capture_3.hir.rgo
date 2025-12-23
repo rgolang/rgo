@@ -3,25 +3,24 @@
 @/printf
 @/add
 @/exit
+_2_foo: (ok:(int)){
+    _3: 1
+    _4: 2
+    add(_3, _4, ok)
+}
+
+_9_foo: (){
+    _10: 0
+    exit(_10)
+}
+
+_6_foo: (x: int){
+    _7: "result: %d"
+    printf(_7, x, _9_foo)
+}
+
 foo: (){
-    _foo_1: _foo_2()
-    _foo_0(_foo_1)
-}
-
-_foo_0: (ok:(int)){
-    _foo__foo_0_0: 1
-    _foo__foo_0_1: 2
-    add(_foo__foo_0_0, _foo__foo_0_1, ok)
-}
-
-_foo__foo_2_2: (){
-    _foo__foo_2__foo__foo_2_2_0: 0
-    exit(_foo__foo_2__foo__foo_2_2_0)
-}
-
-_foo_2: (x: int){
-    _foo__foo_2_0: "result: %d"
-    _foo__foo_2_1: _foo__foo_2_2()
-    printf(_foo__foo_2_0, x, _foo__foo_2_1)
+    _13_foo: _2_foo(_6_foo)
+    _13_foo()
 }
 foo()

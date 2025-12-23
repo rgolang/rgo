@@ -1,0 +1,29 @@
+_4_foo() {
+    _5 = 0
+    exit(_5)
+}
+
+_4_foo_unwrapper(env_end: int) {
+    _4_foo()
+}
+
+exit(code: int) {
+    syscall exit(code)
+}
+
+exit_unwrapper(env_end: int) {
+    code: int = env_end - 1 words (code)
+    exit(code)
+}
+
+foo(items: ((int, (int, (), (str))))) {
+    _2 = "done"
+    _4_foo = _4_foo()
+    __result = @write(_2)
+    _4_foo(__result)
+}
+
+foo_unwrapper(env_end: int) {
+    items: ((int, (int, (), (str)))) = env_end - 2 words (items)
+    foo(items)
+}

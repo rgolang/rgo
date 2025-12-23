@@ -1,0 +1,9 @@
+@/printf
+@/exit
+@/int
+
+// This is the gotcha, write is a built-in function! But this is valid in this language.
+write: (n: int, ok: ()){
+    printf("Gotcha: %d", n, ok)
+}
+write(1, exit(0))

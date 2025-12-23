@@ -1,0 +1,9 @@
+@/str
+@/printf
+@/write
+@/exit
+
+foo: (ok:(())){
+    ok(exit(0))
+}
+foo(printf("result: %d", 1))

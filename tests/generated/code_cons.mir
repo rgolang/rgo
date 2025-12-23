@@ -1,0 +1,21 @@
+nil(cb: (int, ((int, ()), ())), end: ()) {
+    end()
+}
+
+nil_unwrapper(env_end: int) {
+    cb: (int, ((int, ()), ())) = env_end - 4 words (cb)
+    end: () = env_end - 2 words (end)
+    nil(cb, end)
+}
+
+cons(h: int, t: ((int, ()), ()), cb: (int, ((int, ()), ())), end: ()) {
+    cb(h, t)
+}
+
+cons_unwrapper(env_end: int) {
+    h: int = env_end - 7 words (h)
+    t: ((int, ()), ()) = env_end - 6 words (t)
+    cb: (int, ((int, ()), ())) = env_end - 4 words (cb)
+    end: () = env_end - 2 words (end)
+    cons(h, t, cb, end)
+}

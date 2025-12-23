@@ -6,7 +6,7 @@ use crate::compiler::ast::{
     Block, BlockItem, Ident, IntLiteral, Lambda, SigIdent, SigItem, SigKind, Signature, StrLiteral,
     Term,
 };
-use crate::compiler::error::{CompileError, CompileErrorCode};
+use crate::compiler::error::{Code, Error};
 use crate::compiler::lexer::Lexer;
 use crate::compiler::span::Span;
 use crate::compiler::token::{Token, TokenKind};
@@ -35,7 +35,7 @@ impl<R: BufRead> Parser<R> {
     }
 
     // TODO: iter
-    // pub fn iter<'a>(
+    // fn iter<'a>(
     //     &'a mut self,
     //     symbols: &'a mut SymbolRegistry,
     // ) -> impl Iterator<Item = Result<BlockItem, CompileError>> + 'a {
@@ -46,7 +46,7 @@ impl<R: BufRead> Parser<R> {
     //     })
     // }
 
-    pub fn next(&mut self) -> Result<Option<BlockItem>, CompileError> {
+    pub fn next(&mut self) -> Result<Option<BlockItem>, Error> {
         loop {
             self.skip_newlines()?;
             let token = self.peek_token()?.clone();
@@ -56,8 +56,8 @@ impl<R: BufRead> Parser<R> {
                 TokenKind::Import(name) => {
                     // TODO: Move this into HIR
                     if !self.allow_top_imports {
-                        return Err(CompileError::new(
-                            CompileErrorCode::Parse,
+                        return Err(Error::new(
+                            Code::Parse,
                             "@ imports must appear before any other items",
                             token.span,
                         )
@@ -76,7 +76,7 @@ impl<R: BufRead> Parser<R> {
         }
     }
 
-    fn skip_newlines(&mut self) -> Result<(), CompileError> {
+    fn skip_newlines(&mut self) -> Result<(), Error> {
         while self
             .consume_if(|k| matches!(k, TokenKind::Newline))?
             .is_some()
@@ -84,7 +84,7 @@ impl<R: BufRead> Parser<R> {
         Ok(())
     }
 
-    fn parse_block_item(&mut self) -> Result<BlockItem, CompileError> {
+    fn parse_block_item(&mut self) -> Result<BlockItem, Error> {
         self.skip_newlines()?;
         let token = self.peek_token()?.clone();
         let span: Span = token.span;
@@ -105,27 +105,21 @@ impl<R: BufRead> Parser<R> {
             }
             TokenKind::LBrace => {} // allow lambda exec (possibly without args)
             TokenKind::Newline => {}
-            _ => {
-                return Err(CompileError::new(
-                    CompileErrorCode::Parse,
-                    "expected a top-level item",
-                    span,
-                ))
-            }
+            _ => return Err(Error::new(Code::Parse, "expected a top-level item", span)),
         }
 
         let term = self.parse_term()?;
         match term {
             Term::String(literal) => {
-                return Err(CompileError::new(
-                    CompileErrorCode::Parse,
+                return Err(Error::new(
+                    Code::Parse,
                     "string literals cannot be called yet",
                     literal.span,
                 ));
             }
             Term::Int(literal) => {
-                return Err(CompileError::new(
-                    CompileErrorCode::Parse,
+                return Err(Error::new(
+                    Code::Parse,
                     "int literals cannot be called yet",
                     literal.span,
                 ));
@@ -135,7 +129,7 @@ impl<R: BufRead> Parser<R> {
         }
     }
 
-    fn parse_bind(&mut self, name: String, name_span: Span) -> Result<BlockItem, CompileError> {
+    fn parse_bind(&mut self, name: String, name_span: Span) -> Result<BlockItem, Error> {
         let generics = self.parse_generic_params()?;
         let next_token = self.peek_token()?.clone();
         let params_span = next_token.span;
@@ -143,8 +137,8 @@ impl<R: BufRead> Parser<R> {
         let has_brace = matches!(next_token.kind, TokenKind::LBrace);
 
         if has_brace && !generics.is_empty() {
-            return Err(CompileError::new(
-                CompileErrorCode::Parse,
+            return Err(Error::new(
+                Code::Parse,
                 "generics are only supported on type aliases",
                 next_token.span,
             )
@@ -160,13 +154,9 @@ impl<R: BufRead> Parser<R> {
                 Signature {
                     items: Vec::new(),
                     span: params_span,
+                    generics: Vec::new(),
                 }
             };
-            let _param_variadic = params
-                .items
-                .iter()
-                .map(|param| param.is_variadic())
-                .collect::<Vec<bool>>();
 
             if matches!(self.peek_token()?.kind, TokenKind::LBrace) {
                 // FUNCTION CASE
@@ -190,11 +180,11 @@ impl<R: BufRead> Parser<R> {
 
             if has_head {
                 let param_types = Self::collect_param_kinds(&params.items)?;
-                let target = SigKind::tuple(param_types);
+                let mut target = Signature::from_kinds(param_types, params_span);
+                target.generics = generics.clone();
                 return Ok(BlockItem::SigDef {
                     name,
-                    term: target,
-                    generics: generics.clone(),
+                    sig: target,
                     span: name_span,
                 });
             }
@@ -219,8 +209,8 @@ impl<R: BufRead> Parser<R> {
                 ident,
                 span: name_span,
             }),
-            _ => Err(CompileError::new(
-                CompileErrorCode::Parse,
+            _ => Err(Error::new(
+                Code::Parse,
                 "expected a literal or identifier alias on the right-hand side",
                 term_span,
             )
@@ -228,7 +218,7 @@ impl<R: BufRead> Parser<R> {
         };
     }
 
-    fn parse_lambda_or_scope_capture(&mut self) -> Result<BlockItem, CompileError> {
+    fn parse_lambda_or_scope_capture(&mut self) -> Result<BlockItem, Error> {
         // 1. Parse params ALWAYS
         let params = self.parse_params(ParamContext::Lambda)?;
 
@@ -256,23 +246,23 @@ impl<R: BufRead> Parser<R> {
 
                         Ok(BlockItem::Lambda(lambda.clone()))
                     }
-                    _ => Err(CompileError::new(
-                        CompileErrorCode::Parse,
+                    _ => Err(Error::new(
+                        Code::Parse,
                         "expected lambda body after parameter list",
                         params.span,
                     )),
                 }
             }
 
-            _ => Err(CompileError::new(
-                CompileErrorCode::Parse,
+            _ => Err(Error::new(
+                Code::Parse,
                 "expected '=' or '{' after parameter list",
                 params.span,
             )),
         }
     }
 
-    fn parse_term(&mut self) -> Result<Term, CompileError> {
+    fn parse_term(&mut self) -> Result<Term, Error> {
         let mut term = self.parse_head()?;
 
         while matches!(self.peek_token()?.kind, TokenKind::LParen) {
@@ -287,8 +277,8 @@ impl<R: BufRead> Parser<R> {
                     lambda.args.extend(args);
                 }
                 _ => {
-                    return Err(CompileError::new(
-                        CompileErrorCode::Parse,
+                    return Err(Error::new(
+                        Code::Parse,
                         "expected identifier or lambda before argument list",
                         lparen.span,
                     )
@@ -301,7 +291,7 @@ impl<R: BufRead> Parser<R> {
     }
 
     // parse_head parses primary terms: literals, variables, and lambdas before any curried args.
-    fn parse_head(&mut self) -> Result<Term, CompileError> {
+    fn parse_head(&mut self) -> Result<Term, Error> {
         self.skip_newlines()?;
         let token = self.bump()?;
         match token.kind {
@@ -337,6 +327,7 @@ impl<R: BufRead> Parser<R> {
                 let params = Signature {
                     items: Vec::new(),
                     span: token.span,
+                    generics: Vec::new(),
                 };
                 let body = self.parse_body(token.span)?;
                 self.expect_token("}", |k| matches!(k, TokenKind::RBrace))?;
@@ -347,15 +338,15 @@ impl<R: BufRead> Parser<R> {
                     span: token.span,
                 }))
             }
-            _ => Err(CompileError::new(
-                CompileErrorCode::Parse,
+            _ => Err(Error::new(
+                Code::Parse,
                 format!("unexpected token: {:?}", token.kind),
                 token.span,
             )),
         }
     }
 
-    fn parse_argument_list(&mut self) -> Result<Vec<Term>, CompileError> {
+    fn parse_argument_list(&mut self) -> Result<Vec<Term>, Error> {
         let mut args = Vec::new();
         if matches!(self.peek_token()?.kind, TokenKind::RParen) {
             self.bump()?;
@@ -374,61 +365,51 @@ impl<R: BufRead> Parser<R> {
         self.expect_token(")", |kind| matches!(kind, TokenKind::RParen))?;
         Ok(args)
     }
-    fn parse_sig_item(&mut self, context: ParamContext) -> Result<ast::SigItem, CompileError> {
+    fn parse_sig_item(&mut self, context: ParamContext) -> Result<ast::SigItem, Error> {
         let item_span = self.peek_token()?.span;
-        let is_variadic = self.consume_variadic_marker()?;
         let token = self.peek_token()?.clone();
 
-        // IDENT — could be a name or a type
-        if matches!(token.kind, TokenKind::Ident(_)) {
+        let (name, ty) = if matches!(token.kind, TokenKind::Ident(_)) {
             let (name, name_span) = self.parse_identifier("parameter name")?;
 
             // Case: name: Type
             if matches!(self.peek_token()?.kind, TokenKind::Colon) {
                 self.expect_token(":", |kind| matches!(kind, TokenKind::Colon))?;
-                let ty = self.parse_type_kind()?;
-                return Ok(ast::SigItem {
-                    name: Some(name),
-                    ty,
-                    is_variadic,
-                    span: item_span,
-                });
-            }
-
-            // Case: identifier is actually a type name
-            match context {
-                ParamContext::Params => {
-                    // Put back IDENT so parse_type_ref sees it
-                    self.peeked.push_front(token);
-                    let ty = self.parse_type_kind()?;
-                    return Ok(ast::SigItem {
-                        name: None,
-                        ty,
-                        is_variadic,
-                        span: item_span,
-                    });
-                }
-                ParamContext::Lambda => {
-                    return Err(CompileError::new(
-                        CompileErrorCode::Parse,
-                        "lambda parameters must have a type",
-                        name_span,
-                    ));
+                (Some(name), self.parse_type_kind()?)
+            } else {
+                match context {
+                    ParamContext::Params => {
+                        // Put back IDENT so parse_type_ref sees it
+                        self.peeked.push_front(token);
+                        (None, self.parse_type_kind()?)
+                    }
+                    ParamContext::Lambda => {
+                        return Err(Error::new(
+                            Code::Parse,
+                            "lambda parameters must have a type",
+                            name_span,
+                        ));
+                    }
                 }
             }
-        }
+        } else {
+            // Pure type-only parameter: `int`, `str`, `(a:int)`
+            (None, self.parse_type_kind()?)
+        };
 
-        // Pure type-only parameter: `int`, `str`, `(a:int)`
-        let ty = self.parse_type_kind()?;
+        let has_bang = self
+            .consume_if(|kind| matches!(kind, TokenKind::Bang))?
+            .is_some();
+
         Ok(ast::SigItem {
-            name: None,
+            name: name.unwrap_or_default(),
             ty,
-            is_variadic,
+            has_bang,
             span: item_span,
         })
     }
 
-    fn parse_generic_params(&mut self) -> Result<Vec<String>, CompileError> {
+    fn parse_generic_params(&mut self) -> Result<Vec<String>, Error> {
         if !matches!(self.peek_token()?.kind, TokenKind::AngleOpen) {
             return Ok(Vec::new());
         }
@@ -438,8 +419,8 @@ impl<R: BufRead> Parser<R> {
         loop {
             let (name, span) = self.parse_identifier("generic parameter name")?;
             if !seen.insert(name.clone()) {
-                return Err(CompileError::new(
-                    CompileErrorCode::Parse,
+                return Err(Error::new(
+                    Code::Parse,
                     format!("generic parameter '{}' already declared", name),
                     span,
                 ));
@@ -454,8 +435,8 @@ impl<R: BufRead> Parser<R> {
         }
         self.expect_token(">", |kind| matches!(kind, TokenKind::AngleClose))?;
         if params.is_empty() {
-            return Err(CompileError::new(
-                CompileErrorCode::Parse,
+            return Err(Error::new(
+                Code::Parse,
                 "expected at least one generic parameter",
                 lt.span,
             ));
@@ -463,9 +444,9 @@ impl<R: BufRead> Parser<R> {
         Ok(params)
     }
 
-    fn with_generic_scope<F, Res>(&mut self, params: &[String], f: F) -> Result<Res, CompileError>
+    fn with_generic_scope<F, Res>(&mut self, params: &[String], f: F) -> Result<Res, Error>
     where
-        F: FnOnce(&mut Self) -> Result<Res, CompileError>,
+        F: FnOnce(&mut Self) -> Result<Res, Error>,
     {
         self.generic_param_stack.push(params.to_vec());
         let result = f(self);
@@ -480,19 +461,11 @@ impl<R: BufRead> Parser<R> {
             .any(|scope| scope.iter().any(|param| param == name))
     }
 
-    fn consume_variadic_marker(&mut self) -> Result<bool, CompileError> {
-        if matches!(self.peek_token()?.kind, TokenKind::Ellipsis) {
-            self.bump()?;
-            return Ok(true);
-        }
-        Ok(false)
+    fn collect_param_kinds(params: &[SigItem]) -> Result<Vec<ast::SigKind>, Error> {
+        Ok(params.iter().map(|param| param.ty.clone()).collect())
     }
 
-    fn collect_param_kinds(params: &[SigItem]) -> Result<Vec<ast::SigKind>, CompileError> {
-        Ok(params.iter().map(|param| param.ty.kind.clone()).collect())
-    }
-
-    fn parse_type_arguments(&mut self) -> Result<Vec<ast::SigType>, CompileError> {
+    fn parse_type_arguments(&mut self) -> Result<Vec<ast::SigKind>, Error> {
         self.expect_token("<", |kind| matches!(kind, TokenKind::AngleOpen))?;
         let mut args = Vec::new();
         loop {
@@ -508,34 +481,16 @@ impl<R: BufRead> Parser<R> {
         self.expect_token(">", |kind| matches!(kind, TokenKind::AngleClose))?;
         Ok(args)
     }
-    fn parse_type_kind(&mut self) -> Result<ast::SigType, CompileError> {
+    fn parse_type_kind(&mut self) -> Result<ast::SigKind, Error> {
         let token = self.bump()?;
         let span = token.span;
         match token.kind {
             TokenKind::LParen => {
+                let lparen = token;
                 let mut args = Vec::new();
-                let mut variadics = Vec::new();
                 if !matches!(self.peek_token()?.kind, TokenKind::RParen) {
                     loop {
-                        let is_variadic = self.consume_variadic_marker()?;
-                        if matches!(self.peek_token()?.kind, TokenKind::Ident(_)) {
-                            let ident_token = self.bump()?;
-                            if self
-                                .consume_if(|kind| matches!(kind, TokenKind::Colon))?
-                                .is_some()
-                            {
-                                let ty = self.parse_type_kind()?;
-                                args.push(ty.kind);
-                            } else {
-                                self.peeked.push_front(ident_token);
-                                let ty = self.parse_type_kind()?;
-                                args.push(ty.kind);
-                            }
-                        } else {
-                            let ty = self.parse_type_kind()?;
-                            args.push(ty.kind);
-                        }
-                        variadics.push(is_variadic);
+                        args.push(self.parse_sig_item(ParamContext::Params)?);
                         if self
                             .consume_if(|kind| matches!(kind, TokenKind::Comma))?
                             .is_some()
@@ -546,19 +501,16 @@ impl<R: BufRead> Parser<R> {
                     }
                 }
                 self.expect_token(")", |kind| matches!(kind, TokenKind::RParen))?;
-                let kind = SigKind::tuple(args);
-                return Ok(ast::SigType { kind, span });
+                let kind = SigKind::Sig(Signature {
+                    items: args,
+                    span: lparen.span,
+                    generics: Vec::new(),
+                });
+                return Ok(kind);
             }
             TokenKind::Ident(name) => {
                 if self.is_generic_param(&name) {
-                    return Ok(ast::SigType {
-                        kind: SigKind::Generic(name),
-                        span,
-                    });
-                }
-                let has_bang = matches!(self.peek_token()?.kind, TokenKind::Bang);
-                if has_bang {
-                    self.bump()?; // consume '!'
+                    return Ok(SigKind::Generic(name));
                 }
 
                 if matches!(self.peek_token()?.kind, TokenKind::AngleOpen) {
@@ -588,17 +540,7 @@ impl<R: BufRead> Parser<R> {
                     //         CompileError::new(CompileErrorCode::Parse, format!("unknown type '{}'", name), span).into()
                     //     );
                     // }
-                    if has_bang {
-                        return Err(CompileError::new(
-                            CompileErrorCode::Parse,
-                            "unexpected '!'",
-                            span,
-                        ));
-                    }
-                    return Ok(ast::SigType {
-                        kind: SigKind::GenericInst { name, args },
-                        span,
-                    });
+                    return Ok(SigKind::GenericInst { name, args });
                 }
 
                 // TODO: Not parsers job
@@ -616,29 +558,16 @@ impl<R: BufRead> Parser<R> {
                 //             }
                 //         }
                 //     }
-                //     return Ok(ast::SigType { kind: ty, span });
+                //     return Ok(ast::SigKind { kind: ty, span });
                 // }
                 // return Err(CompileError::new(CompileErrorCode::Parse, format!("unknown type '{}'", name), span).into());
-                Ok(ast::SigType {
-                    kind: SigKind::Ident(SigIdent {
-                        name,
-                        has_bang: has_bang,
-                        span,
-                    }),
-                    span,
-                })
+                Ok(SigKind::Ident(SigIdent { name, span }))
             }
-            _ => {
-                return Err(CompileError::new(
-                    CompileErrorCode::Parse,
-                    "expected a type",
-                    span,
-                ))
-            }
+            _ => return Err(Error::new(Code::Parse, "expected a type", span)),
         }
     }
 
-    fn parse_params(&mut self, context: ParamContext) -> Result<Signature, CompileError> {
+    fn parse_params(&mut self, context: ParamContext) -> Result<Signature, Error> {
         let lparen = self.expect_token("(", |k| matches!(k, TokenKind::LParen))?;
 
         let mut params = Vec::new();
@@ -661,22 +590,23 @@ impl<R: BufRead> Parser<R> {
         Ok(Signature {
             items: params,
             span: lparen.span,
+            generics: Vec::new(),
         })
     }
 
-    fn parse_identifier(&mut self, expected: &str) -> Result<(String, Span), CompileError> {
+    fn parse_identifier(&mut self, expected: &str) -> Result<(String, Span), Error> {
         let token = self.bump()?;
         match token.kind {
             TokenKind::Ident(name) => Ok((name, token.span)),
-            _ => Err(CompileError::new(
-                CompileErrorCode::Parse,
+            _ => Err(Error::new(
+                Code::Parse,
                 format!("expected {}", expected),
                 token.span,
             )),
         }
     }
 
-    fn expect_token<F>(&mut self, expected: &str, predicate: F) -> Result<Token, CompileError>
+    fn expect_token<F>(&mut self, expected: &str, predicate: F) -> Result<Token, Error>
     where
         F: Fn(&TokenKind) -> bool,
     {
@@ -684,15 +614,15 @@ impl<R: BufRead> Parser<R> {
         if predicate(&token.kind) {
             Ok(token)
         } else {
-            Err(CompileError::new(
-                CompileErrorCode::Parse,
+            Err(Error::new(
+                Code::Parse,
                 format!("expected {}", expected),
                 token.span,
             ))
         }
     }
 
-    fn consume_if<F>(&mut self, predicate: F) -> Result<Option<Token>, CompileError>
+    fn consume_if<F>(&mut self, predicate: F) -> Result<Option<Token>, Error>
     where
         F: Fn(&TokenKind) -> bool,
     {
@@ -703,22 +633,22 @@ impl<R: BufRead> Parser<R> {
         }
     }
 
-    fn bump(&mut self) -> Result<Token, CompileError> {
+    fn bump(&mut self) -> Result<Token, Error> {
         if let Some(token) = self.peeked.pop_front() {
             return Ok(token);
         }
-        self.lexer.next_token().map_err(CompileError::from)
+        self.lexer.next_token().map_err(Error::from)
     }
 
-    fn peek_token(&mut self) -> Result<&Token, CompileError> {
+    fn peek_token(&mut self) -> Result<&Token, Error> {
         if self.peeked.is_empty() {
-            let token = self.lexer.next_token().map_err(CompileError::from)?;
+            let token = self.lexer.next_token().map_err(Error::from)?;
             self.peeked.push_back(token);
         }
         Ok(self.peeked.front().expect("peeked token exists"))
     }
 
-    fn parse_body(&mut self, start_span: Span) -> Result<Block, CompileError> {
+    fn parse_body(&mut self, start_span: Span) -> Result<Block, Error> {
         let mut items = Vec::new();
         loop {
             self.consume_block_item_separators()?;
@@ -734,8 +664,8 @@ impl<R: BufRead> Parser<R> {
 
         if items.is_empty() {
             let token = self.peek_token()?.clone();
-            return Err(CompileError::new(
-                CompileErrorCode::Parse,
+            return Err(Error::new(
+                Code::Parse,
                 "block must contain at least one item",
                 token.span,
             ));
@@ -747,7 +677,7 @@ impl<R: BufRead> Parser<R> {
         })
     }
 
-    fn consume_block_item_separators(&mut self) -> Result<(), CompileError> {
+    fn consume_block_item_separators(&mut self) -> Result<(), Error> {
         while self
             .consume_if(|kind| matches!(kind, TokenKind::Semicolon | TokenKind::Newline))?
             .is_some()

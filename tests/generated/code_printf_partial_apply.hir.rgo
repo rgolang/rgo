@@ -1,0 +1,19 @@
+@/str
+@/printf
+@/write
+@/exit
+_2_foo: (){
+    _3: 0
+    exit(_3)
+}
+
+foo: (ok:(())){
+    ok(_2_foo)
+}
+
+_6_lambda: (_0_:()){
+    _7: "result: %d"
+    _8: 1
+    printf(_7, _8, _0_)
+}
+foo(_6_lambda)
