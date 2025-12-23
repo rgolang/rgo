@@ -7,19 +7,19 @@ zero: (f:(int, (int)), x: int, ok:(int)){
     ok(x)
 }
 
-_6_lambda: (x: int, ok:(int)){
-    _7: 10
-    add(x, _7, ok)
+_7_lambda: (x: int, ok:(int)){
+    _8: 10
+    add(x, _8, ok)
 }
 
-_14_lambda: (){
-    _15: 0
-    exit(_15)
+_15_lambda: (){
+    _16: 0
+    exit(_16)
 }
 
-_11_lambda: (x: int){
-    _12: "result: %d"
-    printf(_12, x, _14_lambda)
+_12_lambda: (x: int){
+    _13: "result: %d"
+    printf(_13, x, _15_lambda)
 }
-_9: 0
-zero(_6_lambda, _9, _11_lambda)
+_10: 0
+zero(_7_lambda, _10, _12_lambda)

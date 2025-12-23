@@ -1,6 +1,6 @@
 [
     Import {
-        name: "/str",
+        name: "/int",
         span: Span {
             line: 1,
             column: 1,
@@ -8,7 +8,7 @@
         },
     },
     Import {
-        name: "/sprintf",
+        name: "/str",
         span: Span {
             line: 2,
             column: 1,
@@ -16,19 +16,27 @@
         },
     },
     Import {
-        name: "/write",
+        name: "/sprintf",
         span: Span {
             line: 3,
             column: 1,
-            offset: 16,
+            offset: 12,
+        },
+    },
+    Import {
+        name: "/write",
+        span: Span {
+            line: 4,
+            column: 1,
+            offset: 22,
         },
     },
     Import {
         name: "/exit",
         span: Span {
-            line: 4,
+            line: 5,
             column: 1,
-            offset: 24,
+            offset: 30,
         },
     },
     Ident(
@@ -39,9 +47,9 @@
                     StrLiteral {
                         value: "result: %d",
                         span: Span {
-                            line: 6,
+                            line: 7,
                             column: 9,
-                            offset: 40,
+                            offset: 46,
                         },
                     },
                 ),
@@ -49,9 +57,9 @@
                     IntLiteral {
                         value: 3,
                         span: Span {
-                            line: 6,
+                            line: 7,
                             column: 23,
-                            offset: 54,
+                            offset: 60,
                         },
                     },
                 ),
@@ -65,24 +73,24 @@
                                         SigIdent {
                                             name: "str",
                                             span: Span {
-                                                line: 6,
+                                                line: 7,
                                                 column: 29,
-                                                offset: 60,
+                                                offset: 66,
                                             },
                                         },
                                     ),
                                     has_bang: false,
                                     span: Span {
-                                        line: 6,
+                                        line: 7,
                                         column: 27,
-                                        offset: 58,
+                                        offset: 64,
                                     },
                                 },
                             ],
                             span: Span {
-                                line: 6,
+                                line: 7,
                                 column: 26,
-                                offset: 57,
+                                offset: 63,
                             },
                             generics: [],
                         },
@@ -97,9 +105,9 @@
                                                     name: "s",
                                                     args: [],
                                                     span: Span {
-                                                        line: 7,
+                                                        line: 8,
                                                         column: 11,
-                                                        offset: 76,
+                                                        offset: 82,
                                                     },
                                                 },
                                             ),
@@ -111,48 +119,48 @@
                                                             IntLiteral {
                                                                 value: 0,
                                                                 span: Span {
-                                                                    line: 7,
+                                                                    line: 8,
                                                                     column: 19,
-                                                                    offset: 84,
+                                                                    offset: 90,
                                                                 },
                                                             },
                                                         ),
                                                     ],
                                                     span: Span {
-                                                        line: 7,
+                                                        line: 8,
                                                         column: 14,
-                                                        offset: 79,
+                                                        offset: 85,
                                                     },
                                                 },
                                             ),
                                         ],
                                         span: Span {
-                                            line: 7,
+                                            line: 8,
                                             column: 5,
-                                            offset: 70,
+                                            offset: 76,
                                         },
                                     },
                                 ),
                             ],
                             span: Span {
-                                line: 6,
+                                line: 7,
                                 column: 33,
-                                offset: 64,
+                                offset: 70,
                             },
                         },
                         args: [],
                         span: Span {
-                            line: 6,
+                            line: 7,
                             column: 26,
-                            offset: 57,
+                            offset: 63,
                         },
                     },
                 ),
             ],
             span: Span {
-                line: 6,
+                line: 7,
                 column: 1,
-                offset: 32,
+                offset: 38,
             },
         },
     ),

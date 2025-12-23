@@ -1,3 +1,4 @@
+@/str
 @/itoa
 @/exit
 _2_lambda: (s: str){

@@ -12,19 +12,19 @@ two: (f:(int, (int)), x: int, ok:(int)){
     f(x, _6_two)
 }
 
-_9_lambda: (x: int, ok:(int)){
-    _10: 10
-    add(x, _10, ok)
+_10_lambda: (x: int, ok:(int)){
+    _11: 10
+    add(x, _11, ok)
 }
 
-_17_lambda: (){
-    _18: 0
-    exit(_18)
+_18_lambda: (){
+    _19: 0
+    exit(_19)
 }
 
-_14_lambda: (x: int){
-    _15: "result: %d"
-    printf(_15, x, _17_lambda)
+_15_lambda: (x: int){
+    _16: "result: %d"
+    printf(_16, x, _18_lambda)
 }
-_12: 0
-two(_9_lambda, _12, _14_lambda)
+_13: 0
+two(_10_lambda, _13, _15_lambda)

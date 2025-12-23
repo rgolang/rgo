@@ -1,6 +1,6 @@
 [
     Import {
-        name: "/printf",
+        name: "/int",
         span: Span {
             line: 1,
             column: 1,
@@ -8,19 +8,27 @@
         },
     },
     Import {
-        name: "/str",
+        name: "/printf",
         span: Span {
             line: 2,
             column: 1,
-            offset: 9,
+            offset: 6,
+        },
+    },
+    Import {
+        name: "/str",
+        span: Span {
+            line: 3,
+            column: 1,
+            offset: 15,
         },
     },
     Import {
         name: "/exit",
         span: Span {
-            line: 3,
+            line: 4,
             column: 1,
-            offset: 15,
+            offset: 21,
         },
     },
     SigDef {
@@ -33,9 +41,9 @@
                         SigIdent {
                             name: "int",
                             span: Span {
-                                line: 5,
+                                line: 6,
                                 column: 11,
-                                offset: 33,
+                                offset: 39,
                             },
                         },
                     ),
@@ -52,9 +60,9 @@
                         SigIdent {
                             name: "tail",
                             span: Span {
-                                line: 5,
+                                line: 6,
                                 column: 22,
-                                offset: 44,
+                                offset: 50,
                             },
                         },
                     ),
@@ -67,16 +75,16 @@
                 },
             ],
             span: Span {
-                line: 5,
+                line: 6,
                 column: 7,
-                offset: 29,
+                offset: 35,
             },
             generics: [],
         },
         span: Span {
-            line: 5,
+            line: 6,
             column: 1,
-            offset: 23,
+            offset: 29,
         },
     },
     FunctionDef {
@@ -90,24 +98,24 @@
                             SigIdent {
                                 name: "tail",
                                 span: Span {
-                                    line: 7,
+                                    line: 8,
                                     column: 18,
-                                    offset: 68,
+                                    offset: 74,
                                 },
                             },
                         ),
                         has_bang: false,
                         span: Span {
-                            line: 7,
+                            line: 8,
                             column: 12,
-                            offset: 62,
+                            offset: 68,
                         },
                     },
                 ],
                 span: Span {
-                    line: 7,
+                    line: 8,
                     column: 11,
-                    offset: 61,
+                    offset: 67,
                 },
                 generics: [],
             },
@@ -121,9 +129,9 @@
                                     StrLiteral {
                                         value: "unused\n",
                                         span: Span {
-                                            line: 8,
+                                            line: 9,
                                             column: 12,
-                                            offset: 87,
+                                            offset: 93,
                                         },
                                     },
                                 ),
@@ -135,46 +143,46 @@
                                                 IntLiteral {
                                                     value: 0,
                                                     span: Span {
-                                                        line: 8,
+                                                        line: 9,
                                                         column: 29,
-                                                        offset: 104,
+                                                        offset: 110,
                                                     },
                                                 },
                                             ),
                                         ],
                                         span: Span {
-                                            line: 8,
+                                            line: 9,
                                             column: 24,
-                                            offset: 99,
+                                            offset: 105,
                                         },
                                     },
                                 ),
                             ],
                             span: Span {
-                                line: 8,
+                                line: 9,
                                 column: 5,
-                                offset: 80,
+                                offset: 86,
                             },
                         },
                     ),
                 ],
                 span: Span {
-                    line: 7,
+                    line: 8,
                     column: 24,
-                    offset: 74,
+                    offset: 80,
                 },
             },
             args: [],
             span: Span {
-                line: 7,
+                line: 8,
                 column: 1,
-                offset: 51,
+                offset: 57,
             },
         },
         span: Span {
-            line: 7,
+            line: 8,
             column: 1,
-            offset: 51,
+            offset: 57,
         },
     },
     FunctionDef {
@@ -183,9 +191,9 @@
             params: Signature {
                 items: [],
                 span: Span {
-                    line: 11,
+                    line: 12,
                     column: 8,
-                    offset: 118,
+                    offset: 124,
                 },
                 generics: [],
             },
@@ -199,9 +207,9 @@
                                     StrLiteral {
                                         value: "hi\n",
                                         span: Span {
-                                            line: 12,
+                                            line: 13,
                                             column: 12,
-                                            offset: 134,
+                                            offset: 140,
                                         },
                                     },
                                 ),
@@ -213,46 +221,46 @@
                                                 IntLiteral {
                                                     value: 0,
                                                     span: Span {
-                                                        line: 12,
+                                                        line: 13,
                                                         column: 25,
-                                                        offset: 147,
+                                                        offset: 153,
                                                     },
                                                 },
                                             ),
                                         ],
                                         span: Span {
-                                            line: 12,
+                                            line: 13,
                                             column: 20,
-                                            offset: 142,
+                                            offset: 148,
                                         },
                                     },
                                 ),
                             ],
                             span: Span {
-                                line: 12,
+                                line: 13,
                                 column: 5,
-                                offset: 127,
+                                offset: 133,
                             },
                         },
                     ),
                 ],
                 span: Span {
-                    line: 11,
+                    line: 12,
                     column: 11,
-                    offset: 121,
+                    offset: 127,
                 },
             },
             args: [],
             span: Span {
-                line: 11,
+                line: 12,
                 column: 1,
-                offset: 111,
+                offset: 117,
             },
         },
         span: Span {
-            line: 11,
+            line: 12,
             column: 1,
-            offset: 111,
+            offset: 117,
         },
     },
     Ident(
@@ -260,9 +268,9 @@
             name: "hello",
             args: [],
             span: Span {
-                line: 15,
+                line: 16,
                 column: 1,
-                offset: 154,
+                offset: 160,
             },
         },
     ),

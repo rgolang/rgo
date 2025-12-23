@@ -24,15 +24,15 @@ two_unwrapper(env_end: int) {
     two(f, x, ok)
 }
 
-_9_lambda(x: int, ok: (int)) {
-    _10 = 10
-    add(x, _10, ok)
+_10_lambda(x: int, ok: (int)) {
+    _11 = 10
+    add(x, _11, ok)
 }
 
-_9_lambda_unwrapper(env_end: int) {
+_10_lambda_unwrapper(env_end: int) {
     x: int = env_end - 3 words (x)
     ok: (int) = env_end - 2 words (ok)
-    _9_lambda(x, ok)
+    _10_lambda(x, ok)
 }
 
 add(x: int, y: int, ok: (int)) {
@@ -47,13 +47,13 @@ add_unwrapper(env_end: int) {
     add(x, y, ok)
 }
 
-_17_lambda() {
-    _18 = 0
-    exit(_18)
+_18_lambda() {
+    _19 = 0
+    exit(_19)
 }
 
-_17_lambda_unwrapper(env_end: int) {
-    _17_lambda()
+_18_lambda_unwrapper(env_end: int) {
+    _18_lambda()
 }
 
 exit(code: int) {
@@ -65,21 +65,21 @@ exit_unwrapper(env_end: int) {
     exit(code)
 }
 
-_14_lambda(x: int) {
-    _15 = "result: %d"
-    _17_lambda = _17_lambda()
-    __result = @printf(_15, x)
-    _17_lambda(__result)
+_15_lambda(x: int) {
+    _16 = "result: %d"
+    _18_lambda = _18_lambda()
+    __result = @printf(_16, x)
+    _18_lambda(__result)
 }
 
-_14_lambda_unwrapper(env_end: int) {
+_15_lambda_unwrapper(env_end: int) {
     x: int = env_end - 1 words (x)
-    _14_lambda(x)
+    _15_lambda(x)
 }
 
 _start() {
-    _12 = 0
-    _9_lambda = _9_lambda()
-    _14_lambda = _14_lambda()
-    two(_9_lambda, _12, _14_lambda)
+    _13 = 0
+    _10_lambda = _10_lambda()
+    _15_lambda = _15_lambda()
+    two(_10_lambda, _13, _15_lambda)
 }

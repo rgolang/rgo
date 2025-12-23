@@ -6,9 +6,10 @@ use std::process::Command;
 use compiler::compiler::error::{self, Code, Error};
 use compiler::compiler::hir;
 use compiler::compiler::span::Span;
-use compiler::compiler::{compile, lexer::Lexer, parser::Parser};
-use compiler::debug_tools::format_hir::render_normalized_rgo;
-use compiler::debug_tools::format_mir::render_mir_functions;
+use compiler::compiler::{
+    compile, format_hir::render_normalized_rgo, format_mir::render_mir_functions, lexer::Lexer,
+    parser::Parser,
+};
 use compiler::debug_tools::test_helpers::generate_mir_functions;
 
 const GENERATED_DIR: &str = "tests/generated";
@@ -16,13 +17,39 @@ const GENERATED_DIR: &str = "tests/generated";
 #[test]
 fn golden_test() {
     generate_golden_snapshots();
-    verify_expected_outputs();
+    let bin_dir = Path::new("bin");
+    fs::create_dir_all(bin_dir).expect("failed to create bin directory");
+    verify_expected_runtime_outputs(Path::new("tests/golden"), bin_dir);
+}
+
+#[test]
+fn failing_test() {
+    generate_failure_snapshots();
+    let bin_dir = Path::new("bin");
+    fs::create_dir_all(bin_dir).expect("failed to create bin directory");
+    verify_expected_compile_errors(Path::new("tests/failing"), bin_dir);
 }
 
 fn generate_golden_snapshots() {
-    let src_dir = Path::new("tests/golden");
+    let golden_dir = Path::new("tests/golden");
     let out_dir = Path::new(GENERATED_DIR);
     fs::create_dir_all(out_dir).expect("failed to create generated output directory");
+
+    process_snapshot_directory(golden_dir, out_dir, SnapshotKind::Success);
+}
+
+fn generate_failure_snapshots() {
+    let failing_dir = Path::new("tests/failing");
+    let out_dir = Path::new(GENERATED_DIR);
+    fs::create_dir_all(out_dir).expect("failed to create generated output directory");
+
+    process_snapshot_directory(failing_dir, out_dir, SnapshotKind::Failure);
+}
+
+fn process_snapshot_directory(src_dir: &Path, out_dir: &Path, kind: SnapshotKind) {
+    if !src_dir.exists() {
+        return;
+    }
 
     let mut rgo_paths: Vec<PathBuf> = fs::read_dir(src_dir)
         .expect("tests directory should exist")
@@ -40,7 +67,7 @@ fn generate_golden_snapshots() {
     rgo_paths.sort();
 
     for path in rgo_paths {
-        if let Err(err) = build_reference_for_path(&path, out_dir) {
+        if let Err(err) = build_reference_for_path(&path, out_dir, kind) {
             panic!("{}: {err}", path.display());
         }
     }
@@ -60,7 +87,11 @@ fn compile_source(source: &str) -> Result<String, Error> {
     Ok(asm) // TODO: This mir_module can be done better
 }
 
-fn build_reference_for_path(path: &Path, out_dir: &Path) -> Result<(), Error> {
+fn build_reference_for_path(
+    path: &Path,
+    out_dir: &Path,
+    kind: SnapshotKind,
+) -> Result<(), Error> {
     let stem = path
         .file_stem()
         .and_then(|stem| stem.to_str())
@@ -72,32 +103,28 @@ fn build_reference_for_path(path: &Path, out_dir: &Path) -> Result<(), Error> {
             )
         })?;
     let source = fs::read_to_string(path)?;
-    let err_path = out_dir.join(format!("{stem}.err"));
-    let expect_error = err_path.exists();
-
-    match generate_artifacts(&source) {
-        Ok(artifacts) => {
-            if expect_error {
-                return Err(error::new(
-                    Code::Internal,
-                    "expected compilation failure but succeeded",
-                    Span::unknown(),
-                ));
+    match kind {
+        SnapshotKind::Success => {
+            let artifacts = generate_artifacts(&source)?;
+            let actual_err_path = out_dir.join(format!("{stem}.actual.err"));
+            if actual_err_path.exists() {
+                fs::remove_file(&actual_err_path)?;
             }
             write_artifacts(out_dir, stem, &artifacts)?;
-            if err_path.exists() {
-                fs::remove_file(&err_path)?;
-            }
             Ok(())
         }
-        Err(err) => {
-            if expect_error {
-                fs::write(&err_path, format!("{err}\n"))?;
+        SnapshotKind::Failure => match generate_artifacts(&source) {
+            Ok(_) => Err(error::new(
+                Code::Internal,
+                "expected compilation failure but succeeded",
+                Span::unknown(),
+            )),
+            Err(err) => {
+                let actual_err_path = out_dir.join(format!("{stem}.actual.err"));
+                fs::write(actual_err_path, format!("{err}\n"))?;
                 Ok(())
-            } else {
-                Err(err)
             }
-        }
+        },
     }
 }
 
@@ -106,6 +133,12 @@ struct GeneratedArtifacts {
     normalized_hir: String,
     mir: String,
     asm: String,
+}
+
+#[derive(Copy, Clone)]
+enum SnapshotKind {
+    Success,
+    Failure,
 }
 
 fn generate_artifacts(source: &str) -> Result<GeneratedArtifacts, Error> {
@@ -159,11 +192,7 @@ fn write_artifacts(
     Ok(())
 }
 
-fn verify_expected_outputs() {
-    let tests_dir = Path::new("tests/golden");
-    let bin_dir = Path::new("bin");
-    fs::create_dir_all(bin_dir).expect("failed to create bin directory");
-
+fn verify_expected_runtime_outputs(tests_dir: &Path, bin_dir: &Path) {
     let mut expected_paths: Vec<PathBuf> = fs::read_dir(tests_dir)
         .expect("tests directory should exist")
         .filter_map(|entry| {
@@ -244,6 +273,59 @@ fn verify_expected_outputs() {
     }
 }
 
+fn verify_expected_compile_errors(tests_dir: &Path, bin_dir: &Path) {
+    if !tests_dir.exists() {
+        return;
+    }
+
+    let mut expected_paths: Vec<PathBuf> = fs::read_dir(tests_dir)
+        .expect("tests directory should exist")
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let path = entry.path();
+            let name = path.file_name()?.to_str()?;
+            if path.is_file() && name.ends_with(".expected.err") {
+                Some(path)
+            } else {
+                None
+            }
+        })
+        .collect();
+    expected_paths.sort();
+
+    for expected_path in expected_paths {
+        let expected_name = expected_path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .expect("filename should be valid UTF-8");
+        let base = expected_name
+            .strip_suffix(".expected.err")
+            .expect("expected error files should end with .expected.err");
+        let rgo_path = tests_dir.join(format!("{base}.rgo"));
+        if !rgo_path.exists() {
+            continue;
+        }
+
+        let expected_error = fs::read_to_string(&expected_path)
+            .expect("expected error file should be readable")
+            .trim_end()
+            .to_string();
+        let asm_path = bin_dir.join(format!("{base}.err.asm"));
+        let mut cmd = Command::new("cargo");
+        cmd.arg("run").arg("--").arg(&rgo_path).arg(&asm_path);
+        let actual_error =
+            capture_compile_failure_output(&mut cmd, &format!("cargo run -- {}", rgo_path.display()));
+
+        assert!(
+            actual_error.contains(&expected_error),
+            "expected error substring \"{}\" not found for {}: actual error:\n{}",
+            expected_error,
+            expected_name,
+            actual_error
+        );
+    }
+}
+
 fn compile_rgo_source(rgo_path: &Path, asm_path: &Path) {
     let mut cmd = Command::new("cargo");
     cmd.arg("run").arg("--").arg(rgo_path).arg(asm_path);
@@ -266,6 +348,23 @@ fn run_command(cmd: &mut Command, description: &str) {
             String::from_utf8_lossy(&output.stderr)
         );
     }
+}
+
+fn capture_compile_failure_output(cmd: &mut Command, description: &str) -> String {
+    let output = cmd
+        .output()
+        .unwrap_or_else(|err| panic!("{description} failed to start: {err}"));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    if output.status.success() {
+        panic!(
+            "{} unexpectedly succeeded:\nstdout:\n{}\nstderr:\n{}",
+            description, stdout, stderr
+        );
+    }
+
+    format!("{stdout}{stderr}")
 }
 
 fn capture_command_output(cmd: &mut Command, description: &str) -> String {

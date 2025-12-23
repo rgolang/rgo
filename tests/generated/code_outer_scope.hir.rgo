@@ -1,3 +1,4 @@
+@/str
 @/write
 @/exit
 bar: (v: str, ok:()){

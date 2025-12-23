@@ -2,6 +2,7 @@ use crate::compiler::ast;
 use crate::compiler::ast::{Arg, SigItem, SigKind, Signature};
 use crate::compiler::error;
 use crate::compiler::error::{Code, Error};
+use crate::compiler::format_hir;
 pub use crate::compiler::hir_ast::*;
 use crate::compiler::hir_context as ctx;
 use crate::compiler::signature;
@@ -417,6 +418,7 @@ fn lower_arg(
     lowered_items: &mut Vec<BlockItem>,
 ) -> Result<Arg, Error> {
     let term = maybe_wrap_builtin(ctx, term, expected_param)?;
+    validate_input_type(ctx, &term, expected_param)?;
     let arg = match term {
         ast::Term::Ident(ast_ident) => {
             maybe_capture_name(ctx, &ast_ident.name)?;
@@ -628,5 +630,93 @@ fn ensure_param_names(ctx: &mut ctx::Context, expected_sig: &Signature) -> ast::
         items,
         span: expected_sig.span,
         generics: expected_sig.generics.clone(),
+    }
+}
+
+fn validate_input_type(
+    ctx: &mut ctx::Context,
+    term: &ast::Term,
+    expected_param: Option<&SigItem>,
+) -> Result<(), Error> {
+    let Some(expected) = expected_param else {
+        return Ok(());
+    };
+    if matches!(expected.ty, SigKind::Variadic) {
+        return Ok(());
+    }
+
+    let Some(actual_kind) = term_sig_kind(ctx, term) else {
+        return Ok(());
+    };
+
+    let normalized_expected = signature::normalize_sig_kind(&expected.ty, ctx);
+    let normalized_actual = signature::normalize_sig_kind(&actual_kind, ctx);
+
+    if let SigKind::Ident(ident) = &normalized_expected {
+        if ctx.get(&ident.name).is_none() {
+            return Err(error::new(
+                Code::HIR,
+                format!("type `{}` is not defined", ident.name),
+                term.span(),
+            ));
+        }
+    }
+
+    if kind_matches(&normalized_actual, &normalized_expected) {
+        return Ok(());
+    }
+
+    Err(error::new(
+        Code::HIR,
+            format!(
+                "expected {}, found {}",
+                format_hir::format_sig_kind(&normalized_expected),
+                format_hir::format_sig_kind(&normalized_actual)
+            ),
+            term.span(),
+        ))
+}
+
+fn term_sig_kind(ctx: &mut ctx::Context, term: &ast::Term) -> Option<SigKind> {
+    match term {
+        ast::Term::Int(_) => Some(SigKind::Int),
+        ast::Term::String(_) => Some(SigKind::Str),
+        ast::Term::Ident(_) => None,
+        ast::Term::Lambda(lambda) => {
+            let signature = signature::resolve_ast_signature(&lambda.params, ctx);
+            let normalized = signature::normalize_signature(&signature, ctx);
+            Some(SigKind::Sig(normalized))
+        }
+    }
+}
+
+
+fn kind_matches(actual: &SigKind, expected: &SigKind) -> bool {
+    canonicalize_kind(actual) == canonicalize_kind(expected)
+}
+
+fn canonicalize_kind(kind: &SigKind) -> SigKind {
+    match kind {
+        SigKind::CompileTimeInt => SigKind::Int,
+        SigKind::CompileTimeStr => SigKind::Str,
+        SigKind::Sig(signature) => SigKind::Sig(Signature {
+            items: signature
+                .items
+                .iter()
+                .map(|item| SigItem {
+                    name: item.name.clone(),
+                    ty: canonicalize_kind(&item.ty),
+                    has_bang: item.has_bang,
+                    span: item.span,
+                })
+                .collect(),
+            span: signature.span,
+            generics: signature.generics.clone(),
+        }),
+        SigKind::GenericInst { name, args } => SigKind::GenericInst {
+            name: name.clone(),
+            args: args.iter().map(canonicalize_kind).collect(),
+        },
+        other => other.clone(),
     }
 }

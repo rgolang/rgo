@@ -1,6 +1,6 @@
 [
     Import {
-        name: "/printf",
+        name: "/int",
         span: Span {
             line: 1,
             column: 1,
@@ -8,11 +8,19 @@
         },
     },
     Import {
-        name: "/exit",
+        name: "/printf",
         span: Span {
             line: 2,
             column: 1,
-            offset: 9,
+            offset: 6,
+        },
+    },
+    Import {
+        name: "/exit",
+        span: Span {
+            line: 3,
+            column: 1,
+            offset: 15,
         },
     },
     Ident(
@@ -23,9 +31,9 @@
                     StrLiteral {
                         value: "hello %s\n",
                         span: Span {
-                            line: 4,
+                            line: 5,
                             column: 8,
-                            offset: 24,
+                            offset: 30,
                         },
                     },
                 ),
@@ -33,9 +41,9 @@
                     StrLiteral {
                         value: "world",
                         span: Span {
-                            line: 4,
+                            line: 5,
                             column: 22,
-                            offset: 38,
+                            offset: 44,
                         },
                     },
                 ),
@@ -47,25 +55,25 @@
                                 IntLiteral {
                                     value: 0,
                                     span: Span {
-                                        line: 4,
+                                        line: 5,
                                         column: 36,
-                                        offset: 52,
+                                        offset: 58,
                                     },
                                 },
                             ),
                         ],
                         span: Span {
-                            line: 4,
+                            line: 5,
                             column: 31,
-                            offset: 47,
+                            offset: 53,
                         },
                     },
                 ),
             ],
             span: Span {
-                line: 4,
+                line: 5,
                 column: 1,
-                offset: 17,
+                offset: 23,
             },
         },
     ),

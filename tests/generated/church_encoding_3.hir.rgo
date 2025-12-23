@@ -17,19 +17,19 @@ three: (f:(int, (int)), x: int, ok:(int)){
     f(x, _9_three)
 }
 
-_12_lambda: (x: int, ok:(int)){
-    _13: 10
-    add(x, _13, ok)
+_13_lambda: (x: int, ok:(int)){
+    _14: 10
+    add(x, _14, ok)
 }
 
-_20_lambda: (){
-    _21: 0
-    exit(_21)
+_21_lambda: (){
+    _22: 0
+    exit(_22)
 }
 
-_17_lambda: (x: int){
-    _18: "result: %d"
-    printf(_18, x, _20_lambda)
+_18_lambda: (x: int){
+    _19: "result: %d"
+    printf(_19, x, _21_lambda)
 }
-_15: 0
-three(_12_lambda, _15, _17_lambda)
+_16: 0
+three(_13_lambda, _16, _18_lambda)

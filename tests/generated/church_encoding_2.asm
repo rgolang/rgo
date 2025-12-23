@@ -245,8 +245,8 @@ two_unwrapper:
     pop r8 ; restore closure env_end into register
     leave ; unwind before named jump
     jmp two ; jump to fully applied function
-global _9_lambda
-_9_lambda:
+global _10_lambda
+_10_lambda:
     push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
     sub rsp, 48 ; reserve stack space for locals
@@ -269,8 +269,8 @@ _9_lambda:
     pop rcx ; restore closure env_end into register
     leave ; unwind before named jump
     jmp add ; jump to fully applied function
-global _9_lambda_unwrapper
-_9_lambda_unwrapper:
+global _10_lambda_unwrapper
+_10_lambda_unwrapper:
     push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
     sub rsp, 48 ; reserve stack space for locals
@@ -294,7 +294,7 @@ _9_lambda_unwrapper:
     pop rsi ; restore closure code into register
     pop rdx ; restore closure env_end into register
     leave ; unwind before named jump
-    jmp _9_lambda ; jump to fully applied function
+    jmp _10_lambda ; jump to fully applied function
 global add
 add:
     push rbp ; save executor frame pointer
@@ -344,8 +344,8 @@ add_unwrapper:
     pop rcx ; restore closure env_end into register
     leave ; unwind before named jump
     jmp add ; jump to fully applied function
-global _17_lambda
-_17_lambda:
+global _18_lambda
+_18_lambda:
     push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
     sub rsp, 16 ; reserve stack space for locals
@@ -356,14 +356,14 @@ _17_lambda:
     pop rdi ; restore scalar arg into register
     leave ; unwind before named jump
     jmp exit ; jump to fully applied function
-global _17_lambda_unwrapper
-_17_lambda_unwrapper:
+global _18_lambda_unwrapper
+_18_lambda_unwrapper:
     push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
     sub rsp, 16 ; reserve stack space for locals
     mov [rbp-16], rdi ; store scalar arg in frame
     leave ; unwind before named jump
-    jmp _17_lambda ; jump to fully applied function
+    jmp _18_lambda ; jump to fully applied function
 global exit
 exit:
     push rbp ; save executor frame pointer
@@ -388,13 +388,13 @@ exit_unwrapper:
     pop rdi ; restore scalar arg into register
     leave ; unwind before named jump
     jmp exit ; jump to fully applied function
-global _14_lambda
-_14_lambda:
+global _15_lambda
+_15_lambda:
     push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
     sub rsp, 64 ; reserve stack space for locals
     mov [rbp-16], rdi ; store scalar arg in frame
-    lea rax, [rel _15] ; point to string literal
+    lea rax, [rel _16] ; point to string literal
     mov [rbp-32], rax ; save evaluated scalar in frame
     mov rax, 9 ; mmap syscall
     xor rdi, rdi ; addr = NULL hint
@@ -408,7 +408,7 @@ _14_lambda:
     mov qword [rdx], 0 ; env size metadata
     mov qword [rdx+8], 24 ; heap size metadata
     mov qword [rdx+16], 0 ; pointer count metadata
-    mov rax, _17_lambda_unwrapper ; load unwrapper entry point
+    mov rax, _18_lambda_unwrapper ; load unwrapper entry point
     mov [rbp-48], rax ; update closure code pointer
     mov [rbp-40], rdx ; update closure environment pointer
     mov rax, [rbp-16] ; load scalar from frame
@@ -434,8 +434,8 @@ _14_lambda:
     mov rdi, rdx ; pass env_end pointer as parameter
     leave ; unwind before calling closure
     jmp rax ; jump into fully applied closure
-global _14_lambda_unwrapper
-_14_lambda_unwrapper:
+global _15_lambda_unwrapper
+_15_lambda_unwrapper:
     push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
     sub rsp, 32 ; reserve stack space for locals
@@ -447,7 +447,7 @@ _14_lambda_unwrapper:
     push rax ; stack arg: scalar
     pop rdi ; restore scalar arg into register
     leave ; unwind before named jump
-    jmp _14_lambda ; jump to fully applied function
+    jmp _15_lambda ; jump to fully applied function
 global _start
 _start:
     push rbp ; save executor frame pointer
@@ -469,7 +469,7 @@ _start:
     mov qword [rdx+8], 56 ; heap size metadata
     mov qword [rdx+16], 1 ; pointer count metadata
     mov qword [rdx+24], 16 ; closure env pointer slot offset
-    mov rax, _9_lambda_unwrapper ; load unwrapper entry point
+    mov rax, _10_lambda_unwrapper ; load unwrapper entry point
     mov [rbp-32], rax ; update closure code pointer
     mov [rbp-24], rdx ; update closure environment pointer
     mov rax, 9 ; mmap syscall
@@ -485,7 +485,7 @@ _start:
     mov qword [rdx], 8 ; env size metadata
     mov qword [rdx+8], 32 ; heap size metadata
     mov qword [rdx+16], 0 ; pointer count metadata
-    mov rax, _14_lambda_unwrapper ; load unwrapper entry point
+    mov rax, _15_lambda_unwrapper ; load unwrapper entry point
     mov [rbp-48], rax ; update closure code pointer
     mov [rbp-40], rdx ; update closure environment pointer
     mov rax, [rbp-48] ; load closure code pointer
@@ -523,5 +523,5 @@ extern fflush
 extern printf
 extern stdout
 section .rodata
-_15:
+_16:
     db "result: %d", 0

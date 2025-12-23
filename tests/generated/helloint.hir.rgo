@@ -1,3 +1,4 @@
+@/int
 @/printf
 @/exit
 x: 42

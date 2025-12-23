@@ -87,15 +87,15 @@ three_unwrapper(env_end: int) {
     three(f, x, ok)
 }
 
-_27_lambda(x: int, ok: (int)) {
-    _28 = 10
-    add(x, _28, ok)
+_28_lambda(x: int, ok: (int)) {
+    _29 = 10
+    add(x, _29, ok)
 }
 
-_27_lambda_unwrapper(env_end: int) {
+_28_lambda_unwrapper(env_end: int) {
     x: int = env_end - 3 words (x)
     ok: (int) = env_end - 2 words (ok)
-    _27_lambda(x, ok)
+    _28_lambda(x, ok)
 }
 
 add(x: int, y: int, ok: (int)) {
@@ -110,13 +110,13 @@ add_unwrapper(env_end: int) {
     add(x, y, ok)
 }
 
-_35_lambda() {
-    _36 = 0
-    exit(_36)
+_36_lambda() {
+    _37 = 0
+    exit(_37)
 }
 
-_35_lambda_unwrapper(env_end: int) {
-    _35_lambda()
+_36_lambda_unwrapper(env_end: int) {
+    _36_lambda()
 }
 
 exit(code: int) {
@@ -128,21 +128,21 @@ exit_unwrapper(env_end: int) {
     exit(code)
 }
 
-_32_lambda(x: int) {
-    _33 = "result: %d\n"
-    _35_lambda = _35_lambda()
-    __result = @printf(_33, x)
-    _35_lambda(__result)
+_33_lambda(x: int) {
+    _34 = "result: %d\n"
+    _36_lambda = _36_lambda()
+    __result = @printf(_34, x)
+    _36_lambda(__result)
 }
 
-_32_lambda_unwrapper(env_end: int) {
+_33_lambda_unwrapper(env_end: int) {
     x: int = env_end - 1 words (x)
-    _32_lambda(x)
+    _33_lambda(x)
 }
 
 _start() {
-    _30 = 0
-    _27_lambda = _27_lambda()
-    _32_lambda = _32_lambda()
-    three(_27_lambda, _30, _32_lambda)
+    _31 = 0
+    _28_lambda = _28_lambda()
+    _33_lambda = _33_lambda()
+    three(_28_lambda, _31, _33_lambda)
 }

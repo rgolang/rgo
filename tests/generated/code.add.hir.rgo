@@ -1,3 +1,4 @@
+@/int
 @/add
 @/exit
 _3_lambda: (n: int){

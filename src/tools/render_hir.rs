@@ -4,8 +4,7 @@ use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 
 use compiler::compiler::hir;
-use compiler::compiler::{lexer::Lexer, parser::Parser};
-use compiler::debug_tools::format_hir::render_normalized_rgo;
+use compiler::compiler::{format_hir::render_normalized_rgo, lexer::Lexer, parser::Parser};
 
 fn main() -> Result<(), Box<dyn StdError>> {
     let mut args = env::args().skip(1);

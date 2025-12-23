@@ -34,19 +34,19 @@ three: (f:(int, (int)), x: int, ok:(int)){
     f(x, _24_three)
 }
 
-_27_lambda: (x: int, ok:(int)){
-    _28: 10
-    add(x, _28, ok)
+_28_lambda: (x: int, ok:(int)){
+    _29: 10
+    add(x, _29, ok)
 }
 
-_35_lambda: (){
-    _36: 0
-    exit(_36)
+_36_lambda: (){
+    _37: 0
+    exit(_37)
 }
 
-_32_lambda: (x: int){
-    _33: "result: %d\n"
-    printf(_33, x, _35_lambda)
+_33_lambda: (x: int){
+    _34: "result: %d\n"
+    printf(_34, x, _36_lambda)
 }
-_30: 0
-three(_27_lambda, _30, _32_lambda)
+_31: 0
+three(_28_lambda, _31, _33_lambda)

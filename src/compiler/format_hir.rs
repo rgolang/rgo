@@ -63,7 +63,7 @@ fn write_block_item(item: &BlockItem, out: &mut String, indent: usize) {
             out.push(')');
         }
         BlockItem::SigDef { name, sig, .. } => {
-            let type_str = format_hir_sig_kind(&ast::SigKind::Sig(sig.clone()));
+            let type_str = format_sig_kind(&ast::SigKind::Sig(sig.clone()));
             if sig.generics.is_empty() {
                 write!(out, "{}: {}", name, type_str).unwrap();
             } else {
@@ -95,7 +95,7 @@ fn format_param_list(params: &[ast::SigItem]) -> String {
     let entries: Vec<String> = params
         .iter()
         .map(|param| {
-            let ty = format_hir_type_ref(&param.ty);
+            let ty = format_sig_kind(&param.ty);
             let ty = if param.has_bang && !ty.ends_with('!') {
                 format!("{ty}!")
             } else {
@@ -112,11 +112,7 @@ fn format_param_list(params: &[ast::SigItem]) -> String {
     format!("({})", entries.join(", "))
 }
 
-fn format_hir_type_ref(ty: &ast::SigKind) -> String {
-    format_hir_sig_kind(&ty)
-}
-
-fn format_hir_sig_kind(kind: &ast::SigKind) -> String {
+pub(crate) fn format_sig_kind(kind: &ast::SigKind) -> String {
     match kind {
         ast::SigKind::Int => "int".to_string(),
         ast::SigKind::Str => "str".to_string(),
@@ -126,14 +122,22 @@ fn format_hir_sig_kind(kind: &ast::SigKind) -> String {
             let entries = inner
                 .items
                 .iter()
-                .map(|item| format_hir_type_ref(&item.ty))
+                .map(|item| format_sig_kind(&item.ty))
                 .collect::<Vec<_>>()
                 .join(", ");
             format!("({})", entries)
         }
         ast::SigKind::Ident(ident) => ident.name.clone(),
         ast::SigKind::Variadic => "...".to_string(),
-        _ => unreachable!("unexpected type kind in HIR rendering: {:#?}", kind),
+        ast::SigKind::GenericInst { name, args } => {
+            let entries = args
+                .iter()
+                .map(|arg| format_sig_kind(arg))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("{name}<{entries}>")
+        }
+        ast::SigKind::Generic(name) => name.clone(),
     }
 }
 

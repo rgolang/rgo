@@ -1,3 +1,4 @@
+@/int
 @/write
 @/exit
 x: "Hello world!\n"

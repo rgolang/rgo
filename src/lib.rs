@@ -91,6 +91,7 @@ mod tests {
     fn compile_simple_program() {
         let source = r#"
 @/int
+@/str
 @/add
 @/exit
 @/write

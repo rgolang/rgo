@@ -1,0 +1,7 @@
+@/int
+@/printf
+@/exit
+foo: (n: int) {
+    printf("Number: %d\n", n, exit(0))
+}
+foo("invalid_arg")  // Error: expected int, found str

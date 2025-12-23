@@ -3,8 +3,7 @@ use std::error::Error as StdError;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 
-use compiler::compiler::{hir, lexer::Lexer, parser::Parser};
-use compiler::debug_tools::format_mir;
+use compiler::compiler::{format_mir, hir, lexer::Lexer, parser::Parser};
 use compiler::debug_tools::test_helpers::generate_mir_functions;
 
 fn main() -> Result<(), Box<dyn StdError>> {
