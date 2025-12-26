@@ -6,7 +6,7 @@ use crate::compiler::error::{Code, Error};
 use crate::compiler::mir;
 use crate::compiler::mir::{
     DeepCopy, MirArg, MirCall, MirCallKind, MirClosure, MirEnvBase, MirEnvField, MirExec,
-    MirExecTarget, MirFunction, MirInstruction, MirStmt, MirSysCall, MirSysCallKind, ReleaseEnv,
+    MirExecTarget, MirFunction, MirInstruction, MirStmt, MirSysCall, MirSysCallKind, Release,
     SigItem, SigKind, ValueKind,
 };
 
@@ -28,6 +28,12 @@ enum Expr {
     Int { value: i64 },
     Ident { name: String, span: Span },
     String { label: String },
+}
+
+#[derive(Clone, Copy, Debug)]
+struct ArgSplit {
+    reg_slots: usize,
+    stack_bytes: usize,
 }
 
 const ARG_REGS: [&str; 12] = [
@@ -492,7 +498,7 @@ fn mir_statement_binding_info<'a>(stmt: &'a MirStmt) -> Option<(&'a str, Span)> 
         MirStmt::IntDef { name, literal } => Some((name.as_str(), literal.span)),
         MirStmt::Closure(s) => Some((&s.name, s.span)),
         MirStmt::Exec(..) => None,
-        MirStmt::ReleaseEnv(..) => None,
+        MirStmt::Release(..) => None,
         MirStmt::DeepCopy(copy) => Some((copy.copy.as_str(), copy.span)),
         MirStmt::Op(instr) => instr
             .outputs
@@ -617,21 +623,12 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
     fn store_params(&mut self) -> Result<(), Error> {
         let mut slot = 0usize;
+        let mut spilled = false;
+        let mut stack_offset_bytes = 0usize;
         for param in &self.mir.sig.params {
             let name = &param.name;
             let ty = &param.ty;
             let required = slots_for_type(&ty);
-            if slot + required > ARG_REGS.len() {
-                return Err(Error::new(
-                    Code::Codegen,
-                    format!(
-                        "function '{}' supports at most {} argument slots",
-                        self.mir.sig.name,
-                        ARG_REGS.len()
-                    ),
-                    self.mir.sig.span,
-                ));
-            }
             let kind = resolved_type_kind(&ty);
             if kind == ValueKind::Variadic {
                 slot += required;
@@ -644,33 +641,76 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 .clone();
             match kind {
                 ValueKind::Word => {
-                    let reg = ARG_REGS[slot];
-                    writeln!(
-                        self.out,
-                        "    mov [rbp-{}], {} ; store scalar arg in frame",
-                        binding.slot_addr(0),
-                        reg
-                    )?;
+                    if !spilled && slot + 1 <= ARG_REGS.len() {
+                        let reg = ARG_REGS[slot];
+                        writeln!(
+                            self.out,
+                            "    mov [rbp-{}], {} ; store scalar arg in frame",
+                            binding.slot_addr(0),
+                            reg
+                        )?;
+                        slot += 1;
+                    } else {
+                        spilled = true;
+                        let addr = 8 + stack_offset_bytes;
+                        writeln!(
+                            self.out,
+                            "    mov rax, [rbp+{}] ; load spilled scalar arg",
+                            addr
+                        )?;
+                        writeln!(
+                            self.out,
+                            "    mov [rbp-{}], rax ; store spilled scalar arg",
+                            binding.slot_addr(0)
+                        )?;
+                        stack_offset_bytes += bytes_for_type(&ty);
+                    }
                 }
                 ValueKind::Closure => {
-                    let reg_code = ARG_REGS[slot];
-                    let reg_env = ARG_REGS[slot + 1];
-                    writeln!(
-                        self.out,
-                        "    mov [rbp-{}], {} ; save closure code pointer",
-                        binding.slot_addr(0),
-                        reg_code
-                    )?;
-                    writeln!(
-                        self.out,
-                        "    mov [rbp-{}], {} ; save closure environment pointer",
-                        binding.slot_addr(1),
-                        reg_env
-                    )?;
+                    if !spilled && slot + 1 < ARG_REGS.len() {
+                        let reg_code = ARG_REGS[slot];
+                        let reg_env = ARG_REGS[slot + 1];
+                        writeln!(
+                            self.out,
+                            "    mov [rbp-{}], {} ; save closure code pointer",
+                            binding.slot_addr(0),
+                            reg_code
+                        )?;
+                        writeln!(
+                            self.out,
+                            "    mov [rbp-{}], {} ; save closure environment pointer",
+                            binding.slot_addr(1),
+                            reg_env
+                        )?;
+                        slot += 2;
+                    } else {
+                        spilled = true;
+                        let base = 8 + stack_offset_bytes;
+                        writeln!(
+                            self.out,
+                            "    mov rax, [rbp+{}] ; load spilled closure code",
+                            base
+                        )?;
+                        writeln!(
+                            self.out,
+                            "    mov rdx, [rbp+{}] ; load spilled closure env",
+                            base + 8
+                        )?;
+                        writeln!(
+                            self.out,
+                            "    mov [rbp-{}], rax ; save spilled closure code pointer",
+                            binding.slot_addr(0)
+                        )?;
+                        writeln!(
+                            self.out,
+                            "    mov [rbp-{}], rdx ; save spilled closure env_end pointer",
+                            binding.slot_addr(1)
+                        )?;
+                        stack_offset_bytes += bytes_for_type(&ty);
+                    }
                 }
                 ValueKind::Variadic => unreachable!(),
             }
-            slot += required;
         }
         Ok(())
     }
@@ -724,7 +764,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
                 return Ok(());
             }
-            MirStmt::ReleaseEnv(release) => {
+            MirStmt::Release(release) => {
                 self.emit_release_env(release)?;
                 return Ok(());
             }
@@ -954,19 +994,20 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn emit_release_env(&mut self, release: &ReleaseEnv) -> Result<(), Error> {
+    fn emit_release_env(&mut self, release: &Release) -> Result<(), Error> {
+        let span = Span::unknown();
         let binding = self.frame.binding(&release.name).cloned().ok_or_else(|| {
             Error::new(
                 Code::Codegen,
                 format!("unknown binding '{}'", release.name),
-                release.span,
+                span,
             )
         })?;
         if binding.kind != ValueKind::Closure {
             return Err(Error::new(
                 Code::Codegen,
                 format!("cannot release non-closure binding '{}'", release.name),
-                release.span,
+                span,
             ));
         }
         self.ctx.ensure_release_helper();
@@ -1272,8 +1313,15 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 let params = &call.arg_kinds;
 
                 self.prepare_mir_args(call_args, params, call.span)?;
-                self.move_args_to_registers(params)?;
+                let arg_split = self.move_args_to_registers(params)?;
                 self.emit_variadic_helper_call(LibcallVariadicHelper::Printf)?;
+                if arg_split.stack_bytes > 0 {
+                    writeln!(
+                        self.out,
+                        "    add rsp, {} ; pop stack args after printf helper",
+                        arg_split.stack_bytes
+                    )?;
+                }
                 self.ctx.add_extern("fflush");
                 self.ctx.add_extern("stdout");
                 writeln!(self.out, "    mov rdi, [rel stdout] ; flush stdout")?;
@@ -1299,8 +1347,15 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
                 self.emit_mmap(FMT_BUFFER_SIZE)?;
                 writeln!(self.out, "    mov rbx, rax ; keep sprintf buffer pointer")?;
-                self.move_args_to_registers(params)?;
-                for i in (0..params.len()).rev() {
+                let arg_split = self.move_args_to_registers(params)?;
+                if arg_split.reg_slots == ARG_REGS.len() {
+                    return Err(Error::new(
+                        Code::Codegen,
+                        "sprintf requires at least one register slot for the buffer pointer",
+                        call.span,
+                    ));
+                }
+                for i in (0..arg_split.reg_slots).rev() {
                     let dest = ARG_REGS[i + 1];
                     let src = ARG_REGS[i];
                     writeln!(
@@ -1319,6 +1374,13 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                     self.out,
                     "    mov rax, rbx ; return formatted string pointer"
                 )?;
+                if arg_split.stack_bytes > 0 {
+                    writeln!(
+                        self.out,
+                        "    add rsp, {} ; pop stack args after sprintf helper",
+                        arg_split.stack_bytes
+                    )?;
+                }
 
                 Ok(ExprValue::Word)
             }
@@ -1335,7 +1397,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 let params = &call.arg_kinds;
 
                 self.prepare_mir_args(call_args, params, call.span)?;
-                self.move_args_to_registers(params)?;
+                let arg_split = self.move_args_to_registers(params)?;
 
                 writeln!(self.out, "    mov r8, rdi ; keep string pointer")?;
                 writeln!(self.out, "    xor rcx, rcx ; reset length counter")?;
@@ -1357,6 +1419,13 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
                 self.ctx.add_extern("write");
                 writeln!(self.out, "    call write ; invoke libc write")?;
+                if arg_split.stack_bytes > 0 {
+                    writeln!(
+                        self.out,
+                        "    add rsp, {} ; pop stack args after write",
+                        arg_split.stack_bytes
+                    )?;
+                }
 
                 Ok(ExprValue::Word)
             }
@@ -1373,10 +1442,17 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 let params = &call.arg_kinds;
 
                 self.prepare_mir_args(call_args, params, call.span)?;
-                self.move_args_to_registers(params)?;
+                let arg_split = self.move_args_to_registers(params)?;
 
                 self.ctx.add_extern("puts");
                 writeln!(self.out, "    call puts ; invoke libc puts")?;
+                if arg_split.stack_bytes > 0 {
+                    writeln!(
+                        self.out,
+                        "    add rsp, {} ; pop stack args after puts",
+                        arg_split.stack_bytes
+                    )?;
+                }
 
                 Ok(ExprValue::Word)
             }
@@ -1439,8 +1515,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         }
 
         self.prepare_mir_args(call_args, &params, span)?;
-        self.move_args_to_registers(&params)?;
-        self.emit_variadic_helper_call(LibcallVariadicHelper::Printf)?;
+        let arg_split = self.move_args_to_registers(&params)?;
         self.ctx.add_extern("fflush");
         self.ctx.add_extern("stdout");
         writeln!(self.out, "    mov rdi, [rel stdout] ; flush stdout")?;
@@ -1453,6 +1528,13 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             "    pop rdx ; restore continuation env_end pointer"
         )?;
         writeln!(self.out, "    pop rax ; restore continuation code pointer")?;
+        if arg_split.stack_bytes > 0 {
+            writeln!(
+                self.out,
+                "    add rsp, {} ; pop stack args after printf helper",
+                arg_split.stack_bytes
+            )?;
+        }
         writeln!(
             self.out,
             "    mov rdi, rdx ; pass env_end pointer to continuation"
@@ -1503,7 +1585,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
         let params = vec![SigKind::Str];
         self.prepare_mir_args(call_args, &params, span)?;
-        self.move_args_to_registers(&params)?;
+        let arg_split = self.move_args_to_registers(&params)?;
 
         writeln!(self.out, "    mov r8, rdi ; keep string pointer")?;
         writeln!(self.out, "    xor rcx, rcx ; reset length counter")?;
@@ -1535,6 +1617,13 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             self.out,
             "    mov rdi, rdx ; pass env_end pointer to continuation"
         )?;
+        if arg_split.stack_bytes > 0 {
+            writeln!(
+                self.out,
+                "    add rsp, {} ; pop stack args after write",
+                arg_split.stack_bytes
+            )?;
+        }
         writeln!(self.out, "    leave ; unwind before jumping")?;
         writeln!(self.out, "    jmp rax ; jump into continuation")?;
         self.terminated = true;
@@ -1629,7 +1718,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         }
 
         self.prepare_mir_args(call_args, param_types, span)?;
-        self.move_args_to_registers(param_types)?;
+        let arg_split = self.move_args_to_registers(param_types)?;
 
         // Call the external function
         self.ctx.add_extern(ffi_name);
@@ -1647,6 +1736,14 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
         if is_variadic {
             writeln!(self.out, "    add rsp, 8 ; restore stack")?;
+        }
+
+        if arg_split.stack_bytes > 0 {
+            writeln!(
+                self.out,
+                "    add rsp, {} ; pop stack args after {}",
+                arg_split.stack_bytes, ffi_name
+            )?;
         }
 
         // Allow custom return value handling
@@ -1700,7 +1797,13 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         }
 
         self.prepare_mir_args(args, &param_kinds, span)?;
-        self.move_args_to_registers(&param_kinds)?;
+        let arg_split = self.move_args_to_registers(&param_kinds)?;
+        if arg_split.stack_bytes > 0 {
+            writeln!(self.out, "    sub rsp, 8 ; allocate slot for saved rbp")?;
+            writeln!(self.out, "    mov rax, [rbp] ; capture parent rbp")?;
+            writeln!(self.out, "    mov [rsp], rax ; stash parent rbp for leave")?;
+            writeln!(self.out, "    mov rbp, rsp ; treat slot as current rbp")?;
+        }
         writeln!(self.out, "    leave ; unwind before named jump")?;
         writeln!(
             self.out,
@@ -1786,24 +1889,13 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn prepare_mir_args(
-        &mut self,
-        args: &[MirArg],
-        params: &[SigKind],
-        span: Span,
-    ) -> Result<(), Error> {
-        let total_slots: usize = params.iter().map(|ty| slots_for_type(ty)).sum();
-        if total_slots > ARG_REGS.len() {
-            return Err(Error::new(
-                Code::Codegen,
-                format!(
-                    "functions support at most {} argument slots",
-                    ARG_REGS.len()
-                ),
-                span,
-            ));
-        }
-        for arg in args.iter().rev() {
+        fn prepare_mir_args(
+            &mut self,
+            args: &[MirArg],
+            _params: &[SigKind],
+            span: Span,
+        ) -> Result<(), Error> {
+            for arg in args.iter().rev() {
             let value = self.emit_mir_arg_value(arg, span)?;
             self.push_value(&value)?;
         }
@@ -1823,45 +1915,55 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn move_args_to_registers(&mut self, params: &[SigKind]) -> Result<(), Error> {
+    fn move_args_to_registers(&mut self, params: &[SigKind]) -> Result<ArgSplit, Error> {
         let mut slot = 0usize;
+        let mut spilled = false;
+        let mut stack_bytes = 0usize;
         for ty in params {
+            let required = slots_for_type(ty);
             match resolved_type_kind(ty) {
-                ValueKind::Word => {
-                    let reg = ARG_REGS[slot];
-                    writeln!(
-                        self.out,
-                        "    pop {} ; restore scalar arg into register",
-                        reg
-                    )?;
-                    slot += 1;
+                ValueKind::Variadic => {
+                    // Variadic kinds are handled separately and do not consume slots here.
                 }
-                ValueKind::Closure => {
-                    if slot + 1 >= ARG_REGS.len() {
-                        return Err(Error::new(
-                            Code::Codegen,
-                            "continuations require two argument slots",
-                            self.mir.sig.span,
-                        ));
+                kind => {
+                    if !spilled && slot + required <= ARG_REGS.len() {
+                        match kind {
+                            ValueKind::Word => {
+                                let reg = ARG_REGS[slot];
+                                writeln!(
+                                    self.out,
+                                    "    pop {} ; restore scalar arg into register",
+                                    reg
+                                )?;
+                            }
+                            ValueKind::Closure => {
+                                let code_reg = ARG_REGS[slot];
+                                let env_reg = ARG_REGS[slot + 1];
+                                writeln!(
+                                    self.out,
+                                    "    pop {} ; restore closure code into register",
+                                    code_reg
+                                )?;
+                                writeln!(
+                                    self.out,
+                                    "    pop {} ; restore closure env_end into register",
+                                    env_reg
+                                )?;
+                            }
+                            ValueKind::Variadic => unreachable!(),
+                        }
+                        slot += required;
+                    } else {
+                        spilled = true;
+                        stack_bytes += bytes_for_type(ty);
                     }
-                    let code_reg = ARG_REGS[slot];
-                    let env_reg = ARG_REGS[slot + 1];
-                    writeln!(
-                        self.out,
-                        "    pop {} ; restore closure code into register",
-                        code_reg
-                    )?;
-                    writeln!(
-                        self.out,
-                        "    pop {} ; restore closure env_end into register",
-                        env_reg
-                    )?;
-                    slot += 2;
                 }
-                ValueKind::Variadic => {}
             }
         }
-        Ok(())
+        Ok(ArgSplit {
+            reg_slots: slot,
+            stack_bytes,
+        })
     }
 
     fn clone_closure_argument(&mut self) -> Result<(), Error> {

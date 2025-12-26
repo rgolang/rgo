@@ -1,70 +1,71 @@
-zero(f: (int, (int)), x: int, ok: (int)) {
-    ok(x)
+zero($f: (int, (int)), $x: int, $ok: (int)) {
+    release $f
+    $ok($x)
 }
 
-zero_unwrapper(env_end: int) {
-    f: (int, (int)) = env_end - 5 words (f)
-    x: int = env_end - 3 words (x)
-    ok: (int) = env_end - 2 words (ok)
-    zero(f, x, ok)
+zero_unwrapper($env_end: int) {
+    $f: (int, (int)) = $env_end - 5 words (f)
+    $x: int = $env_end - 3 words (x)
+    $ok: (int) = $env_end - 2 words (ok)
+    zero($f, $x, $ok)
 }
 
-_7_lambda(x: int, ok: (int)) {
-    _8 = 10
-    add(x, _8, ok)
+_7_lambda($x: int, $ok: (int)) {
+    $_8 = 10
+    add($x, $_8, $ok)
 }
 
-_7_lambda_unwrapper(env_end: int) {
-    x: int = env_end - 3 words (x)
-    ok: (int) = env_end - 2 words (ok)
-    _7_lambda(x, ok)
+_7_lambda_unwrapper($env_end: int) {
+    $x: int = $env_end - 3 words (x)
+    $ok: (int) = $env_end - 2 words (ok)
+    _7_lambda($x, $ok)
 }
 
-add(x: int, y: int, ok: (int)) {
-    res = @add(x, y);
-    ok(res)
+add($x: int, $y: int, $ok: (int)) {
+    $res = @add($x, $y);
+    $ok($res)
 }
 
-add_unwrapper(env_end: int) {
-    x: int = env_end - 4 words (x)
-    y: int = env_end - 3 words (y)
-    ok: (int) = env_end - 2 words (ok)
-    add(x, y, ok)
+add_unwrapper($env_end: int) {
+    $x: int = $env_end - 4 words (x)
+    $y: int = $env_end - 3 words (y)
+    $ok: (int) = $env_end - 2 words (ok)
+    add($x, $y, $ok)
 }
 
 _15_lambda() {
-    _16 = 0
-    exit(_16)
+    $_16 = 0
+    exit($_16)
 }
 
-_15_lambda_unwrapper(env_end: int) {
+_15_lambda_unwrapper($env_end: int) {
     _15_lambda()
 }
 
-exit(code: int) {
-    syscall exit(code)
+exit($code: int) {
+    syscall exit($code)
 }
 
-exit_unwrapper(env_end: int) {
-    code: int = env_end - 1 words (code)
-    exit(code)
+exit_unwrapper($env_end: int) {
+    $code: int = $env_end - 1 words (code)
+    exit($code)
 }
 
-_12_lambda(x: int) {
-    _13 = "result: %d"
-    _15_lambda = _15_lambda()
-    __result = @printf(_13, x)
-    _15_lambda(__result)
+_12_lambda($x: int) {
+    $_13 = "result: %d"
+    $_15_lambda = (_15_lambda_unwrapper, {})
+    $__result = @printf($_13, $x)
+    $_15_lambda($__result)
 }
 
-_12_lambda_unwrapper(env_end: int) {
-    x: int = env_end - 1 words (x)
-    _12_lambda(x)
+_12_lambda_unwrapper($env_end: int) {
+    $x: int = $env_end - 1 words (x)
+    _12_lambda($x)
 }
 
 _start() {
-    _10 = 0
-    _7_lambda = _7_lambda()
-    _12_lambda = _12_lambda()
-    zero(_7_lambda, _10, _12_lambda)
+    $_10 = 0
+    $_7_lambda = (_7_lambda_unwrapper, {})
+    $_12_lambda = (_12_lambda_unwrapper, {})
+    zero($_7_lambda, $_10, $_12_lambda)
 }

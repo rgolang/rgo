@@ -6,7 +6,7 @@ foo: (input: str, ok:()){
     write(input, ok)
 }
 
-bar: (msg: str, cb:(str, ()), ok:()){
+bar: (msg: str!, cb:(str, ()), ok:()){
     cb(msg, ok)
 }
 _2: 0

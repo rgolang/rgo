@@ -325,20 +325,29 @@ _6_lambda:
     mov rax, _8_lambda_unwrapper ; load unwrapper entry point
     mov [rbp-48], rax ; update closure code pointer
     mov [rbp-40], rdx ; update closure environment pointer
-    mov rax, [rbp-48] ; load closure code pointer
-    mov rdx, [rbp-40] ; load closure env_end pointer
-    push rdx ; stack arg: closure env_end
-    push rax ; stack arg: closure code
+    mov rax, [rbp-16] ; load closure code for exec
+    mov rdx, [rbp-8] ; load closure env_end for exec
+    sub rsp, 24 ; allocate temporary stack for closure state
+    mov [rsp], rax ; save closure code pointer temporarily
+    mov [rsp+8], rdx ; save closure env_end pointer temporarily
     mov rax, [rbp-32] ; load closure code pointer
     mov rdx, [rbp-24] ; load closure env_end pointer
-    push rdx ; stack arg: closure env_end
-    push rax ; stack arg: closure code
-    pop rdi ; restore closure code into register
-    pop rsi ; restore closure env_end into register
-    pop rdx ; restore closure code into register
-    pop rcx ; restore closure env_end into register
-    leave ; unwind before named jump
-    jmp foo ; jump to fully applied function
+    mov rbx, [rsp+8] ; env_end pointer
+    sub rbx, 32 ; compute slot for next argument
+    mov [rbx], rax ; store closure code for arg
+    mov [rbx+8], rdx ; store closure env_end for arg
+    mov rax, [rbp-48] ; load closure code pointer
+    mov rdx, [rbp-40] ; load closure env_end pointer
+    mov rbx, [rsp+8] ; env_end pointer
+    sub rbx, 16 ; compute slot for next argument
+    mov [rbx], rax ; store closure code for arg
+    mov [rbx+8], rdx ; store closure env_end for arg
+    mov rax, [rsp] ; restore closure code pointer
+    mov rdx, [rsp+8] ; restore closure env_end pointer
+    add rsp, 24 ; pop temporary closure state
+    mov rdi, rdx ; pass env_end pointer as parameter
+    leave ; unwind before calling closure
+    jmp rax ; jump into fully applied closure
 global _6_lambda_unwrapper
 _6_lambda_unwrapper:
     push rbp ; save executor frame pointer
@@ -512,20 +521,29 @@ _start:
     mov rax, p1_unwrapper ; load unwrapper entry point
     mov [rbp-64], rax ; update closure code pointer
     mov [rbp-56], rdx ; update closure environment pointer
-    mov rax, [rbp-48] ; load closure code pointer
-    mov rdx, [rbp-40] ; load closure env_end pointer
-    push rdx ; stack arg: closure env_end
-    push rax ; stack arg: closure code
+    mov rax, [rbp-16] ; load closure code for exec
+    mov rdx, [rbp-8] ; load closure env_end for exec
+    sub rsp, 24 ; allocate temporary stack for closure state
+    mov [rsp], rax ; save closure code pointer temporarily
+    mov [rsp+8], rdx ; save closure env_end pointer temporarily
     mov rax, [rbp-64] ; load closure code pointer
     mov rdx, [rbp-56] ; load closure env_end pointer
-    push rdx ; stack arg: closure env_end
-    push rax ; stack arg: closure code
-    pop rdi ; restore closure code into register
-    pop rsi ; restore closure env_end into register
-    pop rdx ; restore closure code into register
-    pop rcx ; restore closure env_end into register
-    leave ; unwind before named jump
-    jmp foo ; jump to fully applied function
+    mov rbx, [rsp+8] ; env_end pointer
+    sub rbx, 32 ; compute slot for next argument
+    mov [rbx], rax ; store closure code for arg
+    mov [rbx+8], rdx ; store closure env_end for arg
+    mov rax, [rbp-48] ; load closure code pointer
+    mov rdx, [rbp-40] ; load closure env_end pointer
+    mov rbx, [rsp+8] ; env_end pointer
+    sub rbx, 16 ; compute slot for next argument
+    mov [rbx], rax ; store closure code for arg
+    mov [rbx+8], rdx ; store closure env_end for arg
+    mov rax, [rsp] ; restore closure code pointer
+    mov rdx, [rsp+8] ; restore closure env_end pointer
+    add rsp, 24 ; pop temporary closure state
+    mov rdi, rdx ; pass env_end pointer as parameter
+    leave ; unwind before calling closure
+    jmp rax ; jump into fully applied closure
 global printf_aligned
 printf_aligned:
     push rbp ; save caller base pointer

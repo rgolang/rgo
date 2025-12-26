@@ -1,69 +1,69 @@
 _6_lambda() {
-    _7 = 0
-    exit(_7)
+    $_7 = 0
+    exit($_7)
 }
 
-_6_lambda_unwrapper(env_end: int) {
+_6_lambda_unwrapper($env_end: int) {
     _6_lambda()
 }
 
-exit(code: int) {
-    syscall exit(code)
+exit($code: int) {
+    syscall exit($code)
 }
 
-exit_unwrapper(env_end: int) {
-    code: int = env_end - 1 words (code)
-    exit(code)
+exit_unwrapper($env_end: int) {
+    $code: int = $env_end - 1 words (code)
+    exit($code)
 }
 
 _3_lambda() {
-    _4 = "true"
-    _6_lambda = _6_lambda()
-    __result = @write(_4)
-    _6_lambda(__result)
+    $_4 = "true"
+    $_6_lambda = (_6_lambda_unwrapper, {})
+    $__result = @write($_4)
+    $_6_lambda($__result)
 }
 
-_3_lambda_unwrapper(env_end: int) {
+_3_lambda_unwrapper($env_end: int) {
     _3_lambda()
 }
 
 _14_lambda() {
-    _15 = 0
-    exit(_15)
+    $_15 = 0
+    exit($_15)
 }
 
-_14_lambda_unwrapper(env_end: int) {
+_14_lambda_unwrapper($env_end: int) {
     _14_lambda()
 }
 
 _11_lambda() {
-    _12 = "false"
-    _14_lambda = _14_lambda()
-    __result = @write(_12)
-    _14_lambda(__result)
+    $_12 = "false"
+    $_14_lambda = (_14_lambda_unwrapper, {})
+    $__result = @write($_12)
+    $_14_lambda($__result)
 }
 
-_11_lambda_unwrapper(env_end: int) {
+_11_lambda_unwrapper($env_end: int) {
     _11_lambda()
 }
 
-eqi(left: int, right: int, ok: (), err: ()) {
-    __result = @eqi(left, right);
-    ok(__result)
+eqi($left: int, $right: int, $ok: (), $err: ()) {
+    $__result = @eqi($left, $right);
+    $ok($__result)
 }
 
-eqi_unwrapper(env_end: int) {
-    left: int = env_end - 6 words (left)
-    right: int = env_end - 5 words (right)
-    ok: () = env_end - 4 words (ok)
-    err: () = env_end - 2 words (err)
-    eqi(left, right, ok, err)
+eqi_unwrapper($env_end: int) {
+    $left: int = $env_end - 6 words (left)
+    $right: int = $env_end - 5 words (right)
+    $ok: () = $env_end - 4 words (ok)
+    $err: () = $env_end - 2 words (err)
+    eqi($left, $right, $ok, $err)
 }
 
 _start() {
-    _0 = 1
-    _1 = 0
-    _3_lambda = _3_lambda()
-    _11_lambda = _11_lambda()
-    eqi(_0, _1, _3_lambda, _11_lambda)
+    $_0 = 1
+    $_1 = 0
+    $_3_lambda = (_3_lambda_unwrapper, {})
+    $_11_lambda = (_11_lambda_unwrapper, {})
+    eqi($_0, $_1, $_3_lambda, $_11_lambda)
 }

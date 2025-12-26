@@ -87,11 +87,7 @@ fn compile_source(source: &str) -> Result<String, Error> {
     Ok(asm) // TODO: This mir_module can be done better
 }
 
-fn build_reference_for_path(
-    path: &Path,
-    out_dir: &Path,
-    kind: SnapshotKind,
-) -> Result<(), Error> {
+fn build_reference_for_path(path: &Path, out_dir: &Path, kind: SnapshotKind) -> Result<(), Error> {
     let stem = path
         .file_stem()
         .and_then(|stem| stem.to_str())
@@ -313,8 +309,10 @@ fn verify_expected_compile_errors(tests_dir: &Path, bin_dir: &Path) {
         let asm_path = bin_dir.join(format!("{base}.err.asm"));
         let mut cmd = Command::new("cargo");
         cmd.arg("run").arg("--").arg(&rgo_path).arg(&asm_path);
-        let actual_error =
-            capture_compile_failure_output(&mut cmd, &format!("cargo run -- {}", rgo_path.display()));
+        let actual_error = capture_compile_failure_output(
+            &mut cmd,
+            &format!("cargo run -- {}", rgo_path.display()),
+        );
 
         assert!(
             actual_error.contains(&expected_error),

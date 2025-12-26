@@ -1,65 +1,65 @@
-_2_foo(ok: (int)) {
-    _3 = 1
-    _4 = 2
-    add(_3, _4, ok)
+_2_foo($ok: (int)) {
+    $_3 = 1
+    $_4 = 2
+    add($_3, $_4, $ok)
 }
 
-_2_foo_unwrapper(env_end: int) {
-    ok: (int) = env_end - 2 words (ok)
-    _2_foo(ok)
+_2_foo_unwrapper($env_end: int) {
+    $ok: (int) = $env_end - 2 words (ok)
+    _2_foo($ok)
 }
 
-add(x: int, y: int, ok: (int)) {
-    res = @add(x, y);
-    ok(res)
+add($x: int, $y: int, $ok: (int)) {
+    $res = @add($x, $y);
+    $ok($res)
 }
 
-add_unwrapper(env_end: int) {
-    x: int = env_end - 4 words (x)
-    y: int = env_end - 3 words (y)
-    ok: (int) = env_end - 2 words (ok)
-    add(x, y, ok)
+add_unwrapper($env_end: int) {
+    $x: int = $env_end - 4 words (x)
+    $y: int = $env_end - 3 words (y)
+    $ok: (int) = $env_end - 2 words (ok)
+    add($x, $y, $ok)
 }
 
 _9_foo() {
-    _10 = 0
-    exit(_10)
+    $_10 = 0
+    exit($_10)
 }
 
-_9_foo_unwrapper(env_end: int) {
+_9_foo_unwrapper($env_end: int) {
     _9_foo()
 }
 
-exit(code: int) {
-    syscall exit(code)
+exit($code: int) {
+    syscall exit($code)
 }
 
-exit_unwrapper(env_end: int) {
-    code: int = env_end - 1 words (code)
-    exit(code)
+exit_unwrapper($env_end: int) {
+    $code: int = $env_end - 1 words (code)
+    exit($code)
 }
 
-_6_foo(x: int) {
-    _7 = "result: %d"
-    _9_foo = _9_foo()
-    __result = @printf(_7, x)
-    _9_foo(__result)
+_6_foo($x: int) {
+    $_7 = "result: %d"
+    $_9_foo = (_9_foo_unwrapper, {})
+    $__result = @printf($_7, $x)
+    $_9_foo($__result)
 }
 
-_6_foo_unwrapper(env_end: int) {
-    x: int = env_end - 1 words (x)
-    _6_foo(x)
+_6_foo_unwrapper($env_end: int) {
+    $x: int = $env_end - 1 words (x)
+    _6_foo($x)
 }
 
 foo() {
-    _6_foo = _6_foo()
-    _13_foo = _2_foo(_6_foo)
-    _13_foo.ok = _6_foo
+    $_6_foo = (_6_foo_unwrapper, {})
+    $_13_foo = (_2_foo_unwrapper, {(int)})
+    $_13_foo.$ok = $_6_foo
 
-    _13_foo()
+    $_13_foo()
 }
 
-foo_unwrapper(env_end: int) {
+foo_unwrapper($env_end: int) {
     foo()
 }
 

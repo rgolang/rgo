@@ -71,9 +71,8 @@ impl MirFunction {
 }
 
 #[derive(Clone, Debug)]
-pub struct ReleaseEnv {
+pub struct Release {
     pub name: String,
-    pub span: Span,
 }
 
 #[derive(Clone, Debug)]
@@ -97,7 +96,7 @@ pub enum MirStmt {
     },
     Exec(MirExec),
     Closure(MirClosure),
-    ReleaseEnv(ReleaseEnv),
+    Release(Release),
     DeepCopy(DeepCopy),
     Op(MirInstruction),
     SysCall(MirSysCall),
@@ -165,6 +164,7 @@ pub struct MirClosure {
     pub name: String,
     pub target: MirExecTarget,
     pub args: Vec<MirArg>,
+    pub env_layout: Vec<SigKind>,
     pub span: Span,
 }
 

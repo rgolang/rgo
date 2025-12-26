@@ -1,69 +1,69 @@
 _6_lambda() {
-    _7 = 0
-    exit(_7)
+    $_7 = 0
+    exit($_7)
 }
 
-_6_lambda_unwrapper(env_end: int) {
+_6_lambda_unwrapper($env_end: int) {
     _6_lambda()
 }
 
-exit(code: int) {
-    syscall exit(code)
+exit($code: int) {
+    syscall exit($code)
 }
 
-exit_unwrapper(env_end: int) {
-    code: int = env_end - 1 words (code)
-    exit(code)
+exit_unwrapper($env_end: int) {
+    $code: int = $env_end - 1 words (code)
+    exit($code)
 }
 
 _3_lambda() {
-    _4 = "true"
-    _6_lambda = _6_lambda()
-    __result = @write(_4)
-    _6_lambda(__result)
+    $_4 = "true"
+    $_6_lambda = (_6_lambda_unwrapper, {})
+    $__result = @write($_4)
+    $_6_lambda($__result)
 }
 
-_3_lambda_unwrapper(env_end: int) {
+_3_lambda_unwrapper($env_end: int) {
     _3_lambda()
 }
 
 _14_lambda() {
-    _15 = 0
-    exit(_15)
+    $_15 = 0
+    exit($_15)
 }
 
-_14_lambda_unwrapper(env_end: int) {
+_14_lambda_unwrapper($env_end: int) {
     _14_lambda()
 }
 
 _11_lambda() {
-    _12 = "false"
-    _14_lambda = _14_lambda()
-    __result = @write(_12)
-    _14_lambda(__result)
+    $_12 = "false"
+    $_14_lambda = (_14_lambda_unwrapper, {})
+    $__result = @write($_12)
+    $_14_lambda($__result)
 }
 
-_11_lambda_unwrapper(env_end: int) {
+_11_lambda_unwrapper($env_end: int) {
     _11_lambda()
 }
 
-eqs(left: str, right: str, ok: (), err: ()) {
-    __result = @eqs(left, right);
-    ok(__result)
+eqs($left: str, $right: str, $ok: (), $err: ()) {
+    $__result = @eqs($left, $right);
+    $ok($__result)
 }
 
-eqs_unwrapper(env_end: int) {
-    left: str = env_end - 6 words (left)
-    right: str = env_end - 5 words (right)
-    ok: () = env_end - 4 words (ok)
-    err: () = env_end - 2 words (err)
-    eqs(left, right, ok, err)
+eqs_unwrapper($env_end: int) {
+    $left: str = $env_end - 6 words (left)
+    $right: str = $env_end - 5 words (right)
+    $ok: () = $env_end - 4 words (ok)
+    $err: () = $env_end - 2 words (err)
+    eqs($left, $right, $ok, $err)
 }
 
 _start() {
-    _0 = "aaa"
-    _1 = "aab"
-    _3_lambda = _3_lambda()
-    _11_lambda = _11_lambda()
-    eqs(_0, _1, _3_lambda, _11_lambda)
+    $_0 = "aaa"
+    $_1 = "aab"
+    $_3_lambda = (_3_lambda_unwrapper, {})
+    $_11_lambda = (_11_lambda_unwrapper, {})
+    eqs($_0, $_1, $_3_lambda, $_11_lambda)
 }

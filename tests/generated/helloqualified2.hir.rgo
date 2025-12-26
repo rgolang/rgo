@@ -8,7 +8,7 @@ _1_foo: (){
     exit(_2)
 }
 
-foo: (x: str){
+foo: (x: str!){
     write(x, _1_foo)
 }
 foo(x)

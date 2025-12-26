@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 
 use crate::compiler::ast;
 use crate::compiler::builtins::MirInstKind;
@@ -12,6 +12,34 @@ pub const ENTRY_FUNCTION_NAME: &str = "_start";
 
 pub fn closure_unwrapper_label(name: &str) -> String {
     format!("{}_unwrapper", name)
+}
+
+fn collect_unused_params(params: &[SigItem]) -> HashSet<String> {
+    params
+        .iter()
+        .filter(|param| matches!(param.ty, SigKind::Sig(_)))
+        .map(|param| param.name.clone())
+        .collect()
+}
+
+fn mark_target(unused: &mut HashSet<String>, target: &MirExecTarget) {
+    if let MirExecTarget::Closure { name } = target {
+        unused.remove(name);
+    }
+}
+
+fn mark_args(unused: &mut HashSet<String>, args: &[MirArg]) {
+    for arg in args {
+        unused.remove(&arg.name);
+    }
+}
+
+fn take_release_statements(unused: &mut HashSet<String>) -> Vec<MirStmt> {
+    let names: BTreeSet<_> = unused.drain().collect();
+    names
+        .into_iter()
+        .map(|name| MirStmt::Release(Release { name }))
+        .collect()
 }
 
 fn prepare_args(
@@ -57,6 +85,7 @@ fn create_closure(
         return Ok(Some(MirClosure {
             target: MirExecTarget::Function(cloned_sig),
             args: Vec::new(),
+            env_layout: Vec::new(),
             name: target.to_string(),
             span,
         }));
@@ -92,14 +121,20 @@ pub fn entry_function(
     let mut items: Vec<MirStmt> = Vec::new();
     let mut locals = HashSet::new();
     let mut generated_functions = Vec::new();
+    let mut unused_params = HashSet::new();
     for item in entry_items.iter() {
         match item {
             hir::BlockItem::Import { .. }
             | hir::BlockItem::FunctionDef { .. }
             | hir::BlockItem::SigDef { .. } => {} // already handled
             _ => {
-                let stmt =
-                    lower_block_item(item.clone(), &mut locals, symbols, &mut generated_functions)?;
+                let stmt = lower_block_item(
+                    item.clone(),
+                    &mut locals,
+                    symbols,
+                    &mut generated_functions,
+                    &mut unused_params,
+                )?;
                 items.extend(stmt);
             }
         }
@@ -133,12 +168,18 @@ pub fn lower_function(
     for param in func.sig.items.iter() {
         locals.insert(param.name.clone());
     }
+    let mut unused_params = collect_unused_params(&params);
 
     let mut lowered_items = Vec::new();
     let mut generated_functions = Vec::new();
     for item in func.body.items.iter() {
-        let lowered =
-            lower_block_item(item.clone(), &mut locals, symbols, &mut generated_functions)?;
+        let lowered = lower_block_item(
+            item.clone(),
+            &mut locals,
+            symbols,
+            &mut generated_functions,
+            &mut unused_params,
+        )?;
         lowered_items.extend(lowered);
     }
 
@@ -160,6 +201,7 @@ fn lower_block_item(
     locals: &mut HashSet<String>,
     symbols: &mut SymbolRegistry,
     generated_functions: &mut Vec<MirFunction>,
+    unused_params: &mut HashSet<String>,
 ) -> Result<Vec<MirStmt>, Error> {
     let lowered = match item {
         hir::BlockItem::FunctionDef(..) => {
@@ -174,10 +216,16 @@ fn lower_block_item(
             locals.insert(name.clone());
             vec![MirStmt::IntDef { name, literal }]
         }
-        hir::BlockItem::ClosureDef(closure) => {
-            lower_closure(&closure, symbols, locals, generated_functions)?
+        hir::BlockItem::ClosureDef(closure) => lower_closure(
+            &closure,
+            symbols,
+            locals,
+            generated_functions,
+            unused_params,
+        )?,
+        hir::BlockItem::Exec(exec) => {
+            lower_exec(&exec, symbols, locals, generated_functions, unused_params)?
         }
-        hir::BlockItem::Exec(exec) => lower_exec(&exec, symbols, locals, generated_functions)?,
         _ => unreachable!("unexpected block item: {:#?}", item),
     };
     Ok(lowered)
@@ -193,7 +241,13 @@ fn ensure_target(
 ) -> Result<(Vec<MirStmt>, MirExecTarget, Vec<MirArg>), Error> {
     let mut block_items = Vec::new();
     prepare_args(symbols, locals, args, &mut block_items, generated_functions)?;
-    let mut target = resolve_target(target_name, symbols);
+    let mut target = if locals.contains(target_name) {
+        MirExecTarget::Closure {
+            name: target_name.to_string(),
+        }
+    } else {
+        resolve_target(target_name, symbols)
+    };
     let args = extract_closure_sig_info(&mut target, args);
     if let MirExecTarget::Function(sig) = &mut target {
         create_closure(symbols, target_name, span, generated_functions, Some(sig))?;
@@ -207,6 +261,7 @@ fn lower_closure(
     symbols: &mut SymbolRegistry,
     locals: &mut HashSet<String>,
     generated_functions: &mut Vec<MirFunction>,
+    unused_params: &mut HashSet<String>,
 ) -> Result<Vec<MirStmt>, Error> {
     let (mut block_items, target, args) = ensure_target(
         symbols,
@@ -217,10 +272,15 @@ fn lower_closure(
         generated_functions,
     )?;
     locals.insert(closure.name.clone());
+    mark_target(unused_params, &target);
+    mark_args(unused_params, &args);
+
+    let env_layout = args.iter().map(|arg| arg.kind.clone()).collect();
     block_items.push(MirStmt::Closure(MirClosure {
         name: closure.name.clone(),
         target,
         args,
+        env_layout,
         span: closure.span,
     }));
     Ok(block_items)
@@ -231,6 +291,7 @@ fn lower_exec(
     symbols: &mut SymbolRegistry,
     locals: &mut HashSet<String>,
     generated_functions: &mut Vec<MirFunction>,
+    unused_params: &mut HashSet<String>,
 ) -> Result<Vec<MirStmt>, Error> {
     let exec = exec.clone();
     let (mut block_items, target, args) = ensure_target(
@@ -241,13 +302,17 @@ fn lower_exec(
         exec.span,
         generated_functions,
     )?;
+    mark_target(unused_params, &target);
+    mark_args(unused_params, &args);
+
     if let MirExecTarget::Function(sig) = &target {
         if let Some(MirBuiltin::Call(kind)) = sig.builtin {
-            let builtin_items = lower_builtin_call(sig, kind, args, exec.span)?;
+            let builtin_items = lower_builtin_call(sig, kind, args, exec.span, unused_params)?;
             block_items.extend(builtin_items);
             return Ok(block_items);
         }
     }
+    block_items.extend(take_release_statements(unused_params));
     block_items.push(MirStmt::Exec(MirExec {
         target,
         args,
@@ -261,6 +326,7 @@ fn lower_builtin_call(
     kind: MirCallKind,
     mut args: Vec<MirArg>,
     span: Span,
+    unused_params: &mut HashSet<String>,
 ) -> Result<Vec<MirStmt>, Error> {
     if args.is_empty() {
         return Err(Error::new(
@@ -312,6 +378,7 @@ fn lower_builtin_call(
     stmts.push(call_stmt);
 
     if let Some((_, _)) = continuation_signature {
+        stmts.extend(take_release_statements(unused_params));
         stmts.push(MirStmt::Exec(MirExec {
             target: MirExecTarget::Closure {
                 name: continuation_arg.name,

@@ -1,45 +1,45 @@
 _1_not_const_msg() {
-    _2 = 0
-    exit(_2)
+    $_2 = 0
+    exit($_2)
 }
 
-_1_not_const_msg_unwrapper(env_end: int) {
+_1_not_const_msg_unwrapper($env_end: int) {
     _1_not_const_msg()
 }
 
-exit(code: int) {
-    syscall exit(code)
+exit($code: int) {
+    syscall exit($code)
 }
 
-exit_unwrapper(env_end: int) {
-    code: int = env_end - 1 words (code)
-    exit(code)
+exit_unwrapper($env_end: int) {
+    $code: int = $env_end - 1 words (code)
+    exit($code)
 }
 
-not_const_msg(fmt: str, value: int) {
-    _1_not_const_msg = _1_not_const_msg()
-    __result = @printf(fmt, value)
-    _1_not_const_msg(__result)
+not_const_msg($fmt: str!, $value: int!) {
+    $_1_not_const_msg = (_1_not_const_msg_unwrapper, {})
+    $__result = @printf($fmt, $value)
+    $_1_not_const_msg($__result)
 }
 
-not_const_msg_unwrapper(env_end: int) {
-    fmt: str = env_end - 2 words (fmt)
-    value: int = env_end - 1 words (value)
-    not_const_msg(fmt, value)
+not_const_msg_unwrapper($env_end: int) {
+    $fmt: str! = $env_end - 2 words (fmt)
+    $value: int! = $env_end - 1 words (value)
+    not_const_msg($fmt, $value)
 }
 
-const_msg(fmt: str, value: int) {
-    not_const_msg(fmt, value)
+const_msg($fmt: str!, $value: int!) {
+    not_const_msg($fmt, $value)
 }
 
-const_msg_unwrapper(env_end: int) {
-    fmt: str = env_end - 2 words (fmt)
-    value: int = env_end - 1 words (value)
-    const_msg(fmt, value)
+const_msg_unwrapper($env_end: int) {
+    $fmt: str! = $env_end - 2 words (fmt)
+    $value: int! = $env_end - 1 words (value)
+    const_msg($fmt, $value)
 }
 
 _start() {
-    _4 = "compile-time value %d\n"
-    _5 = 7
-    const_msg(_4, _5)
+    $_4 = "compile-time value %d\n"
+    $_5 = 7
+    const_msg($_4, $_5)
 }

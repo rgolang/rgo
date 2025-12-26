@@ -3,7 +3,7 @@
 @/printf
 @/exit
 
-not_const_msg: (fmt: str, value: int!) {
+not_const_msg: (fmt: str!, value: int!) {
     printf(fmt, value, exit(0))
 }
 const_msg: (fmt: str!, value: int!) {

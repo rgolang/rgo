@@ -1,0 +1,77 @@
+foo($a1: int, $a2: int, $a3: int, $a4: int, $a5: int, $a6: int, $a7: int, $a8: int, $a9: int, $a10: int, $a11: int, $a12: int, $a13: int, $a14: int, $a15: int, $a16: int, $a17: int, $a18: int, $a19: int, $a20: int, $a21: int, $a22: int, $ok: ()) {
+    $_0 = "All arguments received successfully.\n"
+    $__result = @write($_0)
+    $ok($__result)
+}
+
+foo_unwrapper($env_end: int) {
+    $a1: int = $env_end - 24 words (a1)
+    $a2: int = $env_end - 23 words (a2)
+    $a3: int = $env_end - 22 words (a3)
+    $a4: int = $env_end - 21 words (a4)
+    $a5: int = $env_end - 20 words (a5)
+    $a6: int = $env_end - 19 words (a6)
+    $a7: int = $env_end - 18 words (a7)
+    $a8: int = $env_end - 17 words (a8)
+    $a9: int = $env_end - 16 words (a9)
+    $a10: int = $env_end - 15 words (a10)
+    $a11: int = $env_end - 14 words (a11)
+    $a12: int = $env_end - 13 words (a12)
+    $a13: int = $env_end - 12 words (a13)
+    $a14: int = $env_end - 11 words (a14)
+    $a15: int = $env_end - 10 words (a15)
+    $a16: int = $env_end - 9 words (a16)
+    $a17: int = $env_end - 8 words (a17)
+    $a18: int = $env_end - 7 words (a18)
+    $a19: int = $env_end - 6 words (a19)
+    $a20: int = $env_end - 5 words (a20)
+    $a21: int = $env_end - 4 words (a21)
+    $a22: int = $env_end - 3 words (a22)
+    $ok: () = $env_end - 2 words (ok)
+    foo($a1, $a2, $a3, $a4, $a5, $a6, $a7, $a8, $a9, $a10, $a11, $a12, $a13, $a14, $a15, $a16, $a17, $a18, $a19, $a20, $a21, $a22, $ok)
+}
+
+_24_lambda() {
+    $_25 = 0
+    exit($_25)
+}
+
+_24_lambda_unwrapper($env_end: int) {
+    _24_lambda()
+}
+
+exit($code: int) {
+    syscall exit($code)
+}
+
+exit_unwrapper($env_end: int) {
+    $code: int = $env_end - 1 words (code)
+    exit($code)
+}
+
+_start() {
+    $_1 = 1
+    $_2 = 2
+    $_3 = 3
+    $_4 = 4
+    $_5 = 5
+    $_6 = 6
+    $_7 = 7
+    $_8 = 8
+    $_9 = 9
+    $_10 = 10
+    $_11 = 11
+    $_12 = 12
+    $_13 = 13
+    $_14 = 14
+    $_15 = 15
+    $_16 = 16
+    $_17 = 17
+    $_18 = 18
+    $_19 = 19
+    $_20 = 20
+    $_21 = 21
+    $_22 = 22
+    $_24_lambda = (_24_lambda_unwrapper, {})
+    foo($_1, $_2, $_3, $_4, $_5, $_6, $_7, $_8, $_9, $_10, $_11, $_12, $_13, $_14, $_15, $_16, $_17, $_18, $_19, $_20, $_21, $_22, $_24_lambda)
+}

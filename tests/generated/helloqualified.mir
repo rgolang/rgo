@@ -1,28 +1,28 @@
-foo(x: str, ok: ()) {
-    __result = @write(x)
-    ok(__result)
+foo($x: str!, $ok: ()) {
+    $__result = @write($x)
+    $ok($__result)
 }
 
-foo_unwrapper(env_end: int) {
-    x: str = env_end - 3 words (x)
-    ok: () = env_end - 2 words (ok)
-    foo(x, ok)
+foo_unwrapper($env_end: int) {
+    $x: str! = $env_end - 3 words (x)
+    $ok: () = $env_end - 2 words (ok)
+    foo($x, $ok)
 }
 
-exit(code: int) {
-    syscall exit(code)
+exit($code: int) {
+    syscall exit($code)
 }
 
-exit_unwrapper(env_end: int) {
-    code: int = env_end - 1 words (code)
-    exit(code)
+exit_unwrapper($env_end: int) {
+    $code: int = $env_end - 1 words (code)
+    exit($code)
 }
 
 _start() {
-    x = "Hello world!\n"
-    _0 = 0
-    _1_exit = exit(_0)
-    _1_exit.code = _0
+    $x = "Hello world!\n"
+    $_0 = 0
+    $_1_exit = (exit_unwrapper, {int})
+    $_1_exit.$code = $_0
 
-    foo(x, _1_exit)
+    foo($x, $_1_exit)
 }

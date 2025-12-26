@@ -1,0 +1,786 @@
+[
+    Import {
+        name: "/int",
+        span: Span {
+            line: 1,
+            column: 1,
+            offset: 0,
+        },
+    },
+    Import {
+        name: "/write",
+        span: Span {
+            line: 2,
+            column: 1,
+            offset: 6,
+        },
+    },
+    Import {
+        name: "/exit",
+        span: Span {
+            line: 3,
+            column: 1,
+            offset: 14,
+        },
+    },
+    FunctionDef {
+        name: "foo",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "a1",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 11,
+                                    offset: 31,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 7,
+                            offset: 27,
+                        },
+                    },
+                    SigItem {
+                        name: "a2",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 20,
+                                    offset: 40,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 16,
+                            offset: 36,
+                        },
+                    },
+                    SigItem {
+                        name: "a3",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 29,
+                                    offset: 49,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 25,
+                            offset: 45,
+                        },
+                    },
+                    SigItem {
+                        name: "a4",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 38,
+                                    offset: 58,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 34,
+                            offset: 54,
+                        },
+                    },
+                    SigItem {
+                        name: "a5",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 47,
+                                    offset: 67,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 43,
+                            offset: 63,
+                        },
+                    },
+                    SigItem {
+                        name: "a6",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 56,
+                                    offset: 76,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 52,
+                            offset: 72,
+                        },
+                    },
+                    SigItem {
+                        name: "a7",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 65,
+                                    offset: 85,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 61,
+                            offset: 81,
+                        },
+                    },
+                    SigItem {
+                        name: "a8",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 74,
+                                    offset: 94,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 70,
+                            offset: 90,
+                        },
+                    },
+                    SigItem {
+                        name: "a9",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 83,
+                                    offset: 103,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 79,
+                            offset: 99,
+                        },
+                    },
+                    SigItem {
+                        name: "a10",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 93,
+                                    offset: 113,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 88,
+                            offset: 108,
+                        },
+                    },
+                    SigItem {
+                        name: "a11",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 103,
+                                    offset: 123,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 98,
+                            offset: 118,
+                        },
+                    },
+                    SigItem {
+                        name: "a12",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 113,
+                                    offset: 133,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 108,
+                            offset: 128,
+                        },
+                    },
+                    SigItem {
+                        name: "a13",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 123,
+                                    offset: 143,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 118,
+                            offset: 138,
+                        },
+                    },
+                    SigItem {
+                        name: "a14",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 133,
+                                    offset: 153,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 128,
+                            offset: 148,
+                        },
+                    },
+                    SigItem {
+                        name: "a15",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 143,
+                                    offset: 163,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 138,
+                            offset: 158,
+                        },
+                    },
+                    SigItem {
+                        name: "a16",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 153,
+                                    offset: 173,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 148,
+                            offset: 168,
+                        },
+                    },
+                    SigItem {
+                        name: "a17",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 163,
+                                    offset: 183,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 158,
+                            offset: 178,
+                        },
+                    },
+                    SigItem {
+                        name: "a18",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 173,
+                                    offset: 193,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 168,
+                            offset: 188,
+                        },
+                    },
+                    SigItem {
+                        name: "a19",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 183,
+                                    offset: 203,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 178,
+                            offset: 198,
+                        },
+                    },
+                    SigItem {
+                        name: "a20",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 193,
+                                    offset: 213,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 188,
+                            offset: 208,
+                        },
+                    },
+                    SigItem {
+                        name: "a21",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 203,
+                                    offset: 223,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 198,
+                            offset: 218,
+                        },
+                    },
+                    SigItem {
+                        name: "a22",
+                        ty: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: Span {
+                                    line: 4,
+                                    column: 213,
+                                    offset: 233,
+                                },
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 208,
+                            offset: 228,
+                        },
+                    },
+                    SigItem {
+                        name: "ok",
+                        ty: Sig(
+                            Signature {
+                                items: [],
+                                span: Span {
+                                    line: 4,
+                                    column: 221,
+                                    offset: 241,
+                                },
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: Span {
+                            line: 4,
+                            column: 218,
+                            offset: 238,
+                        },
+                    },
+                ],
+                span: Span {
+                    line: 4,
+                    column: 6,
+                    offset: 26,
+                },
+                generics: [],
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "write",
+                            args: [
+                                String(
+                                    StrLiteral {
+                                        value: "All arguments received successfully.\n",
+                                        span: Span {
+                                            line: 5,
+                                            column: 11,
+                                            offset: 257,
+                                        },
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "ok",
+                                        args: [],
+                                        span: Span {
+                                            line: 5,
+                                            column: 53,
+                                            offset: 299,
+                                        },
+                                    },
+                                ),
+                            ],
+                            span: Span {
+                                line: 5,
+                                column: 5,
+                                offset: 251,
+                            },
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 4,
+                    column: 225,
+                    offset: 245,
+                },
+            },
+            args: [],
+            span: Span {
+                line: 4,
+                column: 1,
+                offset: 21,
+            },
+        },
+        span: Span {
+            line: 4,
+            column: 1,
+            offset: 21,
+        },
+    },
+    Ident(
+        Ident {
+            name: "foo",
+            args: [
+                Int(
+                    IntLiteral {
+                        value: 1,
+                        span: Span {
+                            line: 7,
+                            column: 5,
+                            offset: 309,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 2,
+                        span: Span {
+                            line: 7,
+                            column: 8,
+                            offset: 312,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 3,
+                        span: Span {
+                            line: 7,
+                            column: 11,
+                            offset: 315,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 4,
+                        span: Span {
+                            line: 7,
+                            column: 14,
+                            offset: 318,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 5,
+                        span: Span {
+                            line: 7,
+                            column: 17,
+                            offset: 321,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 6,
+                        span: Span {
+                            line: 7,
+                            column: 20,
+                            offset: 324,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 7,
+                        span: Span {
+                            line: 7,
+                            column: 23,
+                            offset: 327,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 8,
+                        span: Span {
+                            line: 7,
+                            column: 26,
+                            offset: 330,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 9,
+                        span: Span {
+                            line: 7,
+                            column: 29,
+                            offset: 333,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 10,
+                        span: Span {
+                            line: 7,
+                            column: 32,
+                            offset: 336,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 11,
+                        span: Span {
+                            line: 7,
+                            column: 36,
+                            offset: 340,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 12,
+                        span: Span {
+                            line: 7,
+                            column: 40,
+                            offset: 344,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 13,
+                        span: Span {
+                            line: 7,
+                            column: 44,
+                            offset: 348,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 14,
+                        span: Span {
+                            line: 7,
+                            column: 48,
+                            offset: 352,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 15,
+                        span: Span {
+                            line: 7,
+                            column: 52,
+                            offset: 356,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 16,
+                        span: Span {
+                            line: 7,
+                            column: 56,
+                            offset: 360,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 17,
+                        span: Span {
+                            line: 7,
+                            column: 60,
+                            offset: 364,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 18,
+                        span: Span {
+                            line: 7,
+                            column: 64,
+                            offset: 368,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 19,
+                        span: Span {
+                            line: 7,
+                            column: 68,
+                            offset: 372,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 20,
+                        span: Span {
+                            line: 7,
+                            column: 72,
+                            offset: 376,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 21,
+                        span: Span {
+                            line: 7,
+                            column: 76,
+                            offset: 380,
+                        },
+                    },
+                ),
+                Int(
+                    IntLiteral {
+                        value: 22,
+                        span: Span {
+                            line: 7,
+                            column: 80,
+                            offset: 384,
+                        },
+                    },
+                ),
+                Ident(
+                    Ident {
+                        name: "exit",
+                        args: [
+                            Int(
+                                IntLiteral {
+                                    value: 0,
+                                    span: Span {
+                                        line: 7,
+                                        column: 89,
+                                        offset: 393,
+                                    },
+                                },
+                            ),
+                        ],
+                        span: Span {
+                            line: 7,
+                            column: 84,
+                            offset: 388,
+                        },
+                    },
+                ),
+            ],
+            span: Span {
+                line: 7,
+                column: 1,
+                offset: 305,
+            },
+        },
+    ),
+]

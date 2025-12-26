@@ -221,7 +221,7 @@ fn lower_block_item(
                 value: literal.value,
                 span,
             };
-            ctx.add_literal(&name, SigKind::Str, span)?;
+            ctx.add_literal(&name, SigKind::CompileTimeStr, span)?;
             Ok(vec![BlockItem::StrDef {
                 name: name.clone(),
                 literal: literal_item,
@@ -236,7 +236,7 @@ fn lower_block_item(
                 value: literal.value,
                 span,
             };
-            ctx.add_literal(&name, SigKind::Int, span)?;
+            ctx.add_literal(&name, SigKind::CompileTimeInt, span)?;
             Ok(vec![BlockItem::IntDef {
                 name: name.clone(),
                 literal: literal_item,
@@ -645,13 +645,7 @@ fn validate_input_type(
         return Ok(());
     }
 
-    let Some(actual_kind) = term_sig_kind(ctx, term) else {
-        return Ok(());
-    };
-
     let normalized_expected = signature::normalize_sig_kind(&expected.ty, ctx);
-    let normalized_actual = signature::normalize_sig_kind(&actual_kind, ctx);
-
     if let SigKind::Ident(ident) = &normalized_expected {
         if ctx.get(&ident.name).is_none() {
             return Err(error::new(
@@ -662,26 +656,43 @@ fn validate_input_type(
         }
     }
 
+    let expected_is_compile_time = matches!(
+        normalized_expected,
+        SigKind::CompileTimeInt | SigKind::CompileTimeStr
+    );
+
+    let Some(actual_kind) = term_sig_kind(ctx, term, expected_is_compile_time) else {
+        return Ok(());
+    };
+
+    let normalized_actual = signature::normalize_sig_kind(&actual_kind, ctx);
+
     if kind_matches(&normalized_actual, &normalized_expected) {
         return Ok(());
     }
 
     Err(error::new(
         Code::HIR,
-            format!(
-                "expected {}, found {}",
-                format_hir::format_sig_kind(&normalized_expected),
-                format_hir::format_sig_kind(&normalized_actual)
-            ),
-            term.span(),
-        ))
+        format!(
+            "expected {}, found {}",
+            format_hir::format_sig_kind(&normalized_expected),
+            format_hir::format_sig_kind(&normalized_actual)
+        ),
+        term.span(),
+    ))
 }
 
-fn term_sig_kind(ctx: &mut ctx::Context, term: &ast::Term) -> Option<SigKind> {
+fn term_sig_kind(ctx: &mut ctx::Context, term: &ast::Term, allow_idents: bool) -> Option<SigKind> {
     match term {
-        ast::Term::Int(_) => Some(SigKind::Int),
-        ast::Term::String(_) => Some(SigKind::Str),
-        ast::Term::Ident(_) => None,
+        ast::Term::Int(_) => Some(SigKind::CompileTimeInt),
+        ast::Term::String(_) => Some(SigKind::CompileTimeStr),
+        ast::Term::Ident(ast_ident) => {
+            if allow_idents && ast_ident.args.is_empty() {
+                ctx.get(&ast_ident.name).map(|entry| entry.kind.clone())
+            } else {
+                None
+            }
+        }
         ast::Term::Lambda(lambda) => {
             let signature = signature::resolve_ast_signature(&lambda.params, ctx);
             let normalized = signature::normalize_signature(&signature, ctx);
@@ -690,9 +701,16 @@ fn term_sig_kind(ctx: &mut ctx::Context, term: &ast::Term) -> Option<SigKind> {
     }
 }
 
-
 fn kind_matches(actual: &SigKind, expected: &SigKind) -> bool {
-    canonicalize_kind(actual) == canonicalize_kind(expected)
+    if expected == actual {
+        return true;
+    }
+
+    match expected {
+        SigKind::CompileTimeInt => actual == &SigKind::CompileTimeInt,
+        SigKind::CompileTimeStr => actual == &SigKind::CompileTimeStr,
+        _ => canonicalize_kind(actual) == canonicalize_kind(expected),
+    }
 }
 
 fn canonicalize_kind(kind: &SigKind) -> SigKind {

@@ -1,40 +1,40 @@
-foo(input: str, ok: ()) {
-    __result = @write(input)
-    ok(__result)
+foo($input: str, $ok: ()) {
+    $__result = @write($input)
+    $ok($__result)
 }
 
-foo_unwrapper(env_end: int) {
-    input: str = env_end - 3 words (input)
-    ok: () = env_end - 2 words (ok)
-    foo(input, ok)
+foo_unwrapper($env_end: int) {
+    $input: str = $env_end - 3 words (input)
+    $ok: () = $env_end - 2 words (ok)
+    foo($input, $ok)
 }
 
-bar(msg: str, cb: (str, ()), ok: ()) {
-    cb(msg, ok)
+bar($msg: str!, $cb: (str, ()), $ok: ()) {
+    $cb($msg, $ok)
 }
 
-bar_unwrapper(env_end: int) {
-    msg: str = env_end - 5 words (msg)
-    cb: (str, ()) = env_end - 4 words (cb)
-    ok: () = env_end - 2 words (ok)
-    bar(msg, cb, ok)
+bar_unwrapper($env_end: int) {
+    $msg: str! = $env_end - 5 words (msg)
+    $cb: (str, ()) = $env_end - 4 words (cb)
+    $ok: () = $env_end - 2 words (ok)
+    bar($msg, $cb, $ok)
 }
 
-exit(code: int) {
-    syscall exit(code)
+exit($code: int) {
+    syscall exit($code)
 }
 
-exit_unwrapper(env_end: int) {
-    code: int = env_end - 1 words (code)
-    exit(code)
+exit_unwrapper($env_end: int) {
+    $code: int = $env_end - 1 words (code)
+    exit($code)
 }
 
 _start() {
-    msg = "hello world"
-    _2 = 0
-    _3_exit = exit(_2)
-    _3_exit.code = _2
+    $msg = "hello world"
+    $_2 = 0
+    $_3_exit = (exit_unwrapper, {int})
+    $_3_exit.$code = $_2
 
-    foo = foo()
-    bar(msg, foo, _3_exit)
+    $foo = (foo_unwrapper, {})
+    bar($msg, $foo, $_3_exit)
 }

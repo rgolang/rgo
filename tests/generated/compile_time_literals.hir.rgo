@@ -7,11 +7,11 @@ _1_not_const_msg: (){
     exit(_2)
 }
 
-not_const_msg: (fmt: str, value: int){
+not_const_msg: (fmt: str!, value: int!){
     printf(fmt, value, _1_not_const_msg)
 }
 
-const_msg: (fmt: str, value: int){
+const_msg: (fmt: str!, value: int!){
     not_const_msg(fmt, value)
 }
 _4: "compile-time value %d\n"

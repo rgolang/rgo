@@ -1,58 +1,58 @@
-foo(n: str, s: str, ok: ()) {
-    _0 = "The winning number for %s is %s\n"
-    __result = @printf(_0, s, n)
-    ok(__result)
+foo($n: str, $s: str, $ok: ()) {
+    $_0 = "The winning number for %s is %s\n"
+    $__result = @printf($_0, $s, $n)
+    $ok($__result)
 }
 
-foo_unwrapper(env_end: int) {
-    n: str = env_end - 4 words (n)
-    s: str = env_end - 3 words (s)
-    ok: () = env_end - 2 words (ok)
-    foo(n, s, ok)
+foo_unwrapper($env_end: int) {
+    $n: str = $env_end - 4 words (n)
+    $s: str = $env_end - 3 words (s)
+    $ok: () = $env_end - 2 words (ok)
+    foo($n, $s, $ok)
 }
 
 _8_lambda() {
-    _9 = 0
-    exit(_9)
+    $_9 = 0
+    exit($_9)
 }
 
-_8_lambda_unwrapper(env_end: int) {
+_8_lambda_unwrapper($env_end: int) {
     _8_lambda()
 }
 
-exit(code: int) {
-    syscall exit(code)
+exit($code: int) {
+    syscall exit($code)
 }
 
-exit_unwrapper(env_end: int) {
-    code: int = env_end - 1 words (code)
-    exit(code)
+exit_unwrapper($env_end: int) {
+    $code: int = $env_end - 1 words (code)
+    exit($code)
 }
 
-_6_lambda(baz: (())) {
-    _8_lambda = _8_lambda()
-    baz(_8_lambda)
+_6_lambda($baz: (())) {
+    $_8_lambda = (_8_lambda_unwrapper, {})
+    $baz($_8_lambda)
 }
 
-_6_lambda_unwrapper(env_end: int) {
-    baz: (()) = env_end - 2 words (baz)
-    _6_lambda(baz)
+_6_lambda_unwrapper($env_end: int) {
+    $baz: (()) = $env_end - 2 words (baz)
+    _6_lambda($baz)
 }
 
 _start() {
-    _1 = "42"
-    _2 = "43"
-    _3 = "Bob"
-    _4 = "Alice"
-    baz = foo(_2, _3)
-    baz.n = _2
-    baz.s = _3
+    $_1 = "42"
+    $_2 = "43"
+    $_3 = "Bob"
+    $_4 = "Alice"
+    $baz = (foo_unwrapper, {str, str})
+    $baz.$n = $_2
+    $baz.$s = $_3
 
-    _11_ = _6_lambda(baz)
-    _11_.baz = baz
+    $_11_ = (_6_lambda_unwrapper, {(())})
+    $_11_.$baz = $baz
 
-    bar = foo(_1)
-    bar.n = _1
+    $bar = (foo_unwrapper, {str})
+    $bar.$n = $_1
 
-    bar(_4, _11_)
+    $bar($_4, $_11_)
 }

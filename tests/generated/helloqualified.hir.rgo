@@ -3,7 +3,7 @@
 @/write
 @/exit
 x: "Hello world!\n"
-foo: (x: str, ok:()){
+foo: (x: str!, ok:()){
     write(x, ok)
 }
 _0: 0

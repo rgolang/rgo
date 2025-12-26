@@ -16,9 +16,10 @@ pub fn resolve_ast_signature(signature: &ast::Signature, ctx: &mut ctx::Context)
                 } else {
                     item.name.clone()
                 };
+                let ty = lower_sig_kind(&item.ty, ctx, item.has_bang);
                 SigItem {
                     name,
-                    ty: lower_sig_kind(&item.ty, ctx),
+                    ty,
                     has_bang: item.has_bang,
                     span: item.span,
                 }
@@ -180,20 +181,31 @@ fn resolve_ident(ident: &SigIdent, ctx: &ctx::Context) -> (SigKind, bool) {
     (SigKind::Ident(ident.clone()), false)
 }
 
-fn lower_sig_kind(ast_kind: &ast::SigKind, ctx: &mut ctx::Context) -> SigKind {
+fn lower_sig_kind(ast_kind: &ast::SigKind, ctx: &mut ctx::Context, has_bang: bool) -> SigKind {
     match ast_kind {
         ast::SigKind::Ident(ast_ident) => {
             let ident = SigIdent {
                 name: ast_ident.name.clone(),
                 span: ast_ident.span,
             };
-            resolve_ident(&ident, ctx).0
+            let kind = resolve_ident(&ident, ctx).0;
+            if has_bang {
+                match kind {
+                    SigKind::Int => SigKind::CompileTimeInt,
+                    SigKind::Str => SigKind::CompileTimeStr,
+                    SigKind::CompileTimeInt => SigKind::CompileTimeInt,
+                    SigKind::CompileTimeStr => SigKind::CompileTimeStr,
+                    other => other,
+                }
+            } else {
+                kind
+            }
         }
         ast::SigKind::Sig(signature) => SigKind::Sig(resolve_ast_signature(signature, ctx)),
         ast::SigKind::GenericInst { name, args } => {
             let resolved_args = args
                 .iter()
-                .map(|arg| lower_sig_kind(&arg, ctx))
+                .map(|arg| lower_sig_kind(&arg, ctx, false)) // TODO: handle has_bang?
                 .collect::<Vec<_>>();
 
             instantiate_generic_inst(name, &resolved_args, ctx).unwrap_or_else(|| {
@@ -207,8 +219,20 @@ fn lower_sig_kind(ast_kind: &ast::SigKind, ctx: &mut ctx::Context) -> SigKind {
             name: name.clone(),
             span: Span::unknown(),
         }),
-        ast::SigKind::Int => SigKind::Int,
-        ast::SigKind::Str => SigKind::Str,
+        ast::SigKind::Int => {
+            if has_bang {
+                SigKind::CompileTimeInt
+            } else {
+                SigKind::Int
+            }
+        }
+        ast::SigKind::Str => {
+            if has_bang {
+                SigKind::CompileTimeStr
+            } else {
+                SigKind::Str
+            }
+        }
         ast::SigKind::Variadic => SigKind::Variadic,
         ast::SigKind::CompileTimeInt => SigKind::CompileTimeInt,
         ast::SigKind::CompileTimeStr => SigKind::CompileTimeStr,

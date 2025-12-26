@@ -1,26 +1,26 @@
 _3_lambda() {
-    _4 = 0
-    exit(_4)
+    $_4 = 0
+    exit($_4)
 }
 
-_3_lambda_unwrapper(env_end: int) {
+_3_lambda_unwrapper($env_end: int) {
     _3_lambda()
 }
 
-exit(code: int) {
-    syscall exit(code)
+exit($code: int) {
+    syscall exit($code)
 }
 
-exit_unwrapper(env_end: int) {
-    code: int = env_end - 1 words (code)
-    exit(code)
+exit_unwrapper($env_end: int) {
+    $code: int = $env_end - 1 words (code)
+    exit($code)
 }
 
 _start() {
-    x = 42
-    _0 = "Hello %d!"
-    _1 = 42
-    _3_lambda = _3_lambda()
-    __result = @printf(_0, _1)
-    _3_lambda(__result)
+    $x = 42
+    $_0 = "Hello %d!"
+    $_1 = 42
+    $_3_lambda = (_3_lambda_unwrapper, {})
+    $__result = @printf($_0, $_1)
+    $_3_lambda($__result)
 }

@@ -10,6 +10,8 @@ true:
     mov [rbp-8], rsi ; save closure environment pointer
     mov [rbp-32], rdx ; save closure code pointer
     mov [rbp-24], rcx ; save closure environment pointer
+    mov rdi, [rbp-24] ; load closure env_end pointer
+    call internal_release_env ; release closure environment
     mov rax, [rbp-16] ; load closure code for exec
     mov rdx, [rbp-8] ; load closure env_end for exec
     mov rdi, rdx ; pass env_end pointer as parameter
@@ -56,6 +58,8 @@ false:
     mov [rbp-8], rsi ; save closure environment pointer
     mov [rbp-32], rdx ; save closure code pointer
     mov [rbp-24], rcx ; save closure environment pointer
+    mov rdi, [rbp-8] ; load closure env_end pointer
+    call internal_release_env ; release closure environment
     mov rax, [rbp-32] ; load closure code for exec
     mov rdx, [rbp-24] ; load closure env_end for exec
     mov rdi, rdx ; pass env_end pointer as parameter
@@ -421,6 +425,46 @@ printf_aligned:
     add rsp, r12
     pop r12
     leave
+    ret
+internal_release_env:
+    push rbp ; prologue: save executor frame pointer
+    mov rbp, rsp ; prologue: establish new frame
+    push rbx ; preserve continuation-saved registers
+    push r12
+    push r13
+    push r14
+    push r15
+    mov r12, rdi ; capture env_end pointer
+    test r12, r12 ; skip null releases
+    je internal_release_env_done
+    mov rcx, [r12] ; load env size metadata
+    mov r15, [r12+8] ; load heap size metadata
+    mov rbx, r12 ; copy env_end pointer
+    sub rbx, rcx ; compute env base pointer
+    mov r13, [r12+16] ; load pointer count metadata
+    lea r14, [r12+24] ; pointer metadata base
+    xor r9d, r9d ; reset pointer metadata index
+internal_release_env_loop:
+    cmp r9, r13 ; finished child pointers?
+    jge internal_release_env_children_done
+    mov r10, [r14+r9*8] ; load child env offset
+    mov r11, [rbx+r10] ; load child env_end pointer
+    mov rdi, r11 ; pass child env_end pointer
+    call internal_release_env ; recurse into child closure
+    inc r9 ; advance metadata index
+    jmp internal_release_env_loop
+internal_release_env_children_done:
+    mov rdi, rbx ; env base for munmap
+    mov rax, 11 ; munmap syscall
+    mov rsi, r15 ; heap size for munmap
+    syscall ; release closure environment
+internal_release_env_done:
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
+    pop rbp
     ret
 extern fflush
 extern printf

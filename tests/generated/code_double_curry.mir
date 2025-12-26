@@ -1,60 +1,60 @@
-foo(ok: (str)) {
-    _1 = "charlie"
-    ok(_1)
+foo($ok: (str)) {
+    $_1 = "charlie"
+    $ok($_1)
 }
 
-foo_unwrapper(env_end: int) {
-    ok: (str) = env_end - 2 words (ok)
-    foo(ok)
+foo_unwrapper($env_end: int) {
+    $ok: (str) = $env_end - 2 words (ok)
+    foo($ok)
 }
 
-baz(ok: (str, str)) {
-    _4 = "bob"
-    _5_ok = ok(_4)
-    foo(_5_ok)
+baz($ok: (str, str)) {
+    $_4 = "bob"
+    $_5_ok = ($ok, {int})
+    foo($_5_ok)
 }
 
-baz_unwrapper(env_end: int) {
-    ok: (str, str) = env_end - 2 words (ok)
-    baz(ok)
+baz_unwrapper($env_end: int) {
+    $ok: (str, str) = $env_end - 2 words (ok)
+    baz($ok)
 }
 
 _8_bar() {
-    _9 = 0
-    exit(_9)
+    $_9 = 0
+    exit($_9)
 }
 
-_8_bar_unwrapper(env_end: int) {
+_8_bar_unwrapper($env_end: int) {
     _8_bar()
 }
 
-exit(code: int) {
-    syscall exit(code)
+exit($code: int) {
+    syscall exit($code)
 }
 
-exit_unwrapper(env_end: int) {
-    code: int = env_end - 1 words (code)
-    exit(code)
+exit_unwrapper($env_end: int) {
+    $code: int = $env_end - 1 words (code)
+    exit($code)
 }
 
-bar(name0: str, name1: str, name2: str) {
-    _6 = "hello %s, %s and %s\n"
-    _8_bar = _8_bar()
-    __result = @printf(_6, name0, name1, name2)
-    _8_bar(__result)
+bar($name0: str, $name1: str, $name2: str) {
+    $_6 = "hello %s, %s and %s\n"
+    $_8_bar = (_8_bar_unwrapper, {})
+    $__result = @printf($_6, $name0, $name1, $name2)
+    $_8_bar($__result)
 }
 
-bar_unwrapper(env_end: int) {
-    name0: str = env_end - 3 words (name0)
-    name1: str = env_end - 2 words (name1)
-    name2: str = env_end - 1 words (name2)
-    bar(name0, name1, name2)
+bar_unwrapper($env_end: int) {
+    $name0: str = $env_end - 3 words (name0)
+    $name1: str = $env_end - 2 words (name1)
+    $name2: str = $env_end - 1 words (name2)
+    bar($name0, $name1, $name2)
 }
 
 _start() {
-    _11 = "alice"
-    _12_bar = bar(_11)
-    _12_bar.name0 = _11
+    $_11 = "alice"
+    $_12_bar = (bar_unwrapper, {str})
+    $_12_bar.$name0 = $_11
 
-    baz(_12_bar)
+    baz($_12_bar)
 }

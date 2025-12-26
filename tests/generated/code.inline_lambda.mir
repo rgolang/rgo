@@ -1,37 +1,37 @@
 _4_lambda() {
-    _5 = 0
-    exit(_5)
+    $_5 = 0
+    exit($_5)
 }
 
-_4_lambda_unwrapper(env_end: int) {
+_4_lambda_unwrapper($env_end: int) {
     _4_lambda()
 }
 
-exit(code: int) {
-    syscall exit(code)
+exit($code: int) {
+    syscall exit($code)
 }
 
-exit_unwrapper(env_end: int) {
-    code: int = env_end - 1 words (code)
-    exit(code)
+exit_unwrapper($env_end: int) {
+    $code: int = $env_end - 1 words (code)
+    exit($code)
 }
 
-_1_lambda(x: int) {
-    _2 = "the answer is: %d"
-    _4_lambda = _4_lambda()
-    __result = @printf(_2, x)
-    _4_lambda(__result)
+_1_lambda($x: int) {
+    $_2 = "the answer is: %d"
+    $_4_lambda = (_4_lambda_unwrapper, {})
+    $__result = @printf($_2, $x)
+    $_4_lambda($__result)
 }
 
-_1_lambda_unwrapper(env_end: int) {
-    x: int = env_end - 1 words (x)
-    _1_lambda(x)
+_1_lambda_unwrapper($env_end: int) {
+    $x: int = $env_end - 1 words (x)
+    _1_lambda($x)
 }
 
 _start() {
-    _7 = 42
-    _8_ = _1_lambda(_7)
-    _8_.x = _7
+    $_7 = 42
+    $_8_ = (_1_lambda_unwrapper, {int})
+    $_8_.$x = $_7
 
-    _8_()
+    $_8_()
 }

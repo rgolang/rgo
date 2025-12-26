@@ -1,39 +1,39 @@
-bar(ok: ()) {
-    _0 = "bar,"
-    __result = @write(_0)
-    ok(__result)
+bar($ok: ()) {
+    $_0 = "bar,"
+    $__result = @write($_0)
+    $ok($__result)
 }
 
-bar_unwrapper(env_end: int) {
-    ok: () = env_end - 2 words (ok)
-    bar(ok)
+bar_unwrapper($env_end: int) {
+    $ok: () = $env_end - 2 words (ok)
+    bar($ok)
 }
 
-baz(ok: ()) {
-    _1 = "baz,"
-    __result = @write(_1)
-    ok(__result)
+baz($ok: ()) {
+    $_1 = "baz,"
+    $__result = @write($_1)
+    $ok($__result)
 }
 
-baz_unwrapper(env_end: int) {
-    ok: () = env_end - 2 words (ok)
-    baz(ok)
+baz_unwrapper($env_end: int) {
+    $ok: () = $env_end - 2 words (ok)
+    baz($ok)
 }
 
 foo() {
-    _2 = "foo,"
-    foo = foo()
-    _3_baz = baz(foo)
-    _3_baz.ok = foo
+    $_2 = "foo,"
+    $foo = (foo_unwrapper, {})
+    $_3_baz = (baz_unwrapper, {()})
+    $_3_baz.$ok = $foo
 
-    _4_bar = bar(_3_baz)
-    _4_bar.ok = _3_baz
+    $_4_bar = (bar_unwrapper, {()})
+    $_4_bar.$ok = $_3_baz
 
-    __result = @write(_2)
-    _4_bar(__result)
+    $__result = @write($_2)
+    $_4_bar($__result)
 }
 
-foo_unwrapper(env_end: int) {
+foo_unwrapper($env_end: int) {
     foo()
 }
 

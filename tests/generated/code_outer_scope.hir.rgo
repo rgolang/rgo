@@ -10,7 +10,7 @@ _1_foo: (){
     exit(_2)
 }
 
-foo: (msg: str){
+foo: (msg: str!){
     bar(msg, _1_foo)
 }
 foo(msg)
