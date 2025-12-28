@@ -3,8 +3,8 @@ foo($p: (()), $ok: ()) {
 }
 
 foo_unwrapper($env_end: int) {
-    $p: (()) = $env_end - 4 words (p)
-    $ok: () = $env_end - 2 words (ok)
+    $p: (()) = $env_end - 2 words
+    $ok: () = $env_end - 1 words
     foo($p, $ok)
 }
 
@@ -15,8 +15,8 @@ print1($n: str, $ok: ()) {
 }
 
 print1_unwrapper($env_end: int) {
-    $n: str = $env_end - 3 words (n)
-    $ok: () = $env_end - 2 words (ok)
+    $n: str = $env_end - 2 words
+    $ok: () = $env_end - 1 words
     print1($n, $ok)
 }
 
@@ -27,8 +27,8 @@ print2($n: str, $ok: ()) {
 }
 
 print2_unwrapper($env_end: int) {
-    $n: str = $env_end - 3 words (n)
-    $ok: () = $env_end - 2 words (ok)
+    $n: str = $env_end - 2 words
+    $ok: () = $env_end - 1 words
     print2($n, $ok)
 }
 
@@ -38,7 +38,7 @@ p1($ok: ()) {
 }
 
 p1_unwrapper($env_end: int) {
-    $ok: () = $env_end - 2 words (ok)
+    $ok: () = $env_end - 1 words
     p1($ok)
 }
 
@@ -48,7 +48,7 @@ p2($ok: ()) {
 }
 
 p2_unwrapper($env_end: int) {
-    $ok: () = $env_end - 2 words (ok)
+    $ok: () = $env_end - 1 words
     p2($ok)
 }
 
@@ -66,7 +66,7 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words (code)
+    $code: int = $env_end - 1 words
     exit($code)
 }
 
@@ -76,8 +76,8 @@ _6_lambda($foo: ((()), ()), $p2: (())) {
 }
 
 _6_lambda_unwrapper($env_end: int) {
-    $foo: ((()), ()) = $env_end - 4 words (foo)
-    $p2: (()) = $env_end - 2 words (p2)
+    $foo: ((()), ()) = $env_end - 2 words
+    $p2: (()) = $env_end - 1 words
     _6_lambda($foo, $p2)
 }
 

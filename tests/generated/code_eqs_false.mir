@@ -12,7 +12,7 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words (code)
+    $code: int = $env_end - 1 words
     exit($code)
 }
 
@@ -53,10 +53,10 @@ eqs($left: str, $right: str, $ok: (), $err: ()) {
 }
 
 eqs_unwrapper($env_end: int) {
-    $left: str = $env_end - 6 words (left)
-    $right: str = $env_end - 5 words (right)
-    $ok: () = $env_end - 4 words (ok)
-    $err: () = $env_end - 2 words (err)
+    $left: str = $env_end - 4 words
+    $right: str = $env_end - 3 words
+    $ok: () = $env_end - 2 words
+    $err: () = $env_end - 1 words
     eqs($left, $right, $ok, $err)
 }
 

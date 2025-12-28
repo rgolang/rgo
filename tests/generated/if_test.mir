@@ -4,8 +4,8 @@ true($x: (), $y: ()) {
 }
 
 true_unwrapper($env_end: int) {
-    $x: () = $env_end - 4 words (x)
-    $y: () = $env_end - 2 words (y)
+    $x: () = $env_end - 2 words
+    $y: () = $env_end - 1 words
     true($x, $y)
 }
 
@@ -15,8 +15,8 @@ false($x: (), $y: ()) {
 }
 
 false_unwrapper($env_end: int) {
-    $x: () = $env_end - 4 words (x)
-    $y: () = $env_end - 2 words (y)
+    $x: () = $env_end - 2 words
+    $y: () = $env_end - 1 words
     false($x, $y)
 }
 
@@ -25,9 +25,9 @@ if($cond: ((), ()), $yes: (), $no: ()) {
 }
 
 if_unwrapper($env_end: int) {
-    $cond: ((), ()) = $env_end - 6 words (cond)
-    $yes: () = $env_end - 4 words (yes)
-    $no: () = $env_end - 2 words (no)
+    $cond: ((), ()) = $env_end - 3 words
+    $yes: () = $env_end - 2 words
+    $no: () = $env_end - 1 words
     if($cond, $yes, $no)
 }
 
@@ -45,7 +45,7 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words (code)
+    $code: int = $env_end - 1 words
     exit($code)
 }
 

@@ -4,8 +4,8 @@ nil($cb: (int, ((int, ()), ())), $end: ()) {
 }
 
 nil_unwrapper($env_end: int) {
-    $cb: (int, ((int, ()), ())) = $env_end - 4 words (cb)
-    $end: () = $env_end - 2 words (end)
+    $cb: (int, ((int, ()), ())) = $env_end - 2 words
+    $end: () = $env_end - 1 words
     nil($cb, $end)
 }
 
@@ -15,9 +15,9 @@ cons($h: int, $t: ((int, ()), ()), $cb: (int, ((int, ()), ())), $end: ()) {
 }
 
 cons_unwrapper($env_end: int) {
-    $h: int = $env_end - 7 words (h)
-    $t: ((int, ()), ()) = $env_end - 6 words (t)
-    $cb: (int, ((int, ()), ())) = $env_end - 4 words (cb)
-    $end: () = $env_end - 2 words (end)
+    $h: int = $env_end - 4 words
+    $t: ((int, ()), ()) = $env_end - 3 words
+    $cb: (int, ((int, ()), ())) = $env_end - 2 words
+    $end: () = $env_end - 1 words
     cons($h, $t, $cb, $end)
 }

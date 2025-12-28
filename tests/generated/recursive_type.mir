@@ -12,7 +12,7 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words (code)
+    $code: int = $env_end - 1 words
     exit($code)
 }
 
@@ -25,7 +25,7 @@ identity($node: (int, ())) {
 }
 
 identity_unwrapper($env_end: int) {
-    $node: (int, ()) = $env_end - 2 words (node)
+    $node: (int, ()) = $env_end - 1 words
     identity($node)
 }
 

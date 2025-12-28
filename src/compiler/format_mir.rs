@@ -72,12 +72,11 @@ fn format_mir_block_item(item: &mir::MirStmt, prefixed_names: &HashSet<String>) 
         mir::MirStmt::EnvField(field) => {
             let ty = format_type(&field.ty);
             vec![format!(
-                "{}: {} = {} - {} words ({})",
+                "{}: {} = {} - {} words",
                 format_identifier(&field.result, prefixed_names),
                 ty,
                 format_identifier(&field.env_end, prefixed_names),
-                field.offset_from_end,
-                field.field_name
+                field.offset_from_end
             )]
         }
         mir::MirStmt::StrDef { name, literal } => {
@@ -134,7 +133,10 @@ fn format_mir_block_item(item: &mir::MirStmt, prefixed_names: &HashSet<String>) 
             lines
         }
         mir::MirStmt::Release(release) => {
-            vec![format!("release {}", format_identifier(&release.name, prefixed_names))]
+            vec![format!(
+                "release {}",
+                format_identifier(&release.name, prefixed_names)
+            )]
         }
         mir::MirStmt::DeepCopy(mir::DeepCopy { original, copy, .. }) => {
             vec![format!(
@@ -184,10 +186,7 @@ fn format_mir_block_item(item: &mir::MirStmt, prefixed_names: &HashSet<String>) 
     }
 }
 
-fn format_mir_exec_target(
-    target: &mir::MirExecTarget,
-    prefixed_names: &HashSet<String>,
-) -> String {
+fn format_mir_exec_target(target: &mir::MirExecTarget, prefixed_names: &HashSet<String>) -> String {
     match target {
         mir::MirExecTarget::Function(sig) => sig.name.clone(),
         mir::MirExecTarget::Closure { name } => format_identifier(name, prefixed_names),

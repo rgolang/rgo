@@ -11,8 +11,11 @@ use crate::compiler::mir::{
 };
 
 pub const ENV_METADATA_FIELD_SIZE: usize = 8;
-pub const ENV_METADATA_POINTER_COUNT_OFFSET: usize = ENV_METADATA_FIELD_SIZE * 2;
-pub const ENV_METADATA_POINTER_LIST_OFFSET: usize = ENV_METADATA_FIELD_SIZE * 3;
+pub const ENV_METADATA_UNWRAPPER_OFFSET: usize = 0;
+pub const ENV_METADATA_ENV_SIZE_OFFSET: usize = ENV_METADATA_FIELD_SIZE;
+pub const ENV_METADATA_HEAP_SIZE_OFFSET: usize = ENV_METADATA_FIELD_SIZE * 2;
+pub const ENV_METADATA_POINTER_COUNT_OFFSET: usize = ENV_METADATA_FIELD_SIZE * 3;
+pub const ENV_METADATA_POINTER_LIST_OFFSET: usize = ENV_METADATA_FIELD_SIZE * 4;
 pub const ENV_METADATA_SIZE: usize = ENV_METADATA_POINTER_LIST_OFFSET;
 
 pub fn env_metadata_size(pointer_count: usize) -> usize {
@@ -48,147 +51,40 @@ const MAP_PRIVATE: i32 = 2;
 const MAP_ANONYMOUS: i32 = 32;
 const FMT_BUFFER_SIZE: usize = 1024;
 
-pub fn write_preamble<W: Write>(out: &mut W) -> Result<(), Error> {
-    writeln!(out, "bits 64")?;
-    writeln!(out, "default rel")?;
-    writeln!(out, "section .text")?;
-    Ok(())
+#[derive(Debug, Default)]
+pub struct Artifacts {
+    string_literals: Vec<(String, String)>,
+    pub externs: HashSet<String>,
 }
 
-#[derive(Clone, Debug)]
-struct MutableBytes {
-    name: String,
-    size: usize,
-}
+impl Artifacts {
+    pub fn collect(mir_functions: &[MirFunction]) -> Self {
+        let mut artifacts = Artifacts::default();
+        for function in mir_functions {
+            for stmt in &function.items {
+                artifacts.process_statement(stmt);
+            }
+        }
+        artifacts
+    }
 
-pub fn emit_builtin_definitions<W: Write>(
-    builtin_imports: &HashSet<String>,
-    ctx: &mut CodegenContext,
-    out: &mut W,
-) -> Result<(), Error> {
-    let mut builtins: Vec<&String> = builtin_imports.iter().collect();
-    builtins.sort();
-    for name in builtins {
-        match name.as_str() {
-            "itoa" => emit_builtin_itoa(ctx, out)?,
-            "puts" => emit_builtin_puts(ctx, out)?,
+    fn process_statement(&mut self, stmt: &MirStmt) {
+        match stmt {
+            MirStmt::StrDef { name, literal } => {
+                self.add_string_literal(name, &literal.value);
+            }
+            MirStmt::Call(call) => {
+                self.externs.insert(call.name.clone());
+            }
             _ => {}
         }
     }
-    let mut helpers: Vec<_> = ctx.libc_variadic_helpers.iter().copied().collect();
-    helpers.sort_by_key(|helper| helper.helper_label());
-    for helper in helpers {
-        helper.emit(out)?;
-    }
-    ctx.emit_release_helper(out)?;
-    ctx.emit_deep_copy_helper(out)?;
-    Ok(())
-}
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-enum LibcallVariadicHelper {
-    Printf,
-    Sprintf,
-}
-
-impl LibcallVariadicHelper {
-    fn helper_label(&self) -> &'static str {
-        match self {
-            LibcallVariadicHelper::Printf => "printf_aligned",
-            LibcallVariadicHelper::Sprintf => "sprintf_aligned",
-        }
+    pub fn string_literals(&self) -> &[(String, String)] {
+        &self.string_literals
     }
 
-    fn target_name(&self) -> &'static str {
-        match self {
-            LibcallVariadicHelper::Printf => "printf",
-            LibcallVariadicHelper::Sprintf => "sprintf",
-        }
-    }
-
-    fn emit<W: Write>(&self, out: &mut W) -> Result<(), Error> {
-        let label = self.helper_label();
-        writeln!(out, "global {}", label)?;
-        writeln!(out, "{}:", label)?;
-        writeln!(out, "    push rbp ; save caller base pointer")?;
-        writeln!(out, "    mov rbp, rsp ; establish helper frame")?;
-        writeln!(out, "    push r12 ; preserve alignment register")?;
-        writeln!(out, "    mov rax, rsp ; capture pointer for alignment")?;
-        writeln!(out, "    and rax, 15")?;
-        writeln!(out, "    mov r12, rax")?;
-        writeln!(
-            out,
-            "    sub rsp, r12 ; align stack for variadic {} call",
-            self.target_name()
-        )?;
-        writeln!(out, "    call {}", self.target_name())?;
-        writeln!(out, "    add rsp, r12")?;
-        writeln!(out, "    pop r12")?;
-        writeln!(out, "    leave")?;
-        writeln!(out, "    ret")?;
-        Ok(())
-    }
-}
-
-pub fn function<W: Write>(
-    mir: MirFunction,
-    ctx: &mut CodegenContext,
-    out: &mut W,
-) -> Result<(), Error> {
-    let frame = FrameLayout::build(&mir)?;
-    let mut emitter = FunctionEmitter::new(mir.clone(), out, frame, ctx);
-    emitter.emit_function()?;
-    Ok(())
-}
-
-pub struct CodegenContext {
-    string_literals: Vec<(String, String)>,
-    externs: HashSet<String>,
-    globals: Vec<MutableBytes>,
-    release_helper_needed: bool,
-    deep_copy_helper_needed: bool,
-    libc_variadic_helpers: HashSet<LibcallVariadicHelper>,
-}
-
-impl CodegenContext {
-    pub fn new() -> Self {
-        Self {
-            string_literals: Vec::new(),
-            externs: HashSet::new(),
-            globals: Vec::new(),
-            release_helper_needed: false,
-            deep_copy_helper_needed: false,
-            libc_variadic_helpers: HashSet::new(),
-        }
-    }
-
-    pub fn emit_data<W: Write>(&self, out: &mut W) -> Result<(), Error> {
-        let has_mutable = self
-            .globals
-            .iter()
-            .any(|global| matches!(global, MutableBytes { .. }));
-        if !has_mutable && self.string_literals.is_empty() {
-            return Ok(());
-        }
-        if has_mutable {
-            writeln!(out, "section .bss")?;
-            for global in &self.globals {
-                writeln!(out, "{}:", global.name)?;
-                writeln!(out, "    resb {}", global.size)?;
-            }
-        }
-        if !self.string_literals.is_empty() {
-            writeln!(out, "section .rodata")?;
-            for (label, literal) in &self.string_literals {
-                writeln!(out, "{}:", label)?;
-                let escaped = escape_literal_for_rodata(literal);
-                writeln!(out, "    db {}, 0", escaped)?;
-            }
-        }
-        Ok(())
-    }
-
-    fn add_string_literal(&mut self, label: &str, value: &str) {
+    pub fn add_string_literal(&mut self, label: &str, value: &str) {
         if self
             .string_literals
             .iter()
@@ -199,190 +95,225 @@ impl CodegenContext {
         self.string_literals
             .push((label.to_string(), value.to_string()));
     }
+}
 
-    fn add_extern(&mut self, name: &str) {
-        self.externs.insert(name.to_string());
-    }
+pub fn write_preamble<W: Write>(out: &mut W) -> Result<(), Error> {
+    writeln!(out, "bits 64")?;
+    writeln!(out, "default rel")?;
+    writeln!(out, "section .text")?;
+    Ok(())
+}
 
-    pub fn emit_externs<W: Write>(&self, out: &mut W) -> Result<(), Error> {
-        if self.externs.is_empty() {
-            return Ok(());
+fn emit_builtin_function<W: Write>(
+    mir: &MirFunction,
+    artifacts: &mut Artifacts,
+    out: &mut W,
+) -> Result<bool, Error> {
+    if mir.items.is_empty() {
+        match mir.sig.name.as_str() {
+            "itoa" => {
+                emit_builtin_itoa(artifacts, out)?;
+                return Ok(true);
+            }
+            _ => {}
         }
-        let mut externs: Vec<&String> = self.externs.iter().collect();
-        externs.sort();
-        for name in externs {
-            writeln!(out, "extern {}", name)?;
-        }
-        Ok(())
     }
+    Ok(false)
+}
 
-    fn ensure_release_helper(&mut self) {
-        self.release_helper_needed = true;
+pub fn function<W: Write>(
+    mir: MirFunction,
+    artifacts: &mut Artifacts,
+    out: &mut W,
+) -> Result<(), Error> {
+    if emit_builtin_function(&mir, artifacts, out)? {
+        return Ok(());
     }
+    let frame = FrameLayout::build(&mir)?;
+    let mut emitter = FunctionEmitter::new(mir.clone(), out, frame);
+    emitter.emit_function()?;
+    Ok(())
+}
 
-    fn ensure_deep_copy_helper(&mut self) {
-        self.deep_copy_helper_needed = true;
+pub fn emit_release_helper<W: Write>(out: &mut W) -> Result<(), Error> {
+    writeln!(out, "internal_release_env:")?;
+    writeln!(out, "    push rbp ; prologue: save executor frame pointer")?;
+    writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
+    writeln!(out, "    push rbx ; preserve continuation-saved registers")?;
+    writeln!(out, "    push r12")?;
+    writeln!(out, "    push r13")?;
+    writeln!(out, "    push r14")?;
+    writeln!(out, "    push r15")?;
+    writeln!(out, "    mov r12, rdi ; capture env_end pointer")?;
+    writeln!(out, "    test r12, r12 ; skip null releases")?;
+    writeln!(out, "    je internal_release_env_done")?;
+    writeln!(
+        out,
+        "    mov rcx, [r12+{}] ; load env size metadata",
+        ENV_METADATA_ENV_SIZE_OFFSET
+    )?;
+    writeln!(
+        out,
+        "    mov r15, [r12+{}] ; load heap size metadata",
+        ENV_METADATA_HEAP_SIZE_OFFSET
+    )?;
+    writeln!(out, "    mov rbx, r12 ; copy env_end pointer")?;
+    writeln!(out, "    sub rbx, rcx ; compute env base pointer")?;
+    writeln!(
+        out,
+        "    mov r13, [r12+{}] ; load pointer count metadata",
+        ENV_METADATA_POINTER_COUNT_OFFSET
+    )?;
+    writeln!(
+        out,
+        "    lea r14, [r12+{}] ; pointer metadata base",
+        ENV_METADATA_POINTER_LIST_OFFSET
+    )?;
+    writeln!(out, "    xor r9d, r9d ; reset pointer metadata index")?;
+    writeln!(out, "internal_release_env_loop:")?;
+    writeln!(out, "    cmp r9, r13 ; finished child pointers?")?;
+    writeln!(out, "    jge internal_release_env_children_done")?;
+    writeln!(out, "    mov r10, [r14+r9*8] ; load child env offset")?;
+    writeln!(out, "    mov r11, [rbx+r10] ; load child env_end pointer")?;
+    writeln!(out, "    mov rdi, r11 ; pass child env_end pointer")?;
+    writeln!(
+        out,
+        "    call internal_release_env ; recurse into child closure"
+    )?;
+    writeln!(out, "    inc r9 ; advance metadata index")?;
+    writeln!(out, "    jmp internal_release_env_loop")?;
+    writeln!(out, "internal_release_env_children_done:")?;
+    writeln!(out, "    mov rdi, rbx ; env base for munmap")?;
+    writeln!(out, "    mov rax, {} ; munmap syscall", SYSCALL_MUNMAP)?;
+    writeln!(out, "    mov rsi, r15 ; heap size for munmap")?;
+    writeln!(out, "    syscall ; release closure environment")?;
+    writeln!(out, "internal_release_env_done:")?;
+    writeln!(out, "    pop r15")?;
+    writeln!(out, "    pop r14")?;
+    writeln!(out, "    pop r13")?;
+    writeln!(out, "    pop r12")?;
+    writeln!(out, "    pop rbx")?;
+    writeln!(out, "    pop rbp")?;
+    writeln!(out, "    ret")?;
+    Ok(())
+}
+
+pub fn emit_deep_copy_helper<W: Write>(out: &mut W) -> Result<(), Error> {
+    writeln!(out, "internal_deep_copy_env:")?;
+    writeln!(out, "    push rbp ; prologue: save executor frame pointer")?;
+    writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
+    writeln!(out, "    push rbx ; preserve continuation-saved registers")?;
+    writeln!(out, "    push r12")?;
+    writeln!(out, "    push r13")?;
+    writeln!(out, "    push r14")?;
+    writeln!(out, "    push r15")?;
+    writeln!(out, "    mov r12, rdi ; capture source env_end pointer")?;
+    writeln!(out, "    test r12, r12 ; skip null copies")?;
+    writeln!(out, "    je internal_deep_copy_env_null_return")?;
+    writeln!(
+        out,
+        "    mov rcx, [r12+{}] ; load source env size metadata",
+        ENV_METADATA_ENV_SIZE_OFFSET
+    )?;
+    writeln!(
+        out,
+        "    mov r15, [r12+{}] ; load heap size metadata",
+        ENV_METADATA_HEAP_SIZE_OFFSET
+    )?;
+    writeln!(out, "    mov rbx, r12 ; copy env_end pointer")?;
+    writeln!(out, "    sub rbx, rcx ; compute source env base pointer")?;
+    writeln!(out, "    mov rdi, 0 ; addr = 0 for mmap (kernel chooses)")?;
+    writeln!(out, "    mov rsi, r15 ; length = heap size")?;
+    writeln!(
+        out,
+        "    mov rdx, {} ; prot = PROT_READ | PROT_WRITE",
+        PROT_READ | PROT_WRITE
+    )?;
+    writeln!(
+        out,
+        "    mov r10, {} ; flags = MAP_PRIVATE | MAP_ANONYMOUS",
+        MAP_PRIVATE | MAP_ANONYMOUS
+    )?;
+    writeln!(out, "    mov r8, -1 ; fd = -1")?;
+    writeln!(out, "    mov r9, 0 ; offset = 0")?;
+    writeln!(out, "    mov rax, {} ; mmap syscall", SYSCALL_MMAP)?;
+    writeln!(out, "    syscall ; allocate new heap")?;
+    writeln!(out, "    mov r13, rax ; save new env base pointer")?;
+    writeln!(out, "    mov rdi, r13 ; dest = new env base")?;
+    writeln!(out, "    mov rsi, rbx ; src = source env base")?;
+    writeln!(out, "    mov rdx, r15 ; count = heap size")?;
+    writeln!(out, "    call internal_memcpy ; copy entire heap")?;
+    writeln!(
+        out,
+        "    mov rax, [rbx+{}] ; load code pointer from source env",
+        ENV_METADATA_UNWRAPPER_OFFSET
+    )?;
+    writeln!(out, "    mov r14, r13 ; compute new env_end")?;
+    writeln!(out, "    add r14, rcx ; env_end = env_base + env_size")?;
+    writeln!(out, "    mov rsi, rax ; return code pointer in rsi")?;
+    writeln!(out, "    mov rdi, r14 ; return env_end pointer in rdi")?;
+    writeln!(out, "    pop r15")?;
+    writeln!(out, "    pop r14")?;
+    writeln!(out, "    pop r13")?;
+    writeln!(out, "    pop r12")?;
+    writeln!(out, "    pop rbx")?;
+    writeln!(out, "    pop rbp")?;
+    writeln!(out, "    ret")?;
+    writeln!(out, "internal_deep_copy_env_null_return:")?;
+    writeln!(out, "    xor rsi, rsi ; return null code pointer")?;
+    writeln!(out, "    xor rdi, rdi ; return null env_end pointer")?;
+    writeln!(out, "    pop r15")?;
+    writeln!(out, "    pop r14")?;
+    writeln!(out, "    pop r13")?;
+    writeln!(out, "    pop r12")?;
+    writeln!(out, "    pop rbx")?;
+    writeln!(out, "    pop rbp")?;
+    writeln!(out, "    ret")?;
+    emit_memcpy_helper(out)?;
+    Ok(())
+}
+
+fn emit_memcpy_helper<W: Write>(out: &mut W) -> Result<(), Error> {
+    writeln!(out, "internal_memcpy:")?;
+    writeln!(out, "    push rbp ; prologue")?;
+    writeln!(out, "    mov rbp, rsp")?;
+    writeln!(out, "    xor rcx, rcx ; counter = 0")?;
+    writeln!(out, "internal_memcpy_loop:")?;
+    writeln!(out, "    cmp rcx, rdx ; counter < count?")?;
+    writeln!(out, "    jge internal_memcpy_done")?;
+    writeln!(out, "    mov rax, [rsi+rcx] ; load 8 bytes from source")?;
+    writeln!(out, "    mov [rdi+rcx], rax ; store 8 bytes to destination")?;
+    writeln!(out, "    add rcx, 8 ; advance counter by 8")?;
+    writeln!(out, "    jmp internal_memcpy_loop")?;
+    writeln!(out, "internal_memcpy_done:")?;
+    writeln!(out, "    pop rbp")?;
+    writeln!(out, "    ret")?;
+    Ok(())
+}
+
+pub fn emit_externs<W: Write>(externs: &HashSet<String>, out: &mut W) -> Result<(), Error> {
+    if externs.is_empty() {
+        return Ok(());
     }
-
-    fn require_libcall_variadic_helper(&mut self, helper: LibcallVariadicHelper) {
-        self.libc_variadic_helpers.insert(helper);
+    let mut names: Vec<&String> = externs.iter().collect();
+    names.sort();
+    for name in names {
+        writeln!(out, "extern {}", name)?;
     }
+    Ok(())
+}
 
-    fn emit_release_helper<W: Write>(&self, out: &mut W) -> Result<(), Error> {
-        if !self.release_helper_needed {
-            return Ok(());
-        }
-        writeln!(out, "internal_release_env:")?;
-        writeln!(out, "    push rbp ; prologue: save executor frame pointer")?;
-        writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
-        writeln!(out, "    push rbx ; preserve continuation-saved registers")?;
-        writeln!(out, "    push r12")?;
-        writeln!(out, "    push r13")?;
-        writeln!(out, "    push r14")?;
-        writeln!(out, "    push r15")?;
-        writeln!(out, "    mov r12, rdi ; capture env_end pointer")?;
-        writeln!(out, "    test r12, r12 ; skip null releases")?;
-        writeln!(out, "    je internal_release_env_done")?;
-        writeln!(out, "    mov rcx, [r12] ; load env size metadata")?;
-        writeln!(
-            out,
-            "    mov r15, [r12+{}] ; load heap size metadata",
-            ENV_METADATA_FIELD_SIZE
-        )?;
-        writeln!(out, "    mov rbx, r12 ; copy env_end pointer")?;
-        writeln!(out, "    sub rbx, rcx ; compute env base pointer")?;
-        writeln!(
-            out,
-            "    mov r13, [r12+{}] ; load pointer count metadata",
-            ENV_METADATA_POINTER_COUNT_OFFSET
-        )?;
-        writeln!(
-            out,
-            "    lea r14, [r12+{}] ; pointer metadata base",
-            ENV_METADATA_POINTER_LIST_OFFSET
-        )?;
-        writeln!(out, "    xor r9d, r9d ; reset pointer metadata index")?;
-        writeln!(out, "internal_release_env_loop:")?;
-        writeln!(out, "    cmp r9, r13 ; finished child pointers?")?;
-        writeln!(out, "    jge internal_release_env_children_done")?;
-        writeln!(out, "    mov r10, [r14+r9*8] ; load child env offset")?;
-        writeln!(out, "    mov r11, [rbx+r10] ; load child env_end pointer")?;
-        writeln!(out, "    mov rdi, r11 ; pass child env_end pointer")?;
-        writeln!(
-            out,
-            "    call internal_release_env ; recurse into child closure"
-        )?;
-        writeln!(out, "    inc r9 ; advance metadata index")?;
-        writeln!(out, "    jmp internal_release_env_loop")?;
-        writeln!(out, "internal_release_env_children_done:")?;
-        writeln!(out, "    mov rdi, rbx ; env base for munmap")?;
-        writeln!(out, "    mov rax, {} ; munmap syscall", SYSCALL_MUNMAP)?;
-        writeln!(out, "    mov rsi, r15 ; heap size for munmap")?;
-        writeln!(out, "    syscall ; release closure environment")?;
-        writeln!(out, "internal_release_env_done:")?;
-        writeln!(out, "    pop r15")?;
-        writeln!(out, "    pop r14")?;
-        writeln!(out, "    pop r13")?;
-        writeln!(out, "    pop r12")?;
-        writeln!(out, "    pop rbx")?;
-        writeln!(out, "    pop rbp")?;
-        writeln!(out, "    ret")?;
-        Ok(())
+pub fn emit_data<W: Write>(string_literals: &[(String, String)], out: &mut W) -> Result<(), Error> {
+    if string_literals.is_empty() {
+        return Ok(());
     }
-
-    fn emit_deep_copy_helper<W: Write>(&self, out: &mut W) -> Result<(), Error> {
-        if !self.deep_copy_helper_needed {
-            return Ok(());
-        }
-        writeln!(out, "internal_deep_copy_env:")?;
-        writeln!(out, "    push rbp ; prologue: save executor frame pointer")?;
-        writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
-        writeln!(out, "    push rbx ; preserve continuation-saved registers")?;
-        writeln!(out, "    push r12")?;
-        writeln!(out, "    push r13")?;
-        writeln!(out, "    push r14")?;
-        writeln!(out, "    push r15")?;
-        writeln!(out, "    mov r12, rdi ; capture source env_end pointer")?;
-        writeln!(out, "    test r12, r12 ; skip null copies")?;
-        writeln!(out, "    je internal_deep_copy_env_null_return")?;
-        writeln!(out, "    mov rcx, [r12] ; load source env size metadata")?;
-        writeln!(
-            out,
-            "    mov r15, [r12+{}] ; load source heap size metadata",
-            ENV_METADATA_FIELD_SIZE
-        )?;
-        writeln!(out, "    mov rbx, r12 ; copy env_end pointer")?;
-        writeln!(out, "    sub rbx, rcx ; compute source env base pointer")?;
-        writeln!(out, "    mov rdi, 0 ; addr = 0 for mmap (kernel chooses)")?;
-        writeln!(out, "    mov rsi, r15 ; length = heap size")?;
-        writeln!(
-            out,
-            "    mov rdx, {} ; prot = PROT_READ | PROT_WRITE",
-            PROT_READ | PROT_WRITE
-        )?;
-        writeln!(
-            out,
-            "    mov r10, {} ; flags = MAP_PRIVATE | MAP_ANONYMOUS",
-            MAP_PRIVATE | MAP_ANONYMOUS
-        )?;
-        writeln!(out, "    mov r8, -1 ; fd = -1")?;
-        writeln!(out, "    mov r9, 0 ; offset = 0")?;
-        writeln!(out, "    mov rax, {} ; mmap syscall", SYSCALL_MMAP)?;
-        writeln!(out, "    syscall ; allocate new heap")?;
-        writeln!(out, "    mov r13, rax ; save new env base pointer")?;
-        writeln!(out, "    mov rdi, r13 ; dest = new env base")?;
-        writeln!(out, "    mov rsi, rbx ; src = source env base")?;
-        writeln!(out, "    mov rdx, r15 ; count = heap size")?;
-        writeln!(out, "    call internal_memcpy ; copy entire heap")?;
-        writeln!(
-            out,
-            "    mov rax, [rbx] ; load code pointer from source env"
-        )?;
-        writeln!(out, "    mov r14, r13 ; compute new env_end")?;
-        writeln!(out, "    add r14, rcx ; env_end = env_base + env_size")?;
-        writeln!(out, "    mov rsi, rax ; return code pointer in rsi")?;
-        writeln!(out, "    mov rdi, r14 ; return env_end pointer in rdi")?;
-        writeln!(out, "    pop r15")?;
-        writeln!(out, "    pop r14")?;
-        writeln!(out, "    pop r13")?;
-        writeln!(out, "    pop r12")?;
-        writeln!(out, "    pop rbx")?;
-        writeln!(out, "    pop rbp")?;
-        writeln!(out, "    ret")?;
-        writeln!(out, "internal_deep_copy_env_null_return:")?;
-        writeln!(out, "    xor rsi, rsi ; return null code pointer")?;
-        writeln!(out, "    xor rdi, rdi ; return null env_end pointer")?;
-        writeln!(out, "    pop r15")?;
-        writeln!(out, "    pop r14")?;
-        writeln!(out, "    pop r13")?;
-        writeln!(out, "    pop r12")?;
-        writeln!(out, "    pop rbx")?;
-        writeln!(out, "    pop rbp")?;
-        writeln!(out, "    ret")?;
-
-        // Also emit internal_memcpy if needed
-        self.emit_memcpy_helper(out)?;
-
-        Ok(())
+    writeln!(out, "section .rodata")?;
+    for (label, literal) in string_literals {
+        writeln!(out, "{}:", label)?;
+        let escaped = escape_literal_for_rodata(literal);
+        writeln!(out, "    db {}, 0", escaped)?;
     }
-
-    fn emit_memcpy_helper<W: Write>(&self, out: &mut W) -> Result<(), Error> {
-        writeln!(out, "internal_memcpy:")?;
-        writeln!(out, "    push rbp ; prologue")?;
-        writeln!(out, "    mov rbp, rsp")?;
-        writeln!(out, "    xor rcx, rcx ; counter = 0")?;
-        writeln!(out, "internal_memcpy_loop:")?;
-        writeln!(out, "    cmp rcx, rdx ; counter < count?")?;
-        writeln!(out, "    jge internal_memcpy_done")?;
-        writeln!(out, "    mov rax, [rsi+rcx] ; load 8 bytes from source")?;
-        writeln!(out, "    mov [rdi+rcx], rax ; store 8 bytes to destination")?;
-        writeln!(out, "    add rcx, 8 ; advance counter by 8")?;
-        writeln!(out, "    jmp internal_memcpy_loop")?;
-        writeln!(out, "internal_memcpy_done:")?;
-        writeln!(out, "    pop rbp")?;
-        writeln!(out, "    ret")?;
-        Ok(())
-    }
+    Ok(())
 }
 
 #[derive(Clone, Debug)]
@@ -559,24 +490,17 @@ struct FunctionEmitter<'a, W: Write> {
     mir: MirFunction,
     out: &'a mut W,
     frame: FrameLayout,
-    ctx: &'a mut CodegenContext,
     terminated: bool,
     write_loop_counter: usize,
     label_counter: usize,
 }
 
 impl<'a, W: Write> FunctionEmitter<'a, W> {
-    fn new(
-        mir: MirFunction,
-        out: &'a mut W,
-        frame: FrameLayout,
-        ctx: &'a mut CodegenContext,
-    ) -> Self {
+    fn new(mir: MirFunction, out: &'a mut W, frame: FrameLayout) -> Self {
         Self {
             mir,
             out,
             frame,
-            ctx,
             terminated: false,
             write_loop_counter: 0,
             label_counter: 0,
@@ -668,18 +592,11 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 }
                 ValueKind::Closure => {
                     if !spilled && slot + 1 < ARG_REGS.len() {
-                        let reg_code = ARG_REGS[slot];
                         let reg_env = ARG_REGS[slot + 1];
                         writeln!(
                             self.out,
-                            "    mov [rbp-{}], {} ; save closure code pointer",
+                            "    mov [rbp-{}], {} ; save closure env_end pointer",
                             binding.slot_addr(0),
-                            reg_code
-                        )?;
-                        writeln!(
-                            self.out,
-                            "    mov [rbp-{}], {} ; save closure environment pointer",
-                            binding.slot_addr(1),
                             reg_env
                         )?;
                         slot += 2;
@@ -698,13 +615,8 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                         )?;
                         writeln!(
                             self.out,
-                            "    mov [rbp-{}], rax ; save spilled closure code pointer",
-                            binding.slot_addr(0)
-                        )?;
-                        writeln!(
-                            self.out,
                             "    mov [rbp-{}], rdx ; save spilled closure env_end pointer",
-                            binding.slot_addr(1)
+                            binding.slot_addr(0)
                         )?;
                         stack_offset_bytes += bytes_for_type(&ty);
                     }
@@ -729,7 +641,6 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
     fn emit_statement(&mut self, stmt: &MirStmt) -> Result<(), Error> {
         match stmt {
             MirStmt::StrDef { name, literal } => {
-                self.ctx.add_string_literal(&name, &literal.value);
                 let expr = Expr::String {
                     label: name.clone(),
                 };
@@ -975,13 +886,13 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 )?;
                 writeln!(
                     self.out,
-                    "    mov rax, [r10-{}] ; load closure code pointer",
+                    "    mov rdx, [r10-{}] ; load closure env_end pointer",
                     offset_bytes
                 )?;
                 writeln!(
                     self.out,
-                    "    mov rdx, [r10-{}] ; load closure env_end pointer",
-                    offset_bytes - WORD_SIZE
+                    "    mov rax, [rdx+{}] ; load closure unwrapper entry point",
+                    ENV_METADATA_UNWRAPPER_OFFSET
                 )?;
                 let params = field.continuation_params.clone();
                 let env_size = env_size_bytes_from_kinds(&params);
@@ -1010,8 +921,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 span,
             ));
         }
-        self.ctx.ensure_release_helper();
-        let env_offset = binding.slot_addr(1);
+        let env_offset = binding.slot_addr(0);
         writeln!(
             self.out,
             "    mov rdi, [rbp-{}] ; load closure env_end pointer",
@@ -1040,34 +950,21 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             ));
         }
 
-        // Get the original closure's code and env_end pointers
-        let code_offset = binding.slot_addr(0);
-        let env_offset = binding.slot_addr(1);
+        let env_offset = binding.slot_addr(0);
 
-        // Save the code pointer
-        writeln!(
-            self.out,
-            "    mov rax, [rbp-{}] ; load original closure code pointer",
-            code_offset
-        )?;
-        writeln!(self.out, "    push rax ; save code pointer")?;
-
-        // Get the env_end pointer and call deep_copy_env
         writeln!(
             self.out,
             "    mov rdi, [rbp-{}] ; load original closure env_end pointer",
             env_offset
         )?;
-
-        // Call deep_copy_env which copies the environment
-        // Returns: rsi = code pointer (but we'll use the original), rdi = new env_end pointer
         writeln!(
             self.out,
             "    call internal_deep_copy_env ; deep copy closure environment"
         )?;
-
-        // Restore the code pointer and prepare result
-        writeln!(self.out, "    pop rax ; restore original code pointer")?;
+        writeln!(
+            self.out,
+            "    mov rax, rsi ; keep unwrapper pointer for new closure"
+        )?;
         writeln!(
             self.out,
             "    mov rdx, rdi ; move new env_end pointer to rdx"
@@ -1077,8 +974,6 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         let copy_state = ClosureState::new(binding.continuation_params.clone(), binding.env_size);
         let copy_value = ExprValue::Closure(copy_state);
         self.store_binding_value(&copy.copy, copy_value, copy.span)?;
-
-        self.ctx.ensure_deep_copy_helper();
 
         Ok(())
     }
@@ -1136,13 +1031,8 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             ExprValue::Closure(state) => {
                 writeln!(
                     self.out,
-                    "    mov [rbp-{}], rax ; update closure code pointer",
+                    "    mov [rbp-{}], rdx ; update closure env_end pointer",
                     binding.slot_addr(0)
-                )?;
-                writeln!(
-                    self.out,
-                    "    mov [rbp-{}], rdx ; update closure environment pointer",
-                    binding.slot_addr(1)
                 )?;
                 binding.kind = ValueKind::Closure;
                 binding.continuation_params = state.remaining.clone();
@@ -1180,13 +1070,13 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                         ValueKind::Closure => {
                             writeln!(
                                 self.out,
-                                "    mov rax, [rbp-{}] ; load closure code pointer",
+                                "    mov rdx, [rbp-{}] ; load closure env_end pointer",
                                 binding.slot_addr(0)
                             )?;
                             writeln!(
                                 self.out,
-                                "    mov rdx, [rbp-{}] ; load closure env_end pointer",
-                                binding.slot_addr(1)
+                                "    mov rax, [rdx+{}] ; load closure unwrapper entry point",
+                                ENV_METADATA_UNWRAPPER_OFFSET
                             )?;
                             Ok(ExprValue::Closure(ClosureState::new(
                                 binding.continuation_params.clone(),
@@ -1284,15 +1174,16 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 span,
             ));
         }
-        writeln!(
-            self.out,
-            "    mov rax, [rbp-{}] ; load closure code for exec",
-            binding.slot_addr(0)
-        )?;
+        let env_slot = binding.slot_addr(0);
         writeln!(
             self.out,
             "    mov rdx, [rbp-{}] ; load closure env_end for exec",
-            binding.slot_addr(1)
+            env_slot
+        )?;
+        writeln!(
+            self.out,
+            "    mov rax, [rdx+{}] ; load closure unwrapper entry point",
+            ENV_METADATA_UNWRAPPER_OFFSET
         )?;
         let state = ClosureState::new(binding.continuation_params.clone(), binding.env_size);
         self.apply_closure(state, args, span, invoke_when_ready)
@@ -1314,20 +1205,14 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
                 self.prepare_mir_args(call_args, params, call.span)?;
                 let arg_split = self.move_args_to_registers(params)?;
-                self.emit_variadic_helper_call(LibcallVariadicHelper::Printf)?;
+                self.call_variadic_libc("printf")?;
                 if arg_split.stack_bytes > 0 {
                     writeln!(
                         self.out,
-                        "    add rsp, {} ; pop stack args after printf helper",
+                        "    add rsp, {} ; pop stack args after printf",
                         arg_split.stack_bytes
                     )?;
                 }
-                self.ctx.add_extern("fflush");
-                self.ctx.add_extern("stdout");
-                writeln!(self.out, "    mov rdi, [rel stdout] ; flush stdout")?;
-                writeln!(self.out, "    sub rsp, 8 ; align stack for fflush")?;
-                writeln!(self.out, "    call fflush")?;
-                writeln!(self.out, "    add rsp, 8")?;
 
                 Ok(ExprValue::Word)
             }
@@ -1369,7 +1254,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                     self.out,
                     "    mov rdi, rbx ; destination buffer for sprintf"
                 )?;
-                self.emit_variadic_helper_call(LibcallVariadicHelper::Sprintf)?;
+                self.call_variadic_libc("sprintf")?;
                 writeln!(
                     self.out,
                     "    mov rax, rbx ; return formatted string pointer"
@@ -1377,7 +1262,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 if arg_split.stack_bytes > 0 {
                     writeln!(
                         self.out,
-                        "    add rsp, {} ; pop stack args after sprintf helper",
+                        "    add rsp, {} ; pop stack args after sprintf",
                         arg_split.stack_bytes
                     )?;
                 }
@@ -1417,7 +1302,6 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 writeln!(self.out, "    mov rsi, r8 ; buffer start")?;
                 writeln!(self.out, "    mov rdi, 1 ; stdout fd")?;
 
-                self.ctx.add_extern("write");
                 writeln!(self.out, "    call write ; invoke libc write")?;
                 if arg_split.stack_bytes > 0 {
                     writeln!(
@@ -1444,7 +1328,6 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 self.prepare_mir_args(call_args, params, call.span)?;
                 let arg_split = self.move_args_to_registers(params)?;
 
-                self.ctx.add_extern("puts");
                 writeln!(self.out, "    call puts ; invoke libc puts")?;
                 if arg_split.stack_bytes > 0 {
                     writeln!(
@@ -1462,6 +1345,24 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 call.span,
             )),
         }
+    }
+
+    fn call_variadic_libc(&mut self, name: &str) -> Result<(), Error> {
+        writeln!(self.out, "    push rbp ; helper prologue")?;
+        writeln!(self.out, "    mov rbp, rsp")?;
+        writeln!(self.out, "    push r12")?;
+        writeln!(
+            self.out,
+            "    mov rax, rsp ; align stack for variadic {name} call"
+        )?;
+        writeln!(self.out, "    and rax, 15")?;
+        writeln!(self.out, "    mov r12, rax")?;
+        writeln!(self.out, "    sub rsp, r12")?;
+        writeln!(self.out, "    call {} ; invoke libc {name}", name)?;
+        writeln!(self.out, "    add rsp, r12")?;
+        writeln!(self.out, "    pop r12")?;
+        writeln!(self.out, "    pop rbp")?;
+        Ok(())
     }
 
     fn emit_printf_wrapper_exec(
@@ -1516,12 +1417,6 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
         self.prepare_mir_args(call_args, &params, span)?;
         let arg_split = self.move_args_to_registers(&params)?;
-        self.ctx.add_extern("fflush");
-        self.ctx.add_extern("stdout");
-        writeln!(self.out, "    mov rdi, [rel stdout] ; flush stdout")?;
-        writeln!(self.out, "    sub rsp, 8 ; align stack for fflush")?;
-        writeln!(self.out, "    call fflush")?;
-        writeln!(self.out, "    add rsp, 8")?;
 
         writeln!(
             self.out,
@@ -1605,7 +1500,6 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         writeln!(self.out, "    mov rdx, rcx ; length to write")?;
         writeln!(self.out, "    mov rdi, 1 ; stdout fd")?;
 
-        self.ctx.add_extern("write");
         writeln!(self.out, "    call write ; invoke libc write")?;
 
         writeln!(
@@ -1642,13 +1536,6 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
         let param_types = vec![SigKind::Str];
         self.emit_ffi_bridge_exec("puts", args, &param_types, span, false, |_| Ok(()))
-    }
-
-    fn emit_variadic_helper_call(&mut self, helper: LibcallVariadicHelper) -> Result<(), Error> {
-        self.ctx.require_libcall_variadic_helper(helper);
-        self.ctx.add_extern(helper.target_name());
-        writeln!(self.out, "    call {}", helper.helper_label())?;
-        Ok(())
     }
 
     /// Generic FFI bridge that handles the System V AMD64 C ABI calling convention.
@@ -1721,7 +1608,6 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         let arg_split = self.move_args_to_registers(param_types)?;
 
         // Call the external function
-        self.ctx.add_extern(ffi_name);
 
         // Stack alignment: for variadic functions, the stack must be 16-byte aligned before call
         // For non-variadic, we just call directly (the call op will misalign by 8)
@@ -1834,13 +1720,13 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         }
         writeln!(
             self.out,
-            "    mov qword [rdx], {} ; env size metadata",
-            env_size
+            "    mov qword [rdx+{}], {} ; env size metadata",
+            ENV_METADATA_ENV_SIZE_OFFSET, env_size
         )?;
         writeln!(
             self.out,
             "    mov qword [rdx+{}], {} ; heap size metadata",
-            ENV_METADATA_FIELD_SIZE, heap_size
+            ENV_METADATA_HEAP_SIZE_OFFSET, heap_size
         )?;
         writeln!(
             self.out,
@@ -1861,6 +1747,11 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             self.out,
             "    mov rax, {} ; load unwrapper entry point",
             unwrapper
+        )?;
+        writeln!(
+            self.out,
+            "    mov qword [rdx+{}], rax ; store unwrapper entry in metadata",
+            ENV_METADATA_UNWRAPPER_OFFSET
         )?;
         Ok(())
     }
@@ -1889,13 +1780,13 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-        fn prepare_mir_args(
-            &mut self,
-            args: &[MirArg],
-            _params: &[SigKind],
-            span: Span,
-        ) -> Result<(), Error> {
-            for arg in args.iter().rev() {
+    fn prepare_mir_args(
+        &mut self,
+        args: &[MirArg],
+        _params: &[SigKind],
+        span: Span,
+    ) -> Result<(), Error> {
+        for arg in args.iter().rev() {
             let value = self.emit_mir_arg_value(arg, span)?;
             self.push_value(&value)?;
         }
@@ -1977,12 +1868,13 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         )?;
         writeln!(
             self.out,
-            "    mov r13, [rbx] ; load env size metadata for clone"
+            "    mov r13, [rbx+{}] ; load env size metadata for clone",
+            ENV_METADATA_ENV_SIZE_OFFSET
         )?;
         writeln!(
             self.out,
             "    mov r14, [rbx+{}] ; load heap size metadata for clone",
-            ENV_METADATA_FIELD_SIZE
+            ENV_METADATA_HEAP_SIZE_OFFSET
         )?;
         writeln!(
             self.out,
@@ -2085,12 +1977,13 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             )?;
             writeln!(
                 self.out,
-                "    mov r13, [rbx] ; load env size metadata for clone"
+                "    mov r13, [rbx+{}] ; load env size metadata for clone",
+                ENV_METADATA_ENV_SIZE_OFFSET
             )?;
             writeln!(
                 self.out,
                 "    mov r14, [rbx+{}] ; load heap size metadata for clone",
-                ENV_METADATA_FIELD_SIZE
+                ENV_METADATA_HEAP_SIZE_OFFSET
             )?;
             writeln!(
                 self.out,
@@ -2163,10 +2056,9 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                         "    sub rbx, {} ; compute slot for next argument",
                         suffix_sizes[idx]
                     )?;
-                    writeln!(self.out, "    mov [rbx], rax ; store closure code for arg")?;
                     writeln!(
                         self.out,
-                        "    mov [rbx+8], rdx ; store closure env_end for arg"
+                        "    mov [rbx], rdx ; store closure env_end for arg"
                     )?;
                 }
                 ValueKind::Variadic => {}
@@ -2249,33 +2141,10 @@ fn align_to(value: usize, align: usize) -> usize {
     ((value + align - 1) / align) * align
 }
 
-fn emit_builtin_puts<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result<(), Error> {
-    writeln!(out, "global rgo_puts")?;
-    writeln!(out, "rgo_puts:")?;
-    writeln!(out, "    push rbp ; prologue: save executor frame pointer")?;
-    writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
-    writeln!(out, "    push rsi ; preserve continuation code pointer")?;
-    writeln!(out, "    push rdx ; preserve continuation env_end pointer")?;
-    writeln!(out, "    ; rdi already holds the string pointer for puts")?;
-    ctx.add_extern("puts");
-    writeln!(out, "    call puts ; invoke libc puts")?;
-    writeln!(out, "    pop rdx ; restore continuation env_end pointer")?;
-    writeln!(out, "    pop rsi ; restore continuation code pointer")?;
-    writeln!(out, "    mov rax, rsi ; continuation entry point")?;
-    writeln!(
-        out,
-        "    mov rdi, rdx ; pass env_end pointer to continuation"
-    )?;
-    writeln!(out, "    leave ; epilogue: unwind before jump")?;
-    writeln!(out, "    jmp rax ; jump into continuation")?;
-    writeln!(out)?;
-    Ok(())
-}
-
-fn emit_builtin_itoa<W: Write>(ctx: &mut CodegenContext, out: &mut W) -> Result<(), Error> {
+fn emit_builtin_itoa<W: Write>(artifacts: &mut Artifacts, out: &mut W) -> Result<(), Error> {
     const ITOA_MIN_LABEL: &str = "itoa_min_value";
     const ITOA_MIN_VALUE: &str = "-9223372036854775808";
-    ctx.add_string_literal(ITOA_MIN_LABEL, ITOA_MIN_VALUE);
+    artifacts.add_string_literal(ITOA_MIN_LABEL, ITOA_MIN_VALUE);
     writeln!(out, "global itoa")?;
     writeln!(out, "itoa:")?;
     writeln!(out, "    push rbp ; save executor frame pointer")?;
@@ -2387,7 +2256,7 @@ fn remaining_suffix_sizes(params: &[SigKind]) -> Vec<usize> {
 fn bytes_for_type(ty: &SigKind) -> usize {
     match resolved_type_kind(ty) {
         ValueKind::Word => WORD_SIZE,
-        ValueKind::Closure => WORD_SIZE * 2,
+        ValueKind::Closure => WORD_SIZE,
         ValueKind::Variadic => 0,
     }
 }
@@ -2407,8 +2276,8 @@ fn env_pointer_offsets_from_kinds(params: &[SigKind]) -> Vec<usize> {
         match resolved_type_kind(ty) {
             ValueKind::Word => current += 8,
             ValueKind::Closure => {
-                offsets.push(current + 8);
-                current += 16;
+                offsets.push(current);
+                current += WORD_SIZE;
             }
             ValueKind::Variadic => {}
         }

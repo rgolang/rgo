@@ -5,8 +5,8 @@ _3_print_sum($ok: (), $total: int) {
 }
 
 _3_print_sum_unwrapper($env_end: int) {
-    $ok: () = $env_end - 3 words (ok)
-    $total: int = $env_end - 1 words (total)
+    $ok: () = $env_end - 2 words
+    $total: int = $env_end - 1 words
     _3_print_sum($ok, $total)
 }
 
@@ -20,7 +20,7 @@ print_sum($ok: ()) {
 }
 
 print_sum_unwrapper($env_end: int) {
-    $ok: () = $env_end - 2 words (ok)
+    $ok: () = $env_end - 1 words
     print_sum($ok)
 }
 
@@ -30,9 +30,9 @@ add($x: int, $y: int, $ok: (int)) {
 }
 
 add_unwrapper($env_end: int) {
-    $x: int = $env_end - 4 words (x)
-    $y: int = $env_end - 3 words (y)
-    $ok: (int) = $env_end - 2 words (ok)
+    $x: int = $env_end - 3 words
+    $y: int = $env_end - 2 words
+    $ok: (int) = $env_end - 1 words
     add($x, $y, $ok)
 }
 
@@ -50,7 +50,7 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words (code)
+    $code: int = $env_end - 1 words
     exit($code)
 }
 

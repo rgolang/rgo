@@ -4,8 +4,8 @@ nil($next: (int, ((int, ()), ())), $end: ()) {
 }
 
 nil_unwrapper($env_end: int) {
-    $next: (int, ((int, ()), ())) = $env_end - 4 words (next)
-    $end: () = $env_end - 2 words (end)
+    $next: (int, ((int, ()), ())) = $env_end - 2 words
+    $end: () = $env_end - 1 words
     nil($next, $end)
 }
 
@@ -15,10 +15,10 @@ cons($head: int, $tail: ((int, ()), ()), $next: (int, ((int, ()), ())), $end: ()
 }
 
 cons_unwrapper($env_end: int) {
-    $head: int = $env_end - 7 words (head)
-    $tail: ((int, ()), ()) = $env_end - 6 words (tail)
-    $next: (int, ((int, ()), ())) = $env_end - 4 words (next)
-    $end: () = $env_end - 2 words (end)
+    $head: int = $env_end - 4 words
+    $tail: ((int, ()), ()) = $env_end - 3 words
+    $next: (int, ((int, ()), ())) = $env_end - 2 words
+    $end: () = $env_end - 1 words
     cons($head, $tail, $next, $end)
 }
 
@@ -28,11 +28,11 @@ _iterate_0($iterate: ((int, ()), ((int, ()), ()), ()), $handler: (int, ()), $end
 }
 
 _iterate_0_unwrapper($env_end: int) {
-    $iterate: ((int, ()), ((int, ()), ()), ()) = $env_end - 9 words (iterate)
-    $handler: (int, ()) = $env_end - 7 words (handler)
-    $end: () = $env_end - 5 words (end)
-    $head: int = $env_end - 3 words (head)
-    $tail: ((int, ()), ()) = $env_end - 2 words (tail)
+    $iterate: ((int, ()), ((int, ()), ()), ()) = $env_end - 5 words
+    $handler: (int, ()) = $env_end - 4 words
+    $end: () = $env_end - 3 words
+    $head: int = $env_end - 2 words
+    $tail: ((int, ()), ()) = $env_end - 1 words
     _iterate_0($iterate, $handler, $end, $head, $tail)
 }
 
@@ -47,9 +47,9 @@ iterate($handler: (int, ()), $arr: ((int, ()), ()), $end: ()) {
 }
 
 iterate_unwrapper($env_end: int) {
-    $handler: (int, ()) = $env_end - 6 words (handler)
-    $arr: ((int, ()), ()) = $env_end - 4 words (arr)
-    $end: () = $env_end - 2 words (end)
+    $handler: (int, ()) = $env_end - 3 words
+    $arr: ((int, ()), ()) = $env_end - 2 words
+    $end: () = $env_end - 1 words
     iterate($handler, $arr, $end)
 }
 
@@ -60,8 +60,8 @@ handler($n: int, $ok: ()) {
 }
 
 handler_unwrapper($env_end: int) {
-    $n: int = $env_end - 3 words (n)
-    $ok: () = $env_end - 2 words (ok)
+    $n: int = $env_end - 2 words
+    $ok: () = $env_end - 1 words
     handler($n, $ok)
 }
 
@@ -79,7 +79,7 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words (code)
+    $code: int = $env_end - 1 words
     exit($code)
 }
 

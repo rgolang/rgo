@@ -3,9 +3,9 @@ one($f: (int, (int)), $x: int, $ok: (int)) {
 }
 
 one_unwrapper($env_end: int) {
-    $f: (int, (int)) = $env_end - 5 words (f)
-    $x: int = $env_end - 3 words (x)
-    $ok: (int) = $env_end - 2 words (ok)
+    $f: (int, (int)) = $env_end - 3 words
+    $x: int = $env_end - 2 words
+    $ok: (int) = $env_end - 1 words
     one($f, $x, $ok)
 }
 
@@ -15,8 +15,8 @@ _7_lambda($x: int, $ok: (int)) {
 }
 
 _7_lambda_unwrapper($env_end: int) {
-    $x: int = $env_end - 3 words (x)
-    $ok: (int) = $env_end - 2 words (ok)
+    $x: int = $env_end - 2 words
+    $ok: (int) = $env_end - 1 words
     _7_lambda($x, $ok)
 }
 
@@ -26,9 +26,9 @@ add($x: int, $y: int, $ok: (int)) {
 }
 
 add_unwrapper($env_end: int) {
-    $x: int = $env_end - 4 words (x)
-    $y: int = $env_end - 3 words (y)
-    $ok: (int) = $env_end - 2 words (ok)
+    $x: int = $env_end - 3 words
+    $y: int = $env_end - 2 words
+    $ok: (int) = $env_end - 1 words
     add($x, $y, $ok)
 }
 
@@ -46,7 +46,7 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words (code)
+    $code: int = $env_end - 1 words
     exit($code)
 }
 
@@ -58,7 +58,7 @@ _12_lambda($x: int) {
 }
 
 _12_lambda_unwrapper($env_end: int) {
-    $x: int = $env_end - 1 words (x)
+    $x: int = $env_end - 1 words
     _12_lambda($x)
 }
 

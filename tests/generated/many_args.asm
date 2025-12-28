@@ -40,8 +40,7 @@ foo:
     mov [rbp-352], rax ; store spilled scalar arg
     mov rax, [rbp+88] ; load spilled closure code
     mov rdx, [rbp+96] ; load spilled closure env
-    mov [rbp-368], rax ; save spilled closure code pointer
-    mov [rbp-360], rdx ; save spilled closure env_end pointer
+    mov [rbp-368], rdx ; save spilled closure env_end pointer
     lea rax, [rel _0] ; point to string literal
     mov [rbp-384], rax ; save evaluated scalar in frame
     mov rax, [rbp-384] ; load scalar from frame
@@ -61,8 +60,8 @@ foo_write_strlen_done_0:
     mov rdi, 1 ; stdout fd
     call write ; invoke libc write
     mov [rbp-400], rax ; save evaluated scalar in frame
-    mov rax, [rbp-368] ; load closure code for exec
-    mov rdx, [rbp-360] ; load closure env_end for exec
+    mov rdx, [rbp-368] ; load closure env_end for exec
+    mov rax, [rdx+0] ; load closure unwrapper entry point
     sub rsp, 24 ; allocate temporary stack for closure state
     mov [rsp], rax ; save closure code pointer temporarily
     mov [rsp+8], rdx ; save closure env_end pointer temporarily
@@ -79,79 +78,78 @@ foo_unwrapper:
     sub rsp, 384 ; reserve stack space for locals
     mov [rbp-16], rdi ; store scalar arg in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-192] ; load scalar env field
+    mov rax, [rax-184] ; load scalar env field
     mov [rbp-32], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-184] ; load scalar env field
+    mov rax, [rax-176] ; load scalar env field
     mov [rbp-48], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-176] ; load scalar env field
+    mov rax, [rax-168] ; load scalar env field
     mov [rbp-64], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-168] ; load scalar env field
+    mov rax, [rax-160] ; load scalar env field
     mov [rbp-80], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-160] ; load scalar env field
+    mov rax, [rax-152] ; load scalar env field
     mov [rbp-96], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-152] ; load scalar env field
+    mov rax, [rax-144] ; load scalar env field
     mov [rbp-112], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-144] ; load scalar env field
+    mov rax, [rax-136] ; load scalar env field
     mov [rbp-128], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-136] ; load scalar env field
+    mov rax, [rax-128] ; load scalar env field
     mov [rbp-144], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-128] ; load scalar env field
+    mov rax, [rax-120] ; load scalar env field
     mov [rbp-160], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-120] ; load scalar env field
+    mov rax, [rax-112] ; load scalar env field
     mov [rbp-176], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-112] ; load scalar env field
+    mov rax, [rax-104] ; load scalar env field
     mov [rbp-192], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-104] ; load scalar env field
+    mov rax, [rax-96] ; load scalar env field
     mov [rbp-208], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-96] ; load scalar env field
+    mov rax, [rax-88] ; load scalar env field
     mov [rbp-224], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-88] ; load scalar env field
+    mov rax, [rax-80] ; load scalar env field
     mov [rbp-240], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-80] ; load scalar env field
+    mov rax, [rax-72] ; load scalar env field
     mov [rbp-256], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-72] ; load scalar env field
+    mov rax, [rax-64] ; load scalar env field
     mov [rbp-272], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-64] ; load scalar env field
+    mov rax, [rax-56] ; load scalar env field
     mov [rbp-288], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-56] ; load scalar env field
+    mov rax, [rax-48] ; load scalar env field
     mov [rbp-304], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-48] ; load scalar env field
+    mov rax, [rax-40] ; load scalar env field
     mov [rbp-320], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-40] ; load scalar env field
+    mov rax, [rax-32] ; load scalar env field
     mov [rbp-336], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-32] ; load scalar env field
+    mov rax, [rax-24] ; load scalar env field
     mov [rbp-352], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
-    mov rax, [rax-24] ; load scalar env field
+    mov rax, [rax-16] ; load scalar env field
     mov [rbp-368], rax ; save evaluated scalar in frame
     mov rax, [rbp-16] ; load scalar from frame
     mov r10, rax ; env_end pointer for closure field
-    mov rax, [r10-16] ; load closure code pointer
     mov rdx, [r10-8] ; load closure env_end pointer
-    mov [rbp-384], rax ; update closure code pointer
-    mov [rbp-376], rdx ; update closure environment pointer
-    mov rax, [rbp-384] ; load closure code pointer
-    mov rdx, [rbp-376] ; load closure env_end pointer
+    mov rax, [rdx+0] ; load closure unwrapper entry point
+    mov [rbp-384], rdx ; update closure env_end pointer
+    mov rdx, [rbp-384] ; load closure env_end pointer
+    mov rax, [rdx+0] ; load closure unwrapper entry point
     push rdx ; stack arg: closure env_end
     push rax ; stack arg: closure code
     mov rax, [rbp-368] ; load scalar from frame
@@ -311,21 +309,21 @@ _start:
     mov [rbp-352], rax ; save evaluated scalar in frame
     mov rax, 9 ; mmap syscall
     xor rdi, rdi ; addr = NULL hint
-    mov rsi, 24 ; length for allocation
+    mov rsi, 32 ; length for allocation
     mov rdx, 3 ; prot = read/write
     mov r10, 34 ; flags: private & anonymous
     mov r8, -1 ; fd = -1
     xor r9, r9 ; offset = 0
     syscall ; allocate env pages
     mov rdx, rax ; store env base pointer
-    mov qword [rdx], 0 ; env size metadata
-    mov qword [rdx+8], 24 ; heap size metadata
-    mov qword [rdx+16], 0 ; pointer count metadata
+    mov qword [rdx+8], 0 ; env size metadata
+    mov qword [rdx+16], 32 ; heap size metadata
+    mov qword [rdx+24], 0 ; pointer count metadata
     mov rax, _24_lambda_unwrapper ; load unwrapper entry point
-    mov [rbp-368], rax ; update closure code pointer
-    mov [rbp-360], rdx ; update closure environment pointer
-    mov rax, [rbp-368] ; load closure code pointer
-    mov rdx, [rbp-360] ; load closure env_end pointer
+    mov qword [rdx+0], rax ; store unwrapper entry in metadata
+    mov [rbp-368], rdx ; update closure env_end pointer
+    mov rdx, [rbp-368] ; load closure env_end pointer
+    mov rax, [rdx+0] ; load closure unwrapper entry point
     push rdx ; stack arg: closure env_end
     push rax ; stack arg: closure code
     mov rax, [rbp-352] ; load scalar from frame

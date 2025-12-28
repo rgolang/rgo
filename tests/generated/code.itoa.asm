@@ -61,7 +61,7 @@ _start:
     mov [rbp-16], rax ; save evaluated scalar in frame
     mov rax, 9 ; mmap syscall
     xor rdi, rdi ; addr = NULL hint
-    mov rsi, 32 ; length for allocation
+    mov rsi, 40 ; length for allocation
     mov rdx, 3 ; prot = read/write
     mov r10, 34 ; flags: private & anonymous
     mov r8, -1 ; fd = -1
@@ -69,14 +69,14 @@ _start:
     syscall ; allocate env pages
     mov rdx, rax ; store env base pointer
     add rdx, 8 ; bump pointer past env header
-    mov qword [rdx], 8 ; env size metadata
-    mov qword [rdx+8], 32 ; heap size metadata
-    mov qword [rdx+16], 0 ; pointer count metadata
+    mov qword [rdx+8], 8 ; env size metadata
+    mov qword [rdx+16], 40 ; heap size metadata
+    mov qword [rdx+24], 0 ; pointer count metadata
     mov rax, _2_lambda_unwrapper ; load unwrapper entry point
-    mov [rbp-32], rax ; update closure code pointer
-    mov [rbp-24], rdx ; update closure environment pointer
-    mov rax, [rbp-32] ; load closure code pointer
-    mov rdx, [rbp-24] ; load closure env_end pointer
+    mov qword [rdx+0], rax ; store unwrapper entry in metadata
+    mov [rbp-32], rdx ; update closure env_end pointer
+    mov rdx, [rbp-32] ; load closure env_end pointer
+    mov rax, [rdx+0] ; load closure unwrapper entry point
     push rdx ; stack arg: closure env_end
     push rax ; stack arg: closure code
     mov rax, [rbp-16] ; load scalar from frame

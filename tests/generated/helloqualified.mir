@@ -4,8 +4,8 @@ foo($x: str!, $ok: ()) {
 }
 
 foo_unwrapper($env_end: int) {
-    $x: str! = $env_end - 3 words (x)
-    $ok: () = $env_end - 2 words (ok)
+    $x: str! = $env_end - 2 words
+    $ok: () = $env_end - 1 words
     foo($x, $ok)
 }
 
@@ -14,7 +14,7 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words (code)
+    $code: int = $env_end - 1 words
     exit($code)
 }
 

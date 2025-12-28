@@ -58,33 +58,39 @@ _start:
     mov [rbp-48], rax ; save evaluated scalar in frame
     mov rax, 9 ; mmap syscall
     xor rdi, rdi ; addr = NULL hint
-    mov rsi, 24 ; length for allocation
+    mov rsi, 32 ; length for allocation
     mov rdx, 3 ; prot = read/write
     mov r10, 34 ; flags: private & anonymous
     mov r8, -1 ; fd = -1
     xor r9, r9 ; offset = 0
     syscall ; allocate env pages
     mov rdx, rax ; store env base pointer
-    mov qword [rdx], 0 ; env size metadata
-    mov qword [rdx+8], 24 ; heap size metadata
-    mov qword [rdx+16], 0 ; pointer count metadata
+    mov qword [rdx+8], 0 ; env size metadata
+    mov qword [rdx+16], 32 ; heap size metadata
+    mov qword [rdx+24], 0 ; pointer count metadata
     mov rax, _3_lambda_unwrapper ; load unwrapper entry point
-    mov [rbp-64], rax ; update closure code pointer
-    mov [rbp-56], rdx ; update closure environment pointer
+    mov qword [rdx+0], rax ; store unwrapper entry in metadata
+    mov [rbp-64], rdx ; update closure env_end pointer
     mov rax, [rbp-48] ; load scalar from frame
     push rax ; stack arg: scalar
     mov rax, [rbp-32] ; load scalar from frame
     push rax ; stack arg: scalar
     pop rdi ; restore scalar arg into register
     pop rsi ; restore scalar arg into register
-    call printf_aligned
-    mov rdi, [rel stdout] ; flush stdout
-    sub rsp, 8 ; align stack for fflush
-    call fflush
-    add rsp, 8
+    push rbp ; helper prologue
+    mov rbp, rsp
+    push r12
+    mov rax, rsp ; align stack for variadic printf call
+    and rax, 15
+    mov r12, rax
+    sub rsp, r12
+    call printf ; invoke libc printf
+    add rsp, r12
+    pop r12
+    pop rbp
     mov [rbp-80], rax ; save evaluated scalar in frame
-    mov rax, [rbp-64] ; load closure code for exec
-    mov rdx, [rbp-56] ; load closure env_end for exec
+    mov rdx, [rbp-64] ; load closure env_end for exec
+    mov rax, [rdx+0] ; load closure unwrapper entry point
     sub rsp, 24 ; allocate temporary stack for closure state
     mov [rsp], rax ; save closure code pointer temporarily
     mov [rsp+8], rdx ; save closure env_end pointer temporarily
@@ -94,23 +100,7 @@ _start:
     mov rdi, rdx ; pass env_end pointer as parameter
     leave ; unwind before calling closure
     jmp rax ; jump into fully applied closure
-global printf_aligned
-printf_aligned:
-    push rbp ; save caller base pointer
-    mov rbp, rsp ; establish helper frame
-    push r12 ; preserve alignment register
-    mov rax, rsp ; capture pointer for alignment
-    and rax, 15
-    mov r12, rax
-    sub rsp, r12 ; align stack for variadic printf call
-    call printf
-    add rsp, r12
-    pop r12
-    leave
-    ret
-extern fflush
 extern printf
-extern stdout
 section .rodata
 _0:
     db "the answer is: %d", 0

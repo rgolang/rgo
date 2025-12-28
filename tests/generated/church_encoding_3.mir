@@ -3,9 +3,9 @@ _7_three($f: (int, (int)), $ok: (int), $z: int) {
 }
 
 _7_three_unwrapper($env_end: int) {
-    $f: (int, (int)) = $env_end - 5 words (f)
-    $ok: (int) = $env_end - 3 words (ok)
-    $z: int = $env_end - 1 words (z)
+    $f: (int, (int)) = $env_end - 3 words
+    $ok: (int) = $env_end - 2 words
+    $z: int = $env_end - 1 words
     _7_three($f, $ok, $z)
 }
 
@@ -18,9 +18,9 @@ _5_three($f: (int, (int)), $ok: (int), $y: int) {
 }
 
 _5_three_unwrapper($env_end: int) {
-    $f: (int, (int)) = $env_end - 5 words (f)
-    $ok: (int) = $env_end - 3 words (ok)
-    $y: int = $env_end - 1 words (y)
+    $f: (int, (int)) = $env_end - 3 words
+    $ok: (int) = $env_end - 2 words
+    $y: int = $env_end - 1 words
     _5_three($f, $ok, $y)
 }
 
@@ -33,9 +33,9 @@ three($f: (int, (int)), $x: int, $ok: (int)) {
 }
 
 three_unwrapper($env_end: int) {
-    $f: (int, (int)) = $env_end - 5 words (f)
-    $x: int = $env_end - 3 words (x)
-    $ok: (int) = $env_end - 2 words (ok)
+    $f: (int, (int)) = $env_end - 3 words
+    $x: int = $env_end - 2 words
+    $ok: (int) = $env_end - 1 words
     three($f, $x, $ok)
 }
 
@@ -45,8 +45,8 @@ _13_lambda($x: int, $ok: (int)) {
 }
 
 _13_lambda_unwrapper($env_end: int) {
-    $x: int = $env_end - 3 words (x)
-    $ok: (int) = $env_end - 2 words (ok)
+    $x: int = $env_end - 2 words
+    $ok: (int) = $env_end - 1 words
     _13_lambda($x, $ok)
 }
 
@@ -56,9 +56,9 @@ add($x: int, $y: int, $ok: (int)) {
 }
 
 add_unwrapper($env_end: int) {
-    $x: int = $env_end - 4 words (x)
-    $y: int = $env_end - 3 words (y)
-    $ok: (int) = $env_end - 2 words (ok)
+    $x: int = $env_end - 3 words
+    $y: int = $env_end - 2 words
+    $ok: (int) = $env_end - 1 words
     add($x, $y, $ok)
 }
 
@@ -76,7 +76,7 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words (code)
+    $code: int = $env_end - 1 words
     exit($code)
 }
 
@@ -88,7 +88,7 @@ _18_lambda($x: int) {
 }
 
 _18_lambda_unwrapper($env_end: int) {
-    $x: int = $env_end - 1 words (x)
+    $x: int = $env_end - 1 words
     _18_lambda($x)
 }
 

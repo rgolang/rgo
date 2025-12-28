@@ -12,7 +12,7 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words (code)
+    $code: int = $env_end - 1 words
     exit($code)
 }
 
@@ -34,7 +34,7 @@ _5_foo_bar($ok: ()) {
 }
 
 _5_foo_bar_unwrapper($env_end: int) {
-    $ok: () = $env_end - 2 words (ok)
+    $ok: () = $env_end - 1 words
     _5_foo_bar($ok)
 }
 
@@ -43,7 +43,7 @@ foo($ok: ()) {
 }
 
 foo_unwrapper($env_end: int) {
-    $ok: () = $env_end - 2 words (ok)
+    $ok: () = $env_end - 1 words
     foo($ok)
 }
 

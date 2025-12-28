@@ -5,7 +5,7 @@ _2_foo($ok: (int)) {
 }
 
 _2_foo_unwrapper($env_end: int) {
-    $ok: (int) = $env_end - 2 words (ok)
+    $ok: (int) = $env_end - 1 words
     _2_foo($ok)
 }
 
@@ -15,9 +15,9 @@ add($x: int, $y: int, $ok: (int)) {
 }
 
 add_unwrapper($env_end: int) {
-    $x: int = $env_end - 4 words (x)
-    $y: int = $env_end - 3 words (y)
-    $ok: (int) = $env_end - 2 words (ok)
+    $x: int = $env_end - 3 words
+    $y: int = $env_end - 2 words
+    $ok: (int) = $env_end - 1 words
     add($x, $y, $ok)
 }
 
@@ -35,7 +35,7 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words (code)
+    $code: int = $env_end - 1 words
     exit($code)
 }
 
@@ -47,7 +47,7 @@ _6_foo($x: int) {
 }
 
 _6_foo_unwrapper($env_end: int) {
-    $x: int = $env_end - 1 words (x)
+    $x: int = $env_end - 1 words
     _6_foo($x)
 }
 

@@ -3,9 +3,9 @@ _5_two($f: (int, (int)), $ok: (int), $y: int) {
 }
 
 _5_two_unwrapper($env_end: int) {
-    $f: (int, (int)) = $env_end - 5 words (f)
-    $ok: (int) = $env_end - 3 words (ok)
-    $y: int = $env_end - 1 words (y)
+    $f: (int, (int)) = $env_end - 3 words
+    $ok: (int) = $env_end - 2 words
+    $y: int = $env_end - 1 words
     _5_two($f, $ok, $y)
 }
 
@@ -18,9 +18,9 @@ two($f: (int, (int)), $x: int, $ok: (int)) {
 }
 
 two_unwrapper($env_end: int) {
-    $f: (int, (int)) = $env_end - 5 words (f)
-    $x: int = $env_end - 3 words (x)
-    $ok: (int) = $env_end - 2 words (ok)
+    $f: (int, (int)) = $env_end - 3 words
+    $x: int = $env_end - 2 words
+    $ok: (int) = $env_end - 1 words
     two($f, $x, $ok)
 }
 
@@ -30,8 +30,8 @@ _10_lambda($x: int, $ok: (int)) {
 }
 
 _10_lambda_unwrapper($env_end: int) {
-    $x: int = $env_end - 3 words (x)
-    $ok: (int) = $env_end - 2 words (ok)
+    $x: int = $env_end - 2 words
+    $ok: (int) = $env_end - 1 words
     _10_lambda($x, $ok)
 }
 
@@ -41,9 +41,9 @@ add($x: int, $y: int, $ok: (int)) {
 }
 
 add_unwrapper($env_end: int) {
-    $x: int = $env_end - 4 words (x)
-    $y: int = $env_end - 3 words (y)
-    $ok: (int) = $env_end - 2 words (ok)
+    $x: int = $env_end - 3 words
+    $y: int = $env_end - 2 words
+    $ok: (int) = $env_end - 1 words
     add($x, $y, $ok)
 }
 
@@ -61,7 +61,7 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words (code)
+    $code: int = $env_end - 1 words
     exit($code)
 }
 
@@ -73,7 +73,7 @@ _15_lambda($x: int) {
 }
 
 _15_lambda_unwrapper($env_end: int) {
-    $x: int = $env_end - 1 words (x)
+    $x: int = $env_end - 1 words
     _15_lambda($x)
 }
 

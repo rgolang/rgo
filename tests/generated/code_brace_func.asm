@@ -54,19 +54,19 @@ say_hi:
     mov [rbp-16], rax ; save evaluated scalar in frame
     mov rax, 9 ; mmap syscall
     xor rdi, rdi ; addr = NULL hint
-    mov rsi, 24 ; length for allocation
+    mov rsi, 32 ; length for allocation
     mov rdx, 3 ; prot = read/write
     mov r10, 34 ; flags: private & anonymous
     mov r8, -1 ; fd = -1
     xor r9, r9 ; offset = 0
     syscall ; allocate env pages
     mov rdx, rax ; store env base pointer
-    mov qword [rdx], 0 ; env size metadata
-    mov qword [rdx+8], 24 ; heap size metadata
-    mov qword [rdx+16], 0 ; pointer count metadata
+    mov qword [rdx+8], 0 ; env size metadata
+    mov qword [rdx+16], 32 ; heap size metadata
+    mov qword [rdx+24], 0 ; pointer count metadata
     mov rax, _2_say_hi_unwrapper ; load unwrapper entry point
-    mov [rbp-32], rax ; update closure code pointer
-    mov [rbp-24], rdx ; update closure environment pointer
+    mov qword [rdx+0], rax ; store unwrapper entry in metadata
+    mov [rbp-32], rdx ; update closure env_end pointer
     mov rax, [rbp-16] ; load scalar from frame
     push rax ; stack arg: scalar
     pop rdi ; restore scalar arg into register
@@ -84,8 +84,8 @@ say_hi_write_strlen_done_0:
     mov rdi, 1 ; stdout fd
     call write ; invoke libc write
     mov [rbp-48], rax ; save evaluated scalar in frame
-    mov rax, [rbp-32] ; load closure code for exec
-    mov rdx, [rbp-24] ; load closure env_end for exec
+    mov rdx, [rbp-32] ; load closure env_end for exec
+    mov rax, [rdx+0] ; load closure unwrapper entry point
     sub rsp, 24 ; allocate temporary stack for closure state
     mov [rsp], rax ; save closure code pointer temporarily
     mov [rsp+8], rdx ; save closure env_end pointer temporarily

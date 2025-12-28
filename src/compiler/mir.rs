@@ -14,6 +14,28 @@ pub fn closure_unwrapper_label(name: &str) -> String {
     format!("{}_unwrapper", name)
 }
 
+#[derive(Debug, Default)]
+pub struct CodegenRequirements {
+    pub release_helper: bool,
+    pub deep_copy_helper: bool,
+}
+
+impl CodegenRequirements {
+    pub fn compute(functions: &[MirFunction]) -> Self {
+        let mut requirements = CodegenRequirements::default();
+        for function in functions {
+            for stmt in &function.items {
+                match stmt {
+                    MirStmt::Release(_) => requirements.release_helper = true,
+                    MirStmt::DeepCopy(_) => requirements.deep_copy_helper = true,
+                    _ => {}
+                }
+            }
+        }
+        requirements
+    }
+}
+
 fn collect_unused_params(params: &[SigItem]) -> HashSet<String> {
     params
         .iter()
@@ -551,7 +573,7 @@ fn env_word_offsets_from_params(params: &[SigItem]) -> Vec<usize> {
 fn words_for_type(ty: &SigKind) -> usize {
     match resolved_type_kind(ty) {
         ValueKind::Word => 1,
-        ValueKind::Closure => 2,
+        ValueKind::Closure => 1,
         ValueKind::Variadic => 0,
     }
 }
@@ -737,6 +759,19 @@ fn build_continuation_outputs(
 
 pub fn args_to_kinds(args: &[MirArg]) -> Vec<SigKind> {
     args.iter().map(|arg| arg.kind.clone()).collect()
+}
+
+pub fn builtin_functions(symbols: &SymbolRegistry) -> Vec<MirFunction> {
+    let mut functions = Vec::new();
+    if symbols.builtin_imports().contains("itoa") {
+        if let Some(sig) = symbols.get_function("itoa") {
+            functions.push(MirFunction {
+                sig: sig.clone(),
+                items: Vec::new(),
+            });
+        }
+    }
+    functions
 }
 
 fn split_inputs_and_continuations(params: &[SigItem]) -> (Vec<SigItem>, Vec<SigItem>) {

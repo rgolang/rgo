@@ -5,9 +5,9 @@ bar($m1: str, $m2: str, $ok: ()) {
 }
 
 bar_unwrapper($env_end: int) {
-    $m1: str = $env_end - 4 words (m1)
-    $m2: str = $env_end - 3 words (m2)
-    $ok: () = $env_end - 2 words (ok)
+    $m1: str = $env_end - 3 words
+    $m2: str = $env_end - 2 words
+    $ok: () = $env_end - 1 words
     bar($m1, $m2, $ok)
 }
 
@@ -17,8 +17,8 @@ foo($cb: (str, ()), $ok: ()) {
 }
 
 foo_unwrapper($env_end: int) {
-    $cb: (str, ()) = $env_end - 4 words (cb)
-    $ok: () = $env_end - 2 words (ok)
+    $cb: (str, ()) = $env_end - 2 words
+    $ok: () = $env_end - 1 words
     foo($cb, $ok)
 }
 
@@ -36,7 +36,7 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words (code)
+    $code: int = $env_end - 1 words
     exit($code)
 }
 

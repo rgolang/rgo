@@ -5,7 +5,7 @@ bar($ok: ()) {
 }
 
 bar_unwrapper($env_end: int) {
-    $ok: () = $env_end - 2 words (ok)
+    $ok: () = $env_end - 1 words
     bar($ok)
 }
 
@@ -16,7 +16,7 @@ baz($ok: ()) {
 }
 
 baz_unwrapper($env_end: int) {
-    $ok: () = $env_end - 2 words (ok)
+    $ok: () = $env_end - 1 words
     baz($ok)
 }
 

@@ -12,7 +12,7 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words (code)
+    $code: int = $env_end - 1 words
     exit($code)
 }
 
@@ -23,8 +23,8 @@ not_const_msg($fmt: str!, $value: int!) {
 }
 
 not_const_msg_unwrapper($env_end: int) {
-    $fmt: str! = $env_end - 2 words (fmt)
-    $value: int! = $env_end - 1 words (value)
+    $fmt: str! = $env_end - 2 words
+    $value: int! = $env_end - 1 words
     not_const_msg($fmt, $value)
 }
 
@@ -33,8 +33,8 @@ const_msg($fmt: str!, $value: int!) {
 }
 
 const_msg_unwrapper($env_end: int) {
-    $fmt: str! = $env_end - 2 words (fmt)
-    $value: int! = $env_end - 1 words (value)
+    $fmt: str! = $env_end - 2 words
+    $value: int! = $env_end - 1 words
     const_msg($fmt, $value)
 }
 

@@ -37,9 +37,7 @@ pub fn compile<R: BufRead, W: Write>(input: R, out: &mut W) -> Result<(), Error>
     let mut parser = Parser::new(lexer);
     let mut symbols = SymbolRegistry::new();
     let mut hir_ctx = hir::Context::new();
-
-    // Codegen context holds global data + extern references.
-    let mut ctx = codegen::CodegenContext::new();
+    let mut mir_functions: Vec<mir::MirFunction> = Vec::new();
 
     // Emit preamble (globals, default labels, etc.).
     codegen::write_preamble(out)?;
@@ -60,9 +58,7 @@ pub fn compile<R: BufRead, W: Write>(input: R, out: &mut W) -> Result<(), Error>
                     symbols.install_type(name.to_string(), SigKind::Sig(sig.clone()), span)?;
                 }
                 hir::BlockItem::FunctionDef(function) => {
-                    for mir_function in mir::lower_function(&function, &mut symbols)? {
-                        codegen::function(mir_function, &mut ctx, out)?;
-                    }
+                    mir_functions.extend(mir::lower_function(&function, &mut symbols)?);
                 }
                 _ => {
                     entry_items.push(lowered);
@@ -73,13 +69,23 @@ pub fn compile<R: BufRead, W: Write>(input: R, out: &mut W) -> Result<(), Error>
 
     if !entry_items.is_empty() {
         let mir_funcs = mir::entry_function(entry_items, &mut symbols)?;
-        for func in mir_funcs {
-            codegen::function(func, &mut ctx, out)?;
-        }
+        mir_functions.extend(mir_funcs);
     }
 
-    codegen::emit_builtin_definitions(symbols.builtin_imports(), &mut ctx, out)?;
-    ctx.emit_externs(out)?;
-    ctx.emit_data(out)?;
+    mir_functions.extend(mir::builtin_functions(&symbols));
+    let requirements = mir::CodegenRequirements::compute(&mir_functions);
+    let mut artifacts = codegen::Artifacts::collect(&mir_functions);
+    for func in mir_functions {
+        codegen::function(func, &mut artifacts, out)?;
+    }
+
+    if requirements.release_helper {
+        codegen::emit_release_helper(out)?;
+    }
+    if requirements.deep_copy_helper {
+        codegen::emit_deep_copy_helper(out)?;
+    }
+    codegen::emit_externs(&artifacts.externs, out)?;
+    codegen::emit_data(artifacts.string_literals(), out)?;
     Ok(())
 }
