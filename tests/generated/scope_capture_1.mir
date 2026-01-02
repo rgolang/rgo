@@ -4,7 +4,16 @@ _6_lambda() {
 }
 
 _6_lambda_unwrapper($env_end: int) {
+    release $env_end
     _6_lambda()
+}
+
+_6_lambda_release($env_end: int) {
+    return
+}
+
+_6_lambda_deepcopy($env_end: int) {
+    return
 }
 
 exit($code: int) {
@@ -12,20 +21,30 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words
+    $code: int = $env_end - 1w
+    release $env_end
     exit($code)
 }
 
 _3_lambda($x: int) {
     $_4 = "result: %d"
     $_6_lambda = (_6_lambda_unwrapper, {})
-    $__result = @printf($_4, $x)
+    $__result = call @printf($_4, $x)
     $_6_lambda($__result)
 }
 
 _3_lambda_unwrapper($env_end: int) {
-    $x: int = $env_end - 1 words
+    $x: int = $env_end - 1w
+    release $env_end
     _3_lambda($x)
+}
+
+_3_lambda_release($env_end: int) {
+    return
+}
+
+_3_lambda_deepcopy($env_end: int) {
+    return
 }
 
 add($x: int, $y: int, $ok: (int)) {
@@ -34,9 +53,10 @@ add($x: int, $y: int, $ok: (int)) {
 }
 
 add_unwrapper($env_end: int) {
-    $x: int = $env_end - 3 words
-    $y: int = $env_end - 2 words
-    $ok: (int) = $env_end - 1 words
+    $x: int = $env_end - 3w
+    $y: int = $env_end - 2w
+    $ok: (int) = $env_end - 1w
+    release $env_end
     add($x, $y, $ok)
 }
 

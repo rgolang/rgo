@@ -1,12 +1,33 @@
 _0_foo_w($ok: (), $s: str) {
-    $__result = @write($s)
+    $__result = call @write($s)
     $ok($__result)
 }
 
 _0_foo_w_unwrapper($env_end: int) {
-    $ok: () = $env_end - 2 words
-    $s: str = $env_end - 1 words
+    $ok: () = $env_end - 2w
+    $s: str = $env_end - 1w
+    release $env_end
     _0_foo_w($ok, $s)
+}
+
+_0_foo_w_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 1){ jump _0_foo_w_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 2w)
+    jump _0_foo_w_release_done
+    _0_foo_w_release_if_num_curried_lt_1:
+    _0_foo_w_release_done:
+    return
+}
+
+_0_foo_w_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 1){ jump _0_foo_w_deepcopy_if_num_curried_lt_1 }
+    new_env + 0w = call @deepcopy_heap_ptr($env_end - 2w)
+    jump _0_foo_w_deepcopy_done
+    _0_foo_w_deepcopy_if_num_curried_lt_1:
+    _0_foo_w_deepcopy_done:
+    return
 }
 
 foo($x: str, $ok: ()) {
@@ -14,9 +35,30 @@ foo($x: str, $ok: ()) {
 }
 
 foo_unwrapper($env_end: int) {
-    $x: str = $env_end - 2 words
-    $ok: () = $env_end - 1 words
+    $x: str = $env_end - 2w
+    $ok: () = $env_end - 1w
+    release $env_end
     foo($x, $ok)
+}
+
+foo_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 1){ jump foo_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 1w)
+    jump foo_release_done
+    foo_release_if_num_curried_lt_1:
+    foo_release_done:
+    return
+}
+
+foo_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 1){ jump foo_deepcopy_if_num_curried_lt_1 }
+    new_env + 1w = call @deepcopy_heap_ptr($env_end - 1w)
+    jump foo_deepcopy_done
+    foo_deepcopy_if_num_curried_lt_1:
+    foo_deepcopy_done:
+    return
 }
 
 _3_lambda() {
@@ -25,7 +67,16 @@ _3_lambda() {
 }
 
 _3_lambda_unwrapper($env_end: int) {
+    release $env_end
     _3_lambda()
+}
+
+_3_lambda_release($env_end: int) {
+    return
+}
+
+_3_lambda_deepcopy($env_end: int) {
+    return
 }
 
 exit($code: int) {
@@ -33,7 +84,8 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words
+    $code: int = $env_end - 1w
+    release $env_end
     exit($code)
 }
 

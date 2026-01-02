@@ -4,21 +4,73 @@ foo($f: (str, ()), $ok: ()) {
 }
 
 foo_unwrapper($env_end: int) {
-    $f: (str, ()) = $env_end - 2 words
-    $ok: () = $env_end - 1 words
+    $f: (str, ()) = $env_end - 2w
+    $ok: () = $env_end - 1w
+    release $env_end
     foo($f, $ok)
+}
+
+foo_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 2){ jump foo_release_if_num_curried_lt_2 }
+    call @release_heap_ptr($env_end - 2w)
+    call @release_heap_ptr($env_end - 1w)
+    jump foo_release_done
+    foo_release_if_num_curried_lt_2:
+    if ($__num_curried < 1){ jump foo_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 2w)
+    jump foo_release_done
+    foo_release_if_num_curried_lt_1:
+    foo_release_done:
+    return
+}
+
+foo_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 2){ jump foo_deepcopy_if_num_curried_lt_2 }
+    new_env + 0w = call @deepcopy_heap_ptr($env_end - 2w)
+    new_env + 1w = call @deepcopy_heap_ptr($env_end - 1w)
+    jump foo_deepcopy_done
+    foo_deepcopy_if_num_curried_lt_2:
+    if ($num_curried < 1){ jump foo_deepcopy_if_num_curried_lt_1 }
+    new_env + 0w = call @deepcopy_heap_ptr($env_end - 2w)
+    jump foo_deepcopy_done
+    foo_deepcopy_if_num_curried_lt_1:
+    foo_deepcopy_done:
+    return
 }
 
 print($n: str, $ok: ()) {
     $_3 = "The winning number is %s\n"
-    $__result = @printf($_3, $n)
+    $__result = call @printf($_3, $n)
     $ok($__result)
 }
 
 print_unwrapper($env_end: int) {
-    $n: str = $env_end - 2 words
-    $ok: () = $env_end - 1 words
+    $n: str = $env_end - 2w
+    $ok: () = $env_end - 1w
+    release $env_end
     print($n, $ok)
+}
+
+print_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 1){ jump print_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 1w)
+    jump print_release_done
+    print_release_if_num_curried_lt_1:
+    print_release_done:
+    return
+}
+
+print_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 1){ jump print_deepcopy_if_num_curried_lt_1 }
+    new_env + 1w = call @deepcopy_heap_ptr($env_end - 1w)
+    jump print_deepcopy_done
+    print_deepcopy_if_num_curried_lt_1:
+    print_deepcopy_done:
+    return
 }
 
 _5_lambda() {
@@ -27,7 +79,16 @@ _5_lambda() {
 }
 
 _5_lambda_unwrapper($env_end: int) {
+    release $env_end
     _5_lambda()
+}
+
+_5_lambda_release($env_end: int) {
+    return
+}
+
+_5_lambda_deepcopy($env_end: int) {
+    return
 }
 
 exit($code: int) {
@@ -35,7 +96,8 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words
+    $code: int = $env_end - 1w
+    release $env_end
     exit($code)
 }
 

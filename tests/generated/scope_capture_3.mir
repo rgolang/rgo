@@ -5,8 +5,29 @@ _2_foo($ok: (int)) {
 }
 
 _2_foo_unwrapper($env_end: int) {
-    $ok: (int) = $env_end - 1 words
+    $ok: (int) = $env_end - 1w
+    release $env_end
     _2_foo($ok)
+}
+
+_2_foo_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 1){ jump _2_foo_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 1w)
+    jump _2_foo_release_done
+    _2_foo_release_if_num_curried_lt_1:
+    _2_foo_release_done:
+    return
+}
+
+_2_foo_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 1){ jump _2_foo_deepcopy_if_num_curried_lt_1 }
+    new_env + 0w = call @deepcopy_heap_ptr($env_end - 1w)
+    jump _2_foo_deepcopy_done
+    _2_foo_deepcopy_if_num_curried_lt_1:
+    _2_foo_deepcopy_done:
+    return
 }
 
 add($x: int, $y: int, $ok: (int)) {
@@ -15,9 +36,10 @@ add($x: int, $y: int, $ok: (int)) {
 }
 
 add_unwrapper($env_end: int) {
-    $x: int = $env_end - 3 words
-    $y: int = $env_end - 2 words
-    $ok: (int) = $env_end - 1 words
+    $x: int = $env_end - 3w
+    $y: int = $env_end - 2w
+    $ok: (int) = $env_end - 1w
+    release $env_end
     add($x, $y, $ok)
 }
 
@@ -27,7 +49,16 @@ _9_foo() {
 }
 
 _9_foo_unwrapper($env_end: int) {
+    release $env_end
     _9_foo()
+}
+
+_9_foo_release($env_end: int) {
+    return
+}
+
+_9_foo_deepcopy($env_end: int) {
+    return
 }
 
 exit($code: int) {
@@ -35,20 +66,30 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words
+    $code: int = $env_end - 1w
+    release $env_end
     exit($code)
 }
 
 _6_foo($x: int) {
     $_7 = "result: %d"
     $_9_foo = (_9_foo_unwrapper, {})
-    $__result = @printf($_7, $x)
+    $__result = call @printf($_7, $x)
     $_9_foo($__result)
 }
 
 _6_foo_unwrapper($env_end: int) {
-    $x: int = $env_end - 1 words
+    $x: int = $env_end - 1w
+    release $env_end
     _6_foo($x)
+}
+
+_6_foo_release($env_end: int) {
+    return
+}
+
+_6_foo_deepcopy($env_end: int) {
+    return
 }
 
 foo() {
@@ -60,7 +101,16 @@ foo() {
 }
 
 foo_unwrapper($env_end: int) {
+    release $env_end
     foo()
+}
+
+foo_release($env_end: int) {
+    return
+}
+
+foo_deepcopy($env_end: int) {
+    return
 }
 
 _start() {

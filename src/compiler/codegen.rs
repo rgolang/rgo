@@ -5,21 +5,23 @@ use crate::compiler::builtins::MirInstKind;
 use crate::compiler::error::{Code, Error};
 use crate::compiler::mir;
 use crate::compiler::mir::{
-    DeepCopy, MirArg, MirCall, MirCallKind, MirClosure, MirEnvBase, MirEnvField, MirExec,
-    MirExecTarget, MirFunction, MirInstruction, MirStmt, MirSysCall, MirSysCallKind, Release,
+    MirArg, MirCall, MirCallKind, MirCallTarget, MirClosure, MirComparisonKind, MirCondJump,
+    MirCopyField, MirEnvField, MirExec, MirExecTarget, MirField, MirFunction, MirInstruction,
+    MirJump, MirLabel, MirOperand, MirReturn, MirStmt, MirSysCall, MirSysCallKind, ReleaseClosure,
     SigItem, SigKind, ValueKind,
 };
 
 pub const ENV_METADATA_FIELD_SIZE: usize = 8;
 pub const ENV_METADATA_UNWRAPPER_OFFSET: usize = 0;
-pub const ENV_METADATA_ENV_SIZE_OFFSET: usize = ENV_METADATA_FIELD_SIZE;
-pub const ENV_METADATA_HEAP_SIZE_OFFSET: usize = ENV_METADATA_FIELD_SIZE * 2;
-pub const ENV_METADATA_POINTER_COUNT_OFFSET: usize = ENV_METADATA_FIELD_SIZE * 3;
-pub const ENV_METADATA_POINTER_LIST_OFFSET: usize = ENV_METADATA_FIELD_SIZE * 4;
-pub const ENV_METADATA_SIZE: usize = ENV_METADATA_POINTER_LIST_OFFSET;
+pub const ENV_METADATA_RELEASE_OFFSET: usize = ENV_METADATA_FIELD_SIZE;
+pub const ENV_METADATA_DEEP_COPY_OFFSET: usize = ENV_METADATA_FIELD_SIZE * 2;
+pub const ENV_METADATA_ENV_SIZE_OFFSET: usize = ENV_METADATA_FIELD_SIZE * 3;
+pub const ENV_METADATA_HEAP_SIZE_OFFSET: usize = ENV_METADATA_FIELD_SIZE * 4;
+pub const ENV_METADATA_NUM_CURRIED_OFFSET: usize = ENV_METADATA_FIELD_SIZE * 5;
+pub const ENV_METADATA_SIZE: usize = ENV_METADATA_FIELD_SIZE * 6;
 
-pub fn env_metadata_size(pointer_count: usize) -> usize {
-    ENV_METADATA_SIZE + pointer_count * ENV_METADATA_FIELD_SIZE
+pub fn env_metadata_size() -> usize {
+    ENV_METADATA_SIZE
 }
 
 use crate::compiler::span::Span;
@@ -50,6 +52,8 @@ const PROT_WRITE: i32 = 2;
 const MAP_PRIVATE: i32 = 2;
 const MAP_ANONYMOUS: i32 = 32;
 const FMT_BUFFER_SIZE: usize = 1024;
+const RELEASE_HEAP_PTR: &str = "release_heap_ptr";
+const DEEP_COPY_HEAP_PTR: &str = "deepcopy_heap_ptr";
 
 #[derive(Debug, Default)]
 pub struct Artifacts {
@@ -73,8 +77,16 @@ impl Artifacts {
             MirStmt::StrDef { name, literal } => {
                 self.add_string_literal(name, &literal.value);
             }
-            MirStmt::Call(call) => {
-                self.externs.insert(call.name.clone());
+            MirStmt::Call(call) => match &call.target {
+                MirCallTarget::Builtin(kind) => {
+                    self.externs.insert(kind.name().to_string());
+                }
+                MirCallTarget::Field(_) => {
+                    self.externs.insert(RELEASE_HEAP_PTR.to_string());
+                }
+            },
+            MirStmt::Copy(_) => {
+                self.externs.insert(DEEP_COPY_HEAP_PTR.to_string());
             }
             _ => {}
         }
@@ -101,6 +113,124 @@ pub fn write_preamble<W: Write>(out: &mut W) -> Result<(), Error> {
     writeln!(out, "bits 64")?;
     writeln!(out, "default rel")?;
     writeln!(out, "section .text")?;
+    Ok(())
+}
+
+pub fn emit_runtime_helpers<W: Write>(out: &mut W) -> Result<(), Error> {
+    emit_release_heap_ptr(out)?;
+    emit_deepcopy_heap_ptr(out)?;
+    emit_memcpy_helper(out)?;
+    Ok(())
+}
+
+fn emit_release_heap_ptr<W: Write>(out: &mut W) -> Result<(), Error> {
+    writeln!(out, "global release_heap_ptr")?;
+    writeln!(out, "release_heap_ptr:")?;
+    writeln!(out, "    push rbp ; save caller frame")?;
+    writeln!(out, "    mov rbp, rsp ; establish frame")?;
+    writeln!(out, "    push rbx ; preserve rbx")?;
+    writeln!(out, "    mov rbx, rdi ; keep env_end pointer")?;
+    writeln!(
+        out,
+        "    mov rcx, [rbx+{}] ; load env size metadata",
+        ENV_METADATA_ENV_SIZE_OFFSET
+    )?;
+    writeln!(
+        out,
+        "    mov rdx, [rbx+{}] ; load heap size metadata",
+        ENV_METADATA_HEAP_SIZE_OFFSET
+    )?;
+    writeln!(out, "    mov rdi, rbx")?;
+    writeln!(out, "    sub rdi, rcx ; compute env base pointer")?;
+    writeln!(out, "    mov rsi, rdx ; heap size for munmap")?;
+    writeln!(out, "    mov rax, {} ; munmap syscall", SYSCALL_MUNMAP)?;
+    writeln!(out, "    syscall")?;
+    writeln!(out, "    pop rbx")?;
+    writeln!(out, "    pop rbp")?;
+    writeln!(out, "    ret")?;
+    Ok(())
+}
+
+fn emit_deepcopy_heap_ptr<W: Write>(out: &mut W) -> Result<(), Error> {
+    writeln!(out, "global deepcopy_heap_ptr")?;
+    writeln!(out, "deepcopy_heap_ptr:")?;
+    writeln!(out, "    push rbp ; prologue: save executor frame pointer")?;
+    writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
+    writeln!(out, "    push rbx ; preserve callee-saved registers")?;
+    writeln!(out, "    push r12")?;
+    writeln!(out, "    push r13")?;
+    writeln!(out, "    push r14")?;
+    writeln!(out, "    push r15")?;
+    writeln!(out, "    mov r12, rdi ; capture env_end pointer")?;
+    writeln!(
+        out,
+        "    mov r14, [r12+{}] ; load env size metadata",
+        ENV_METADATA_ENV_SIZE_OFFSET
+    )?;
+    writeln!(
+        out,
+        "    mov r15, [r12+{}] ; load heap size metadata",
+        ENV_METADATA_HEAP_SIZE_OFFSET
+    )?;
+    writeln!(out, "    mov rbx, r12 ; keep env_end pointer")?;
+    writeln!(out, "    sub rbx, r14 ; compute env base pointer")?;
+    writeln!(out, "    mov rdi, 0 ; addr NULL so kernel picks mmap base")?;
+    writeln!(out, "    mov rsi, r15 ; length = heap size")?;
+    writeln!(
+        out,
+        "    mov rdx, {} ; prot = read/write",
+        PROT_READ | PROT_WRITE
+    )?;
+    writeln!(
+        out,
+        "    mov r10, {} ; flags = private & anonymous",
+        MAP_PRIVATE | MAP_ANONYMOUS
+    )?;
+    writeln!(out, "    mov r8, -1 ; fd = -1")?;
+    writeln!(out, "    xor r9, r9 ; offset = 0")?;
+    writeln!(out, "    mov rax, {} ; mmap syscall", SYSCALL_MMAP)?;
+    writeln!(out, "    syscall ; allocate new closure env")?;
+    writeln!(out, "    mov r13, rax ; new env base pointer")?;
+    writeln!(out, "    mov rdi, r13 ; memcpy dest")?;
+    writeln!(out, "    mov rsi, rbx ; memcpy src")?;
+    writeln!(out, "    mov rdx, r15 ; memcpy length")?;
+    writeln!(out, "    call internal_memcpy ; copy env contents")?;
+    writeln!(out, "    mov rax, r13 ; compute new env_end pointer")?;
+    writeln!(out, "    add rax, r14")?;
+    writeln!(out, "    mov r15, rax ; preserve new env_end pointer")?;
+    writeln!(
+        out,
+        "    mov rax, [r15+{}] ; load deep copy helper entry",
+        ENV_METADATA_DEEP_COPY_OFFSET
+    )?;
+    writeln!(out, "    mov rdi, r15 ; pass new env_end pointer")?;
+    writeln!(out, "    call rax ; invoke helper")?;
+    writeln!(out, "    mov rax, r15 ; return new env_end pointer")?;
+    writeln!(out, "    pop r15")?;
+    writeln!(out, "    pop r14")?;
+    writeln!(out, "    pop r13")?;
+    writeln!(out, "    pop r12")?;
+    writeln!(out, "    pop rbx")?;
+    writeln!(out, "    pop rbp")?;
+    writeln!(out, "    ret")?;
+    Ok(())
+}
+
+fn emit_memcpy_helper<W: Write>(out: &mut W) -> Result<(), Error> {
+    writeln!(out, "internal_memcpy:")?;
+    writeln!(out, "    push rbp ; prologue")?;
+    writeln!(out, "    mov rbp, rsp")?;
+    writeln!(out, "    xor rcx, rcx ; counter = 0")?;
+    writeln!(out, "internal_memcpy_loop:")?;
+    writeln!(out, "    cmp rcx, rdx ; counter < count?")?;
+    writeln!(out, "    jge internal_memcpy_done")?;
+    writeln!(out, "    mov rax, [rsi+rcx] ; load 8 bytes from source")?;
+    writeln!(out, "    mov [rdi+rcx], rax ; store 8 bytes to destination")?;
+    writeln!(out, "    add rcx, 8 ; advance counter by 8")?;
+    writeln!(out, "    jmp internal_memcpy_loop")?;
+    writeln!(out, "internal_memcpy_done:")?;
+    writeln!(out, "    pop rbp")?;
+    writeln!(out, "    ret")?;
     Ok(())
 }
 
@@ -132,162 +262,6 @@ pub fn function<W: Write>(
     let frame = FrameLayout::build(&mir)?;
     let mut emitter = FunctionEmitter::new(mir.clone(), out, frame);
     emitter.emit_function()?;
-    Ok(())
-}
-
-pub fn emit_release_helper<W: Write>(out: &mut W) -> Result<(), Error> {
-    writeln!(out, "internal_release_env:")?;
-    writeln!(out, "    push rbp ; prologue: save executor frame pointer")?;
-    writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
-    writeln!(out, "    push rbx ; preserve continuation-saved registers")?;
-    writeln!(out, "    push r12")?;
-    writeln!(out, "    push r13")?;
-    writeln!(out, "    push r14")?;
-    writeln!(out, "    push r15")?;
-    writeln!(out, "    mov r12, rdi ; capture env_end pointer")?;
-    writeln!(out, "    test r12, r12 ; skip null releases")?;
-    writeln!(out, "    je internal_release_env_done")?;
-    writeln!(
-        out,
-        "    mov rcx, [r12+{}] ; load env size metadata",
-        ENV_METADATA_ENV_SIZE_OFFSET
-    )?;
-    writeln!(
-        out,
-        "    mov r15, [r12+{}] ; load heap size metadata",
-        ENV_METADATA_HEAP_SIZE_OFFSET
-    )?;
-    writeln!(out, "    mov rbx, r12 ; copy env_end pointer")?;
-    writeln!(out, "    sub rbx, rcx ; compute env base pointer")?;
-    writeln!(
-        out,
-        "    mov r13, [r12+{}] ; load pointer count metadata",
-        ENV_METADATA_POINTER_COUNT_OFFSET
-    )?;
-    writeln!(
-        out,
-        "    lea r14, [r12+{}] ; pointer metadata base",
-        ENV_METADATA_POINTER_LIST_OFFSET
-    )?;
-    writeln!(out, "    xor r9d, r9d ; reset pointer metadata index")?;
-    writeln!(out, "internal_release_env_loop:")?;
-    writeln!(out, "    cmp r9, r13 ; finished child pointers?")?;
-    writeln!(out, "    jge internal_release_env_children_done")?;
-    writeln!(out, "    mov r10, [r14+r9*8] ; load child env offset")?;
-    writeln!(out, "    mov r11, [rbx+r10] ; load child env_end pointer")?;
-    writeln!(out, "    mov rdi, r11 ; pass child env_end pointer")?;
-    writeln!(
-        out,
-        "    call internal_release_env ; recurse into child closure"
-    )?;
-    writeln!(out, "    inc r9 ; advance metadata index")?;
-    writeln!(out, "    jmp internal_release_env_loop")?;
-    writeln!(out, "internal_release_env_children_done:")?;
-    writeln!(out, "    mov rdi, rbx ; env base for munmap")?;
-    writeln!(out, "    mov rax, {} ; munmap syscall", SYSCALL_MUNMAP)?;
-    writeln!(out, "    mov rsi, r15 ; heap size for munmap")?;
-    writeln!(out, "    syscall ; release closure environment")?;
-    writeln!(out, "internal_release_env_done:")?;
-    writeln!(out, "    pop r15")?;
-    writeln!(out, "    pop r14")?;
-    writeln!(out, "    pop r13")?;
-    writeln!(out, "    pop r12")?;
-    writeln!(out, "    pop rbx")?;
-    writeln!(out, "    pop rbp")?;
-    writeln!(out, "    ret")?;
-    Ok(())
-}
-
-pub fn emit_deep_copy_helper<W: Write>(out: &mut W) -> Result<(), Error> {
-    writeln!(out, "internal_deep_copy_env:")?;
-    writeln!(out, "    push rbp ; prologue: save executor frame pointer")?;
-    writeln!(out, "    mov rbp, rsp ; prologue: establish new frame")?;
-    writeln!(out, "    push rbx ; preserve continuation-saved registers")?;
-    writeln!(out, "    push r12")?;
-    writeln!(out, "    push r13")?;
-    writeln!(out, "    push r14")?;
-    writeln!(out, "    push r15")?;
-    writeln!(out, "    mov r12, rdi ; capture source env_end pointer")?;
-    writeln!(out, "    test r12, r12 ; skip null copies")?;
-    writeln!(out, "    je internal_deep_copy_env_null_return")?;
-    writeln!(
-        out,
-        "    mov rcx, [r12+{}] ; load source env size metadata",
-        ENV_METADATA_ENV_SIZE_OFFSET
-    )?;
-    writeln!(
-        out,
-        "    mov r15, [r12+{}] ; load heap size metadata",
-        ENV_METADATA_HEAP_SIZE_OFFSET
-    )?;
-    writeln!(out, "    mov rbx, r12 ; copy env_end pointer")?;
-    writeln!(out, "    sub rbx, rcx ; compute source env base pointer")?;
-    writeln!(out, "    mov rdi, 0 ; addr = 0 for mmap (kernel chooses)")?;
-    writeln!(out, "    mov rsi, r15 ; length = heap size")?;
-    writeln!(
-        out,
-        "    mov rdx, {} ; prot = PROT_READ | PROT_WRITE",
-        PROT_READ | PROT_WRITE
-    )?;
-    writeln!(
-        out,
-        "    mov r10, {} ; flags = MAP_PRIVATE | MAP_ANONYMOUS",
-        MAP_PRIVATE | MAP_ANONYMOUS
-    )?;
-    writeln!(out, "    mov r8, -1 ; fd = -1")?;
-    writeln!(out, "    mov r9, 0 ; offset = 0")?;
-    writeln!(out, "    mov rax, {} ; mmap syscall", SYSCALL_MMAP)?;
-    writeln!(out, "    syscall ; allocate new heap")?;
-    writeln!(out, "    mov r13, rax ; save new env base pointer")?;
-    writeln!(out, "    mov rdi, r13 ; dest = new env base")?;
-    writeln!(out, "    mov rsi, rbx ; src = source env base")?;
-    writeln!(out, "    mov rdx, r15 ; count = heap size")?;
-    writeln!(out, "    call internal_memcpy ; copy entire heap")?;
-    writeln!(
-        out,
-        "    mov rax, [rbx+{}] ; load code pointer from source env",
-        ENV_METADATA_UNWRAPPER_OFFSET
-    )?;
-    writeln!(out, "    mov r14, r13 ; compute new env_end")?;
-    writeln!(out, "    add r14, rcx ; env_end = env_base + env_size")?;
-    writeln!(out, "    mov rsi, rax ; return code pointer in rsi")?;
-    writeln!(out, "    mov rdi, r14 ; return env_end pointer in rdi")?;
-    writeln!(out, "    pop r15")?;
-    writeln!(out, "    pop r14")?;
-    writeln!(out, "    pop r13")?;
-    writeln!(out, "    pop r12")?;
-    writeln!(out, "    pop rbx")?;
-    writeln!(out, "    pop rbp")?;
-    writeln!(out, "    ret")?;
-    writeln!(out, "internal_deep_copy_env_null_return:")?;
-    writeln!(out, "    xor rsi, rsi ; return null code pointer")?;
-    writeln!(out, "    xor rdi, rdi ; return null env_end pointer")?;
-    writeln!(out, "    pop r15")?;
-    writeln!(out, "    pop r14")?;
-    writeln!(out, "    pop r13")?;
-    writeln!(out, "    pop r12")?;
-    writeln!(out, "    pop rbx")?;
-    writeln!(out, "    pop rbp")?;
-    writeln!(out, "    ret")?;
-    emit_memcpy_helper(out)?;
-    Ok(())
-}
-
-fn emit_memcpy_helper<W: Write>(out: &mut W) -> Result<(), Error> {
-    writeln!(out, "internal_memcpy:")?;
-    writeln!(out, "    push rbp ; prologue")?;
-    writeln!(out, "    mov rbp, rsp")?;
-    writeln!(out, "    xor rcx, rcx ; counter = 0")?;
-    writeln!(out, "internal_memcpy_loop:")?;
-    writeln!(out, "    cmp rcx, rdx ; counter < count?")?;
-    writeln!(out, "    jge internal_memcpy_done")?;
-    writeln!(out, "    mov rax, [rsi+rcx] ; load 8 bytes from source")?;
-    writeln!(out, "    mov [rdi+rcx], rax ; store 8 bytes to destination")?;
-    writeln!(out, "    add rcx, 8 ; advance counter by 8")?;
-    writeln!(out, "    jmp internal_memcpy_loop")?;
-    writeln!(out, "internal_memcpy_done:")?;
-    writeln!(out, "    pop rbp")?;
-    writeln!(out, "    ret")?;
     Ok(())
 }
 
@@ -423,14 +397,17 @@ impl FrameLayout {
 
 fn mir_statement_binding_info<'a>(stmt: &'a MirStmt) -> Option<(&'a str, Span)> {
     match stmt {
-        MirStmt::EnvBase(base) => Some((base.name.as_str(), base.span)),
         MirStmt::EnvField(field) => Some((field.result.as_str(), field.span)),
         MirStmt::StrDef { name, literal } => Some((name.as_str(), literal.span)),
         MirStmt::IntDef { name, literal } => Some((name.as_str(), literal.span)),
         MirStmt::Closure(s) => Some((&s.name, s.span)),
         MirStmt::Exec(..) => None,
-        MirStmt::Release(..) => None,
-        MirStmt::DeepCopy(copy) => Some((copy.copy.as_str(), copy.span)),
+        MirStmt::ReleaseClosure(..) => None,
+        MirStmt::Copy(copy) => Some((copy.result.as_str(), copy.span)),
+        MirStmt::Label(_) => None,
+        MirStmt::Jump(_) => None,
+        MirStmt::CondJump(_) => None,
+        MirStmt::Return(_) => None,
         MirStmt::Op(instr) => instr
             .outputs
             .first()
@@ -656,10 +633,6 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 self.store_binding_value(&name, value, literal.span)?;
                 return Ok(());
             }
-            MirStmt::EnvBase(base) => {
-                self.emit_env_base(base)?;
-                return Ok(());
-            }
             MirStmt::EnvField(field) => {
                 self.emit_env_field(field)?;
                 return Ok(());
@@ -675,12 +648,28 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
                 return Ok(());
             }
-            MirStmt::Release(release) => {
+            MirStmt::ReleaseClosure(release) => {
                 self.emit_release_env(release)?;
                 return Ok(());
             }
-            MirStmt::DeepCopy(copy) => {
-                self.emit_deep_copy(copy)?;
+            MirStmt::Copy(field) => {
+                self.emit_copy_field(field)?;
+                return Ok(());
+            }
+            MirStmt::Label(label) => {
+                self.emit_label(label)?;
+                return Ok(());
+            }
+            MirStmt::Jump(jump) => {
+                self.emit_jump(jump)?;
+                return Ok(());
+            }
+            MirStmt::CondJump(cond) => {
+                self.emit_cond_jump(cond)?;
+                return Ok(());
+            }
+            MirStmt::Return(ret) => {
+                self.emit_return(ret)?;
                 return Ok(());
             }
             MirStmt::Op(instr) => {
@@ -692,9 +681,16 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 return Ok(());
             }
             MirStmt::Call(call) => {
-                let value = self.emit_libcall(call)?;
-                if !call.result.is_empty() {
-                    self.store_binding_value(&call.result, value, call.span)?;
+                match &call.target {
+                    MirCallTarget::Builtin(kind) => {
+                        let value = self.emit_libcall(call, *kind)?;
+                        if !call.result.is_empty() {
+                            self.store_binding_value(&call.result, value, call.span)?;
+                        }
+                    }
+                    MirCallTarget::Field(field) => {
+                        self.emit_release_field(field)?;
+                    }
                 }
                 return Ok(());
             }
@@ -828,32 +824,6 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn emit_env_base(&mut self, base: &MirEnvBase) -> Result<(), Error> {
-        let expr = Expr::Ident {
-            name: base.env_end.clone(),
-            span: base.span,
-        };
-        let value = self.emit_expr(&expr)?;
-        if let ExprValue::Word = value {
-        } else {
-            return Err(Error::new(
-                Code::Codegen,
-                format!("env_end binding '{}' is not a pointer", base.env_end),
-                base.span,
-            ));
-        }
-        let env_size_bytes = base.size * WORD_SIZE;
-        if env_size_bytes > 0 {
-            writeln!(
-                self.out,
-                "    sub rax, {} ; compute env base pointer",
-                env_size_bytes
-            )?;
-        }
-        self.store_binding_value(&base.name, ExprValue::Word, base.span)?;
-        Ok(())
-    }
-
     fn emit_env_field(&mut self, field: &MirEnvField) -> Result<(), Error> {
         let expr = Expr::Ident {
             name: field.env_end.clone(),
@@ -868,14 +838,23 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 field.span,
             ));
         }
-        let offset_bytes = field.offset_from_end * WORD_SIZE;
+        let offset_bytes = field.offset_from_end * (WORD_SIZE as isize);
+        let abs_offset_bytes = offset_bytes.abs() as i32;
         match resolved_type_kind(&field.ty) {
             ValueKind::Word => {
-                writeln!(
-                    self.out,
-                    "    mov rax, [rax-{}] ; load scalar env field",
-                    offset_bytes
-                )?;
+                if offset_bytes >= 0 {
+                    writeln!(
+                        self.out,
+                        "    mov rax, [rax-{}] ; load scalar env field",
+                        abs_offset_bytes
+                    )?;
+                } else {
+                    writeln!(
+                        self.out,
+                        "    mov rax, [rax+{}] ; load scalar env field",
+                        abs_offset_bytes
+                    )?;
+                }
                 let expr_value = ExprValue::Word;
                 self.store_binding_value(&field.result, expr_value, field.span)?;
             }
@@ -884,11 +863,19 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                     self.out,
                     "    mov r10, rax ; env_end pointer for closure field"
                 )?;
-                writeln!(
-                    self.out,
-                    "    mov rdx, [r10-{}] ; load closure env_end pointer",
-                    offset_bytes
-                )?;
+                if offset_bytes >= 0 {
+                    writeln!(
+                        self.out,
+                        "    mov rdx, [r10-{}] ; load closure env_end pointer",
+                        abs_offset_bytes
+                    )?;
+                } else {
+                    writeln!(
+                        self.out,
+                        "    mov rdx, [r10+{}] ; load closure env_end pointer",
+                        abs_offset_bytes
+                    )?;
+                }
                 writeln!(
                     self.out,
                     "    mov rax, [rdx+{}] ; load closure unwrapper entry point",
@@ -905,7 +892,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn emit_release_env(&mut self, release: &Release) -> Result<(), Error> {
+    fn emit_release_env(&mut self, release: &ReleaseClosure) -> Result<(), Error> {
         let span = Span::unknown();
         let binding = self.frame.binding(&release.name).cloned().ok_or_else(|| {
             Error::new(
@@ -914,13 +901,6 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 span,
             )
         })?;
-        if binding.kind != ValueKind::Closure {
-            return Err(Error::new(
-                Code::Codegen,
-                format!("cannot release non-closure binding '{}'", release.name),
-                span,
-            ));
-        }
         let env_offset = binding.slot_addr(0);
         writeln!(
             self.out,
@@ -929,52 +909,161 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         )?;
         writeln!(
             self.out,
-            "    call internal_release_env ; release closure environment"
+            "    call {} ; release closure environment",
+            RELEASE_HEAP_PTR
         )?;
         Ok(())
     }
 
-    fn emit_deep_copy(&mut self, copy: &DeepCopy) -> Result<(), Error> {
-        let binding = self.frame.binding(&copy.original).cloned().ok_or_else(|| {
+    fn emit_release_field(&mut self, field: &MirField) -> Result<(), Error> {
+        let binding = self.frame.binding(&field.env_end).cloned().ok_or_else(|| {
             Error::new(
                 Code::Codegen,
-                format!("unknown binding '{}'", copy.original),
-                copy.span,
+                format!("unknown binding '{}'", field.env_end),
+                field.span,
             )
         })?;
-        if binding.kind != ValueKind::Closure {
-            return Err(Error::new(
-                Code::Codegen,
-                format!("cannot deep copy non-closure binding '{}'", copy.original),
-                copy.span,
-            ));
-        }
-
+        let field_bytes = (field.offset_from_end * WORD_SIZE) as i32;
         let env_offset = binding.slot_addr(0);
-
         writeln!(
             self.out,
-            "    mov rdi, [rbp-{}] ; load original closure env_end pointer",
+            "    mov rbx, [rbp-{}] ; load env_end pointer for release",
             env_offset
         )?;
         writeln!(
             self.out,
-            "    call internal_deep_copy_env ; deep copy closure environment"
+            "    mov rcx, [rbx-{}] ; load field pointer",
+            field_bytes
+        )?;
+        writeln!(self.out, "    mov rdi, rcx ; field release pointer")?;
+        writeln!(
+            self.out,
+            "    call {} ; release heap pointer",
+            RELEASE_HEAP_PTR
+        )?;
+        Ok(())
+    }
+
+    fn emit_copy_field(&mut self, field: &MirCopyField) -> Result<(), Error> {
+        let binding = self.frame.binding(&field.env_end).cloned().ok_or_else(|| {
+            Error::new(
+                Code::Codegen,
+                format!("unknown binding '{}'", field.env_end),
+                field.span,
+            )
+        })?;
+        let env_word_count = field.env_word_count as isize;
+        let offset_from_end = (env_word_count - field.offset).max(0) as usize;
+        let field_bytes = (offset_from_end * WORD_SIZE) as i32;
+        let env_offset = binding.slot_addr(0);
+        let null_label = self.new_label("copy_field_null");
+        let done_label = self.new_label("copy_field_done");
+        writeln!(
+            self.out,
+            "    mov rbx, [rbp-{}] ; load env_end pointer for copy",
+            env_offset
         )?;
         writeln!(
             self.out,
-            "    mov rax, rsi ; keep unwrapper pointer for new closure"
+            "    mov rcx, [rbx-{}] ; load field pointer",
+            field_bytes
+        )?;
+        writeln!(self.out, "    test rcx, rcx ; skip null field")?;
+        writeln!(self.out, "    je {}", null_label)?;
+        writeln!(
+            self.out,
+            "    mov rdi, rcx ; copy pointer argument for deepcopy"
         )?;
         writeln!(
             self.out,
-            "    mov rdx, rdi ; move new env_end pointer to rdx"
+            "    call {} ; duplicate heap pointer",
+            DEEP_COPY_HEAP_PTR
         )?;
+        writeln!(
+            self.out,
+            "    mov [rbx-{}], rax ; store duplicated pointer",
+            field_bytes
+        )?;
+        writeln!(self.out, "    jmp {}", done_label)?;
+        writeln!(self.out, "{}:", null_label)?;
+        writeln!(self.out, "    xor rax, rax ; null copy result")?;
+        writeln!(self.out, "{}:", done_label)?;
+        let value = ExprValue::Word;
+        self.store_binding_value(&field.result, value, field.span)?;
+        Ok(())
+    }
 
-        // Store the new closure with the original code pointer and new env
-        let copy_state = ClosureState::new(binding.continuation_params.clone(), binding.env_size);
-        let copy_value = ExprValue::Closure(copy_state);
-        self.store_binding_value(&copy.copy, copy_value, copy.span)?;
+    fn emit_label(&mut self, label: &MirLabel) -> Result<(), Error> {
+        writeln!(self.out, "{}:", label.name)?;
+        Ok(())
+    }
 
+    fn emit_jump(&mut self, jump: &MirJump) -> Result<(), Error> {
+        writeln!(self.out, "    jmp {}", jump.target)?;
+        Ok(())
+    }
+
+    fn emit_cond_jump(&mut self, cond: &MirCondJump) -> Result<(), Error> {
+        self.load_operand_into_reg(&cond.left, "rax")?;
+        self.load_operand_into_reg(&cond.right, "rbx")?;
+        writeln!(self.out, "    cmp rax, rbx")?;
+        writeln!(self.out, "    {} {}", cond.kind.jump(), cond.target)?;
+        Ok(())
+    }
+
+    fn load_operand_into_reg(&mut self, operand: &MirOperand, reg: &str) -> Result<(), Error> {
+        match operand {
+            MirOperand::Binding(name) => {
+                let binding = self.frame.binding(name).cloned().ok_or_else(|| {
+                    Error::new(
+                        Code::Codegen,
+                        format!("unknown binding '{}'", name),
+                        Span::unknown(),
+                    )
+                })?;
+                match binding.kind {
+                    ValueKind::Word | ValueKind::Closure => {
+                        writeln!(
+                            self.out,
+                            "    mov {}, [rbp-{}] ; load operand",
+                            reg,
+                            binding.slot_addr(0)
+                        )?;
+                    }
+                    ValueKind::Variadic => unreachable!(),
+                }
+            }
+            MirOperand::Literal(value) => {
+                writeln!(self.out, "    mov {}, {} ; operand literal", reg, value)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn emit_return(&mut self, ret: &MirReturn) -> Result<(), Error> {
+        if let Some(name) = &ret.value {
+            let binding = self.frame.binding(name).cloned().ok_or_else(|| {
+                Error::new(
+                    Code::Codegen,
+                    format!("unknown binding '{}'", name),
+                    Span::unknown(),
+                )
+            })?;
+            match binding.kind {
+                ValueKind::Word | ValueKind::Closure => {
+                    writeln!(
+                        self.out,
+                        "    mov rax, [rbp-{}] ; load return value",
+                        binding.slot_addr(0)
+                    )?;
+                }
+                ValueKind::Variadic => unreachable!(),
+            }
+        }
+        writeln!(self.out, "    leave")?;
+        writeln!(self.out, "    ret")?;
+        writeln!(self.out)?;
+        self.terminated = true;
         Ok(())
     }
 
@@ -1189,9 +1278,9 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         self.apply_closure(state, args, span, invoke_when_ready)
     }
 
-    fn emit_libcall(&mut self, call: &MirCall) -> Result<ExprValue, Error> {
-        match call.name.as_str() {
-            "printf" => {
+    fn emit_libcall(&mut self, call: &MirCall, kind: MirCallKind) -> Result<ExprValue, Error> {
+        match kind {
+            MirCallKind::Printf => {
                 let call_args = &call.args;
                 if call_args.is_empty() {
                     return Err(Error::new(
@@ -1216,7 +1305,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
                 Ok(ExprValue::Word)
             }
-            "sprintf" => {
+            MirCallKind::Sprintf => {
                 let call_args = &call.args;
                 if call_args.is_empty() {
                     return Err(Error::new(
@@ -1269,7 +1358,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
                 Ok(ExprValue::Word)
             }
-            "write" => {
+            MirCallKind::Write => {
                 let call_args = &call.args;
                 if call_args.is_empty() {
                     return Err(Error::new(
@@ -1313,7 +1402,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
                 Ok(ExprValue::Word)
             }
-            "puts" => {
+            MirCallKind::Puts => {
                 let call_args = &call.args;
                 if call_args.is_empty() {
                     return Err(Error::new(
@@ -1339,11 +1428,6 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
                 Ok(ExprValue::Word)
             }
-            _ => Err(Error::new(
-                Code::Codegen,
-                format!("unsupported libcall '{}'", call.name),
-                call.span,
-            )),
         }
     }
 
@@ -1705,8 +1789,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         name: &str,
         env_param_kinds: &[SigKind],
     ) -> Result<(), Error> {
-        let pointer_offsets = env_pointer_offsets_from_kinds(env_param_kinds);
-        let metadata_size = env_metadata_size(pointer_offsets.len());
+        let metadata_size = env_metadata_size();
         let env_size = env_size_bytes_from_kinds(env_param_kinds);
         let heap_size = env_size + metadata_size;
         self.emit_mmap(heap_size)?;
@@ -1728,20 +1811,6 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             "    mov qword [rdx+{}], {} ; heap size metadata",
             ENV_METADATA_HEAP_SIZE_OFFSET, heap_size
         )?;
-        writeln!(
-            self.out,
-            "    mov qword [rdx+{}], {} ; pointer count metadata",
-            ENV_METADATA_POINTER_COUNT_OFFSET,
-            pointer_offsets.len()
-        )?;
-        for (idx, offset) in pointer_offsets.iter().enumerate() {
-            let meta_offset = ENV_METADATA_POINTER_LIST_OFFSET + idx * ENV_METADATA_FIELD_SIZE;
-            writeln!(
-                self.out,
-                "    mov qword [rdx+{}], {} ; closure env pointer slot offset",
-                meta_offset, offset
-            )?;
-        }
         let unwrapper = mir::closure_unwrapper_label(name);
         writeln!(
             self.out,
@@ -1752,6 +1821,37 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             self.out,
             "    mov qword [rdx+{}], rax ; store unwrapper entry in metadata",
             ENV_METADATA_UNWRAPPER_OFFSET
+        )?;
+
+        let release_helper = mir::closure_release_label(name);
+        writeln!(
+            self.out,
+            "    mov rax, {} ; load release helper entry point",
+            release_helper
+        )?;
+        writeln!(
+            self.out,
+            "    mov qword [rdx+{}], rax ; store release pointer in metadata",
+            ENV_METADATA_RELEASE_OFFSET
+        )?;
+
+        let deep_copy_helper = mir::closure_deepcopy_label(name);
+        writeln!(
+            self.out,
+            "    mov rax, {} ; load deep copy helper entry point",
+            deep_copy_helper
+        )?;
+        writeln!(
+            self.out,
+            "    mov qword [rdx+{}], rax ; store deep copy pointer in metadata",
+            ENV_METADATA_DEEP_COPY_OFFSET
+        )?;
+
+        writeln!(self.out, "    xor rax, rax ; zero num_curried metadata")?;
+        writeln!(
+            self.out,
+            "    mov qword [rdx+{}], rax ; store num_curried",
+            ENV_METADATA_NUM_CURRIED_OFFSET
         )?;
         Ok(())
     }
@@ -2065,6 +2165,24 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             }
         }
 
+        if applied > 0 {
+            writeln!(
+                self.out,
+                "    mov rbx, [rsp+8] ; env_end pointer for num_curried update"
+            )?;
+            writeln!(
+                self.out,
+                "    mov rax, [rbx+{}] ; load current num_curried",
+                ENV_METADATA_NUM_CURRIED_OFFSET
+            )?;
+            writeln!(self.out, "    add rax, {} ; increment num_curried", applied)?;
+            writeln!(
+                self.out,
+                "    mov [rbx+{}], rax ; store updated num_curried",
+                ENV_METADATA_NUM_CURRIED_OFFSET
+            )?;
+        }
+
         let remaining = next_state;
         if saved_closure_state {
             writeln!(
@@ -2130,6 +2248,19 @@ impl IntComparison {
             IntComparison::Equal => "jne",
             IntComparison::Less => "jge",
             IntComparison::Greater => "jle",
+        }
+    }
+}
+
+impl MirComparisonKind {
+    fn jump(&self) -> &'static str {
+        match self {
+            MirComparisonKind::Equal => "je",
+            MirComparisonKind::NotEqual => "jne",
+            MirComparisonKind::Less => "jl",
+            MirComparisonKind::LessOrEqual => "jle",
+            MirComparisonKind::Greater => "jg",
+            MirComparisonKind::GreaterOrEqual => "jge",
         }
     }
 }
@@ -2267,22 +2398,6 @@ fn slots_for_type(ty: &SigKind) -> usize {
         ValueKind::Closure => 2,
         ValueKind::Variadic => 0,
     }
-}
-
-fn env_pointer_offsets_from_kinds(params: &[SigKind]) -> Vec<usize> {
-    let mut offsets = Vec::new();
-    let mut current = 0usize;
-    for ty in params {
-        match resolved_type_kind(ty) {
-            ValueKind::Word => current += 8,
-            ValueKind::Closure => {
-                offsets.push(current);
-                current += WORD_SIZE;
-            }
-            ValueKind::Variadic => {}
-        }
-    }
-    offsets
 }
 
 fn resolved_type_kind(ty: &SigKind) -> ValueKind {

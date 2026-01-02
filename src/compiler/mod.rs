@@ -41,6 +41,7 @@ pub fn compile<R: BufRead, W: Write>(input: R, out: &mut W) -> Result<(), Error>
 
     // Emit preamble (globals, default labels, etc.).
     codegen::write_preamble(out)?;
+    codegen::emit_runtime_helpers(out)?;
 
     let mut lowerer = Lowerer::new();
     let mut entry_items: Vec<hir::BlockItem> = Vec::new();
@@ -73,17 +74,9 @@ pub fn compile<R: BufRead, W: Write>(input: R, out: &mut W) -> Result<(), Error>
     }
 
     mir_functions.extend(mir::builtin_functions(&symbols));
-    let requirements = mir::CodegenRequirements::compute(&mir_functions);
     let mut artifacts = codegen::Artifacts::collect(&mir_functions);
     for func in mir_functions {
         codegen::function(func, &mut artifacts, out)?;
-    }
-
-    if requirements.release_helper {
-        codegen::emit_release_helper(out)?;
-    }
-    if requirements.deep_copy_helper {
-        codegen::emit_deep_copy_helper(out)?;
     }
     codegen::emit_externs(&artifacts.externs, out)?;
     codegen::emit_data(artifacts.string_literals(), out)?;

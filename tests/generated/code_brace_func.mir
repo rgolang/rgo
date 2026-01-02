@@ -4,7 +4,16 @@ _2_say_hi() {
 }
 
 _2_say_hi_unwrapper($env_end: int) {
+    release $env_end
     _2_say_hi()
+}
+
+_2_say_hi_release($env_end: int) {
+    return
+}
+
+_2_say_hi_deepcopy($env_end: int) {
+    return
 }
 
 exit($code: int) {
@@ -12,19 +21,29 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words
+    $code: int = $env_end - 1w
+    release $env_end
     exit($code)
 }
 
 say_hi() {
     $_0 = "hi"
     $_2_say_hi = (_2_say_hi_unwrapper, {})
-    $__result = @write($_0)
+    $__result = call @write($_0)
     $_2_say_hi($__result)
 }
 
 say_hi_unwrapper($env_end: int) {
+    release $env_end
     say_hi()
+}
+
+say_hi_release($env_end: int) {
+    return
+}
+
+say_hi_deepcopy($env_end: int) {
+    return
 }
 
 _start() {

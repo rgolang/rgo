@@ -4,8 +4,17 @@ _3_lambda($n: int) {
 }
 
 _3_lambda_unwrapper($env_end: int) {
-    $n: int = $env_end - 1 words
+    $n: int = $env_end - 1w
+    release $env_end
     _3_lambda($n)
+}
+
+_3_lambda_release($env_end: int) {
+    return
+}
+
+_3_lambda_deepcopy($env_end: int) {
+    return
 }
 
 exit($code: int) {
@@ -13,7 +22,8 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words
+    $code: int = $env_end - 1w
+    release $env_end
     exit($code)
 }
 
@@ -23,9 +33,10 @@ add($x: int, $y: int, $ok: (int)) {
 }
 
 add_unwrapper($env_end: int) {
-    $x: int = $env_end - 3 words
-    $y: int = $env_end - 2 words
-    $ok: (int) = $env_end - 1 words
+    $x: int = $env_end - 3w
+    $y: int = $env_end - 2w
+    $ok: (int) = $env_end - 1w
+    release $env_end
     add($x, $y, $ok)
 }
 

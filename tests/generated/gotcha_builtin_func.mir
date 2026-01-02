@@ -1,13 +1,34 @@
 write($n: int, $ok: ()) {
     $_0 = "Gotcha: %d"
-    $__result = @printf($_0, $n)
+    $__result = call @printf($_0, $n)
     $ok($__result)
 }
 
 write_unwrapper($env_end: int) {
-    $n: int = $env_end - 2 words
-    $ok: () = $env_end - 1 words
+    $n: int = $env_end - 2w
+    $ok: () = $env_end - 1w
+    release $env_end
     write($n, $ok)
+}
+
+write_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 1){ jump write_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 1w)
+    jump write_release_done
+    write_release_if_num_curried_lt_1:
+    write_release_done:
+    return
+}
+
+write_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 1){ jump write_deepcopy_if_num_curried_lt_1 }
+    new_env + 1w = call @deepcopy_heap_ptr($env_end - 1w)
+    jump write_deepcopy_done
+    write_deepcopy_if_num_curried_lt_1:
+    write_deepcopy_done:
+    return
 }
 
 _3_lambda() {
@@ -16,7 +37,16 @@ _3_lambda() {
 }
 
 _3_lambda_unwrapper($env_end: int) {
+    release $env_end
     _3_lambda()
+}
+
+_3_lambda_release($env_end: int) {
+    return
+}
+
+_3_lambda_deepcopy($env_end: int) {
+    return
 }
 
 exit($code: int) {
@@ -24,7 +54,8 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words
+    $code: int = $env_end - 1w
+    release $env_end
     exit($code)
 }
 

@@ -1,23 +1,65 @@
 bar($ok: ()) {
     $_0 = "bar,"
-    $__result = @write($_0)
+    $__result = call @write($_0)
     $ok($__result)
 }
 
 bar_unwrapper($env_end: int) {
-    $ok: () = $env_end - 1 words
+    $ok: () = $env_end - 1w
+    release $env_end
     bar($ok)
+}
+
+bar_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 1){ jump bar_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 1w)
+    jump bar_release_done
+    bar_release_if_num_curried_lt_1:
+    bar_release_done:
+    return
+}
+
+bar_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 1){ jump bar_deepcopy_if_num_curried_lt_1 }
+    new_env + 0w = call @deepcopy_heap_ptr($env_end - 1w)
+    jump bar_deepcopy_done
+    bar_deepcopy_if_num_curried_lt_1:
+    bar_deepcopy_done:
+    return
 }
 
 baz($ok: ()) {
     $_1 = "baz,"
-    $__result = @write($_1)
+    $__result = call @write($_1)
     $ok($__result)
 }
 
 baz_unwrapper($env_end: int) {
-    $ok: () = $env_end - 1 words
+    $ok: () = $env_end - 1w
+    release $env_end
     baz($ok)
+}
+
+baz_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 1){ jump baz_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 1w)
+    jump baz_release_done
+    baz_release_if_num_curried_lt_1:
+    baz_release_done:
+    return
+}
+
+baz_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 1){ jump baz_deepcopy_if_num_curried_lt_1 }
+    new_env + 0w = call @deepcopy_heap_ptr($env_end - 1w)
+    jump baz_deepcopy_done
+    baz_deepcopy_if_num_curried_lt_1:
+    baz_deepcopy_done:
+    return
 }
 
 foo() {
@@ -29,12 +71,21 @@ foo() {
     $_4_bar = (bar_unwrapper, {()})
     $_4_bar.$ok = $_3_baz
 
-    $__result = @write($_2)
+    $__result = call @write($_2)
     $_4_bar($__result)
 }
 
 foo_unwrapper($env_end: int) {
+    release $env_end
     foo()
+}
+
+foo_release($env_end: int) {
+    return
+}
+
+foo_deepcopy($env_end: int) {
+    return
 }
 
 _start() {

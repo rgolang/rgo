@@ -4,8 +4,29 @@ foo($ok: (str)) {
 }
 
 foo_unwrapper($env_end: int) {
-    $ok: (str) = $env_end - 1 words
+    $ok: (str) = $env_end - 1w
+    release $env_end
     foo($ok)
+}
+
+foo_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 1){ jump foo_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 1w)
+    jump foo_release_done
+    foo_release_if_num_curried_lt_1:
+    foo_release_done:
+    return
+}
+
+foo_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 1){ jump foo_deepcopy_if_num_curried_lt_1 }
+    new_env + 0w = call @deepcopy_heap_ptr($env_end - 1w)
+    jump foo_deepcopy_done
+    foo_deepcopy_if_num_curried_lt_1:
+    foo_deepcopy_done:
+    return
 }
 
 baz($ok: (str, str)) {
@@ -15,8 +36,29 @@ baz($ok: (str, str)) {
 }
 
 baz_unwrapper($env_end: int) {
-    $ok: (str, str) = $env_end - 1 words
+    $ok: (str, str) = $env_end - 1w
+    release $env_end
     baz($ok)
+}
+
+baz_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 1){ jump baz_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 1w)
+    jump baz_release_done
+    baz_release_if_num_curried_lt_1:
+    baz_release_done:
+    return
+}
+
+baz_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 1){ jump baz_deepcopy_if_num_curried_lt_1 }
+    new_env + 0w = call @deepcopy_heap_ptr($env_end - 1w)
+    jump baz_deepcopy_done
+    baz_deepcopy_if_num_curried_lt_1:
+    baz_deepcopy_done:
+    return
 }
 
 _8_bar() {
@@ -25,7 +67,16 @@ _8_bar() {
 }
 
 _8_bar_unwrapper($env_end: int) {
+    release $env_end
     _8_bar()
+}
+
+_8_bar_release($env_end: int) {
+    return
+}
+
+_8_bar_deepcopy($env_end: int) {
+    return
 }
 
 exit($code: int) {
@@ -33,22 +84,32 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words
+    $code: int = $env_end - 1w
+    release $env_end
     exit($code)
 }
 
 bar($name0: str, $name1: str, $name2: str) {
     $_6 = "hello %s, %s and %s\n"
     $_8_bar = (_8_bar_unwrapper, {})
-    $__result = @printf($_6, $name0, $name1, $name2)
+    $__result = call @printf($_6, $name0, $name1, $name2)
     $_8_bar($__result)
 }
 
 bar_unwrapper($env_end: int) {
-    $name0: str = $env_end - 3 words
-    $name1: str = $env_end - 2 words
-    $name2: str = $env_end - 1 words
+    $name0: str = $env_end - 3w
+    $name1: str = $env_end - 2w
+    $name2: str = $env_end - 1w
+    release $env_end
     bar($name0, $name1, $name2)
+}
+
+bar_release($env_end: int) {
+    return
+}
+
+bar_deepcopy($env_end: int) {
+    return
 }
 
 _start() {

@@ -7,7 +7,7 @@ pub fn render_normalized_rgo(items: &[BlockItem]) -> String {
     for (i, item) in items.iter().enumerate() {
         match item {
             BlockItem::FunctionDef(function) => {
-                write_function(function, &mut out);
+                write_function(function, &mut out, 0);
                 if matches!(items.get(i + 1), Some(BlockItem::FunctionDef(_))) {
                     out.push('\n');
                 }
@@ -19,7 +19,8 @@ pub fn render_normalized_rgo(items: &[BlockItem]) -> String {
     out
 }
 
-fn write_function(function: &Function, out: &mut String) {
+fn write_function(function: &Function, out: &mut String, indent: usize) {
+    write_indent(out, indent);
     writeln!(
         out,
         "{}: {}{{",
@@ -27,7 +28,8 @@ fn write_function(function: &Function, out: &mut String) {
         format_param_list(&function.sig.items)
     )
     .unwrap();
-    write_block(&function.body, out, 1);
+    write_block(&function.body, out, indent + 1);
+    write_indent(out, indent);
     writeln!(out, "}}").unwrap();
 }
 
@@ -38,11 +40,13 @@ fn write_block(block: &Block, out: &mut String, indent: usize) {
 }
 
 fn write_block_item(item: &BlockItem, out: &mut String, indent: usize) {
+    if let BlockItem::FunctionDef(function) = item {
+        write_function(function, out, indent);
+        return;
+    }
+
     write_indent(out, indent);
     match item {
-        BlockItem::FunctionDef(function) => {
-            write!(out, "{}: {}", function.name, function.name).unwrap();
-        }
         BlockItem::Import { name, .. } => {
             write!(out, "@{}", name).unwrap();
         }
@@ -70,6 +74,7 @@ fn write_block_item(item: &BlockItem, out: &mut String, indent: usize) {
                 write!(out, "{}: <{}>{}", name, sig.generics.join(", "), type_str).unwrap();
             }
         }
+        BlockItem::FunctionDef(_) => unreachable!(),
     }
     out.push('\n');
 }

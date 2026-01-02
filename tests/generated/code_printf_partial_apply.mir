@@ -4,7 +4,16 @@ _2_foo() {
 }
 
 _2_foo_unwrapper($env_end: int) {
+    release $env_end
     _2_foo()
+}
+
+_2_foo_release($env_end: int) {
+    return
+}
+
+_2_foo_deepcopy($env_end: int) {
+    return
 }
 
 exit($code: int) {
@@ -12,7 +21,8 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words
+    $code: int = $env_end - 1w
+    release $env_end
     exit($code)
 }
 
@@ -22,20 +32,62 @@ foo($ok: (())) {
 }
 
 foo_unwrapper($env_end: int) {
-    $ok: (()) = $env_end - 1 words
+    $ok: (()) = $env_end - 1w
+    release $env_end
     foo($ok)
+}
+
+foo_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 1){ jump foo_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 1w)
+    jump foo_release_done
+    foo_release_if_num_curried_lt_1:
+    foo_release_done:
+    return
+}
+
+foo_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 1){ jump foo_deepcopy_if_num_curried_lt_1 }
+    new_env + 0w = call @deepcopy_heap_ptr($env_end - 1w)
+    jump foo_deepcopy_done
+    foo_deepcopy_if_num_curried_lt_1:
+    foo_deepcopy_done:
+    return
 }
 
 _6_lambda($_0_: ()) {
     $_7 = "result: %d"
     $_8 = 1
-    $__result = @printf($_7, $_8)
+    $__result = call @printf($_7, $_8)
     $_0_($__result)
 }
 
 _6_lambda_unwrapper($env_end: int) {
-    $_0_: () = $env_end - 1 words
+    $_0_: () = $env_end - 1w
+    release $env_end
     _6_lambda($_0_)
+}
+
+_6_lambda_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 1){ jump _6_lambda_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 1w)
+    jump _6_lambda_release_done
+    _6_lambda_release_if_num_curried_lt_1:
+    _6_lambda_release_done:
+    return
+}
+
+_6_lambda_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 1){ jump _6_lambda_deepcopy_if_num_curried_lt_1 }
+    new_env + 0w = call @deepcopy_heap_ptr($env_end - 1w)
+    jump _6_lambda_deepcopy_done
+    _6_lambda_deepcopy_if_num_curried_lt_1:
+    _6_lambda_deepcopy_done:
+    return
 }
 
 _start() {

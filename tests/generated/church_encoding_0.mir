@@ -4,10 +4,41 @@ zero($f: (int, (int)), $x: int, $ok: (int)) {
 }
 
 zero_unwrapper($env_end: int) {
-    $f: (int, (int)) = $env_end - 3 words
-    $x: int = $env_end - 2 words
-    $ok: (int) = $env_end - 1 words
+    $f: (int, (int)) = $env_end - 3w
+    $x: int = $env_end - 2w
+    $ok: (int) = $env_end - 1w
+    release $env_end
     zero($f, $x, $ok)
+}
+
+zero_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 2){ jump zero_release_if_num_curried_lt_2 }
+    call @release_heap_ptr($env_end - 3w)
+    call @release_heap_ptr($env_end - 1w)
+    jump zero_release_done
+    zero_release_if_num_curried_lt_2:
+    if ($__num_curried < 1){ jump zero_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 3w)
+    jump zero_release_done
+    zero_release_if_num_curried_lt_1:
+    zero_release_done:
+    return
+}
+
+zero_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 2){ jump zero_deepcopy_if_num_curried_lt_2 }
+    new_env + 0w = call @deepcopy_heap_ptr($env_end - 3w)
+    new_env + 2w = call @deepcopy_heap_ptr($env_end - 1w)
+    jump zero_deepcopy_done
+    zero_deepcopy_if_num_curried_lt_2:
+    if ($num_curried < 1){ jump zero_deepcopy_if_num_curried_lt_1 }
+    new_env + 0w = call @deepcopy_heap_ptr($env_end - 3w)
+    jump zero_deepcopy_done
+    zero_deepcopy_if_num_curried_lt_1:
+    zero_deepcopy_done:
+    return
 }
 
 _7_lambda($x: int, $ok: (int)) {
@@ -16,9 +47,30 @@ _7_lambda($x: int, $ok: (int)) {
 }
 
 _7_lambda_unwrapper($env_end: int) {
-    $x: int = $env_end - 2 words
-    $ok: (int) = $env_end - 1 words
+    $x: int = $env_end - 2w
+    $ok: (int) = $env_end - 1w
+    release $env_end
     _7_lambda($x, $ok)
+}
+
+_7_lambda_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 1){ jump _7_lambda_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 1w)
+    jump _7_lambda_release_done
+    _7_lambda_release_if_num_curried_lt_1:
+    _7_lambda_release_done:
+    return
+}
+
+_7_lambda_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 1){ jump _7_lambda_deepcopy_if_num_curried_lt_1 }
+    new_env + 1w = call @deepcopy_heap_ptr($env_end - 1w)
+    jump _7_lambda_deepcopy_done
+    _7_lambda_deepcopy_if_num_curried_lt_1:
+    _7_lambda_deepcopy_done:
+    return
 }
 
 add($x: int, $y: int, $ok: (int)) {
@@ -27,9 +79,10 @@ add($x: int, $y: int, $ok: (int)) {
 }
 
 add_unwrapper($env_end: int) {
-    $x: int = $env_end - 3 words
-    $y: int = $env_end - 2 words
-    $ok: (int) = $env_end - 1 words
+    $x: int = $env_end - 3w
+    $y: int = $env_end - 2w
+    $ok: (int) = $env_end - 1w
+    release $env_end
     add($x, $y, $ok)
 }
 
@@ -39,7 +92,16 @@ _15_lambda() {
 }
 
 _15_lambda_unwrapper($env_end: int) {
+    release $env_end
     _15_lambda()
+}
+
+_15_lambda_release($env_end: int) {
+    return
+}
+
+_15_lambda_deepcopy($env_end: int) {
+    return
 }
 
 exit($code: int) {
@@ -47,20 +109,30 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words
+    $code: int = $env_end - 1w
+    release $env_end
     exit($code)
 }
 
 _12_lambda($x: int) {
     $_13 = "result: %d"
     $_15_lambda = (_15_lambda_unwrapper, {})
-    $__result = @printf($_13, $x)
+    $__result = call @printf($_13, $x)
     $_15_lambda($__result)
 }
 
 _12_lambda_unwrapper($env_end: int) {
-    $x: int = $env_end - 1 words
+    $x: int = $env_end - 1w
+    release $env_end
     _12_lambda($x)
+}
+
+_12_lambda_release($env_end: int) {
+    return
+}
+
+_12_lambda_deepcopy($env_end: int) {
+    return
 }
 
 _start() {

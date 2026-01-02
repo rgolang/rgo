@@ -1,34 +1,55 @@
 foo($a1: int, $a2: int, $a3: int, $a4: int, $a5: int, $a6: int, $a7: int, $a8: int, $a9: int, $a10: int, $a11: int, $a12: int, $a13: int, $a14: int, $a15: int, $a16: int, $a17: int, $a18: int, $a19: int, $a20: int, $a21: int, $a22: int, $ok: ()) {
     $_0 = "All arguments received successfully.\n"
-    $__result = @write($_0)
+    $__result = call @write($_0)
     $ok($__result)
 }
 
 foo_unwrapper($env_end: int) {
-    $a1: int = $env_end - 23 words
-    $a2: int = $env_end - 22 words
-    $a3: int = $env_end - 21 words
-    $a4: int = $env_end - 20 words
-    $a5: int = $env_end - 19 words
-    $a6: int = $env_end - 18 words
-    $a7: int = $env_end - 17 words
-    $a8: int = $env_end - 16 words
-    $a9: int = $env_end - 15 words
-    $a10: int = $env_end - 14 words
-    $a11: int = $env_end - 13 words
-    $a12: int = $env_end - 12 words
-    $a13: int = $env_end - 11 words
-    $a14: int = $env_end - 10 words
-    $a15: int = $env_end - 9 words
-    $a16: int = $env_end - 8 words
-    $a17: int = $env_end - 7 words
-    $a18: int = $env_end - 6 words
-    $a19: int = $env_end - 5 words
-    $a20: int = $env_end - 4 words
-    $a21: int = $env_end - 3 words
-    $a22: int = $env_end - 2 words
-    $ok: () = $env_end - 1 words
+    $a1: int = $env_end - 23w
+    $a2: int = $env_end - 22w
+    $a3: int = $env_end - 21w
+    $a4: int = $env_end - 20w
+    $a5: int = $env_end - 19w
+    $a6: int = $env_end - 18w
+    $a7: int = $env_end - 17w
+    $a8: int = $env_end - 16w
+    $a9: int = $env_end - 15w
+    $a10: int = $env_end - 14w
+    $a11: int = $env_end - 13w
+    $a12: int = $env_end - 12w
+    $a13: int = $env_end - 11w
+    $a14: int = $env_end - 10w
+    $a15: int = $env_end - 9w
+    $a16: int = $env_end - 8w
+    $a17: int = $env_end - 7w
+    $a18: int = $env_end - 6w
+    $a19: int = $env_end - 5w
+    $a20: int = $env_end - 4w
+    $a21: int = $env_end - 3w
+    $a22: int = $env_end - 2w
+    $ok: () = $env_end - 1w
+    release $env_end
     foo($a1, $a2, $a3, $a4, $a5, $a6, $a7, $a8, $a9, $a10, $a11, $a12, $a13, $a14, $a15, $a16, $a17, $a18, $a19, $a20, $a21, $a22, $ok)
+}
+
+foo_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 1){ jump foo_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 1w)
+    jump foo_release_done
+    foo_release_if_num_curried_lt_1:
+    foo_release_done:
+    return
+}
+
+foo_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 1){ jump foo_deepcopy_if_num_curried_lt_1 }
+    new_env + 22w = call @deepcopy_heap_ptr($env_end - 1w)
+    jump foo_deepcopy_done
+    foo_deepcopy_if_num_curried_lt_1:
+    foo_deepcopy_done:
+    return
 }
 
 _24_lambda() {
@@ -37,7 +58,16 @@ _24_lambda() {
 }
 
 _24_lambda_unwrapper($env_end: int) {
+    release $env_end
     _24_lambda()
+}
+
+_24_lambda_release($env_end: int) {
+    return
+}
+
+_24_lambda_deepcopy($env_end: int) {
+    return
 }
 
 exit($code: int) {
@@ -45,7 +75,8 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words
+    $code: int = $env_end - 1w
+    release $env_end
     exit($code)
 }
 

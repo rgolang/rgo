@@ -4,7 +4,16 @@ _5_lambda() {
 }
 
 _5_lambda_unwrapper($env_end: int) {
+    release $env_end
     _5_lambda()
+}
+
+_5_lambda_release($env_end: int) {
+    return
+}
+
+_5_lambda_deepcopy($env_end: int) {
+    return
 }
 
 exit($code: int) {
@@ -12,25 +21,35 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words
+    $code: int = $env_end - 1w
+    release $env_end
     exit($code)
 }
 
 _3_lambda($s: str) {
     $_5_lambda = (_5_lambda_unwrapper, {})
-    $__result = @write($s)
+    $__result = call @write($s)
     $_5_lambda($__result)
 }
 
 _3_lambda_unwrapper($env_end: int) {
-    $s: str = $env_end - 1 words
+    $s: str = $env_end - 1w
+    release $env_end
     _3_lambda($s)
+}
+
+_3_lambda_release($env_end: int) {
+    return
+}
+
+_3_lambda_deepcopy($env_end: int) {
+    return
 }
 
 _start() {
     $_0 = "result: %d"
     $_1 = 3
     $_3_lambda = (_3_lambda_unwrapper, {})
-    $ok_0 = @sprintf($_0, $_1)
+    $ok_0 = call @sprintf($_0, $_1)
     $_3_lambda($ok_0)
 }

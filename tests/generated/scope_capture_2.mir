@@ -4,7 +4,16 @@ _2_lambda() {
 }
 
 _2_lambda_unwrapper($env_end: int) {
+    release $env_end
     _2_lambda()
+}
+
+_2_lambda_release($env_end: int) {
+    return
+}
+
+_2_lambda_deepcopy($env_end: int) {
+    return
 }
 
 exit($code: int) {
@@ -12,13 +21,14 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words
+    $code: int = $env_end - 1w
+    release $env_end
     exit($code)
 }
 
 _start() {
     $_0 = "hello world"
     $_2_lambda = (_2_lambda_unwrapper, {})
-    $__result = @printf($_0)
+    $__result = call @printf($_0)
     $_2_lambda($__result)
 }

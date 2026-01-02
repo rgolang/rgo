@@ -1,12 +1,33 @@
 bar($v: str, $ok: ()) {
-    $__result = @write($v)
+    $__result = call @write($v)
     $ok($__result)
 }
 
 bar_unwrapper($env_end: int) {
-    $v: str = $env_end - 2 words
-    $ok: () = $env_end - 1 words
+    $v: str = $env_end - 2w
+    $ok: () = $env_end - 1w
+    release $env_end
     bar($v, $ok)
+}
+
+bar_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 1){ jump bar_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 1w)
+    jump bar_release_done
+    bar_release_if_num_curried_lt_1:
+    bar_release_done:
+    return
+}
+
+bar_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 1){ jump bar_deepcopy_if_num_curried_lt_1 }
+    new_env + 1w = call @deepcopy_heap_ptr($env_end - 1w)
+    jump bar_deepcopy_done
+    bar_deepcopy_if_num_curried_lt_1:
+    bar_deepcopy_done:
+    return
 }
 
 _1_foo() {
@@ -15,7 +36,16 @@ _1_foo() {
 }
 
 _1_foo_unwrapper($env_end: int) {
+    release $env_end
     _1_foo()
+}
+
+_1_foo_release($env_end: int) {
+    return
+}
+
+_1_foo_deepcopy($env_end: int) {
+    return
 }
 
 exit($code: int) {
@@ -23,7 +53,8 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words
+    $code: int = $env_end - 1w
+    release $env_end
     exit($code)
 }
 
@@ -33,8 +64,17 @@ foo($msg: str!) {
 }
 
 foo_unwrapper($env_end: int) {
-    $msg: str! = $env_end - 1 words
+    $msg: str! = $env_end - 1w
+    release $env_end
     foo($msg)
+}
+
+foo_release($env_end: int) {
+    return
+}
+
+foo_deepcopy($env_end: int) {
+    return
 }
 
 _start() {

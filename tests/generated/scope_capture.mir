@@ -1,13 +1,34 @@
 _3_print_sum($ok: (), $total: int) {
     $_4 = "sum is %d\n"
-    $__result = @printf($_4, $total)
+    $__result = call @printf($_4, $total)
     $ok($__result)
 }
 
 _3_print_sum_unwrapper($env_end: int) {
-    $ok: () = $env_end - 2 words
-    $total: int = $env_end - 1 words
+    $ok: () = $env_end - 2w
+    $total: int = $env_end - 1w
+    release $env_end
     _3_print_sum($ok, $total)
+}
+
+_3_print_sum_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 1){ jump _3_print_sum_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 2w)
+    jump _3_print_sum_release_done
+    _3_print_sum_release_if_num_curried_lt_1:
+    _3_print_sum_release_done:
+    return
+}
+
+_3_print_sum_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 1){ jump _3_print_sum_deepcopy_if_num_curried_lt_1 }
+    new_env + 0w = call @deepcopy_heap_ptr($env_end - 2w)
+    jump _3_print_sum_deepcopy_done
+    _3_print_sum_deepcopy_if_num_curried_lt_1:
+    _3_print_sum_deepcopy_done:
+    return
 }
 
 print_sum($ok: ()) {
@@ -20,8 +41,29 @@ print_sum($ok: ()) {
 }
 
 print_sum_unwrapper($env_end: int) {
-    $ok: () = $env_end - 1 words
+    $ok: () = $env_end - 1w
+    release $env_end
     print_sum($ok)
+}
+
+print_sum_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 1){ jump print_sum_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 1w)
+    jump print_sum_release_done
+    print_sum_release_if_num_curried_lt_1:
+    print_sum_release_done:
+    return
+}
+
+print_sum_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 1){ jump print_sum_deepcopy_if_num_curried_lt_1 }
+    new_env + 0w = call @deepcopy_heap_ptr($env_end - 1w)
+    jump print_sum_deepcopy_done
+    print_sum_deepcopy_if_num_curried_lt_1:
+    print_sum_deepcopy_done:
+    return
 }
 
 add($x: int, $y: int, $ok: (int)) {
@@ -30,9 +72,10 @@ add($x: int, $y: int, $ok: (int)) {
 }
 
 add_unwrapper($env_end: int) {
-    $x: int = $env_end - 3 words
-    $y: int = $env_end - 2 words
-    $ok: (int) = $env_end - 1 words
+    $x: int = $env_end - 3w
+    $y: int = $env_end - 2w
+    $ok: (int) = $env_end - 1w
+    release $env_end
     add($x, $y, $ok)
 }
 
@@ -42,7 +85,16 @@ _7_lambda() {
 }
 
 _7_lambda_unwrapper($env_end: int) {
+    release $env_end
     _7_lambda()
+}
+
+_7_lambda_release($env_end: int) {
+    return
+}
+
+_7_lambda_deepcopy($env_end: int) {
+    return
 }
 
 exit($code: int) {
@@ -50,7 +102,8 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words
+    $code: int = $env_end - 1w
+    release $env_end
     exit($code)
 }
 

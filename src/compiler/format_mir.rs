@@ -60,23 +60,18 @@ fn format_function_param(param: &mir::SigItem) -> String {
 
 fn format_mir_block_item(item: &mir::MirStmt, prefixed_names: &HashSet<String>) -> Vec<String> {
     match item {
-        mir::MirStmt::EnvBase(base) => {
-            let name = format_identifier(&base.name, prefixed_names);
-            let env_end = format_identifier(&base.env_end, prefixed_names);
-            if base.size > 0 {
-                vec![format!("{} = {} - {} words", name, env_end, base.size)]
-            } else {
-                vec![format!("{} = {}", name, env_end)]
-            }
-        }
         mir::MirStmt::EnvField(field) => {
             let ty = format_type(&field.ty);
+            let offset_words = field.offset_from_end;
+            let sign_char = if offset_words >= 0 { '-' } else { '+' };
+            let magnitude = offset_words.abs();
             vec![format!(
-                "{}: {} = {} - {} words",
+                "{}: {} = {} {} {}w",
                 format_identifier(&field.result, prefixed_names),
                 ty,
                 format_identifier(&field.env_end, prefixed_names),
-                field.offset_from_end
+                sign_char,
+                magnitude
             )]
         }
         mir::MirStmt::StrDef { name, literal } => {
@@ -132,18 +127,43 @@ fn format_mir_block_item(item: &mir::MirStmt, prefixed_names: &HashSet<String>) 
             }
             lines
         }
-        mir::MirStmt::Release(release) => {
+        mir::MirStmt::ReleaseClosure(release) => {
             vec![format!(
                 "release {}",
                 format_identifier(&release.name, prefixed_names)
             )]
         }
-        mir::MirStmt::DeepCopy(mir::DeepCopy { original, copy, .. }) => {
+        mir::MirStmt::Copy(field) => {
+            let env_word_count = field.env_word_count as isize;
+            let start_offset = field.offset.max(0) as usize;
+            let end_offset = (env_word_count - field.offset).max(0) as usize;
             vec![format!(
-                "{} = deepcopy {}",
-                format_identifier(copy, prefixed_names),
-                format_identifier(original, prefixed_names)
+                "new_env + {}w = call @deepcopy_heap_ptr({} - {}w)",
+                start_offset,
+                format_identifier(&field.env_end, prefixed_names),
+                end_offset
             )]
+        }
+        mir::MirStmt::Label(label) => vec![format!("{}:", label.name)],
+        mir::MirStmt::Jump(jump) => vec![format!("jump {}", jump.target)],
+        mir::MirStmt::CondJump(cond) => {
+            let left = format_operand(&cond.left, prefixed_names);
+            let right = format_operand(&cond.right, prefixed_names);
+            let op = format_comparison_kind(&cond.kind);
+            vec![format!(
+                "if ({left} {op} {right}){{ jump {} }}",
+                cond.target
+            )]
+        }
+        mir::MirStmt::Return(ret) => {
+            if let Some(value) = &ret.value {
+                vec![format!(
+                    "return {}",
+                    format_identifier(value, prefixed_names)
+                )]
+            } else {
+                vec![String::from("return")]
+            }
         }
         mir::MirStmt::Op(instr) => {
             let outputs = instr
@@ -170,19 +190,26 @@ fn format_mir_block_item(item: &mir::MirStmt, prefixed_names: &HashSet<String>) 
                 vec![format!("{} = syscall {}({})", outputs, kind, args)]
             }
         }
-        mir::MirStmt::Call(call) => {
-            let args = render_args(&call.args, prefixed_names);
-            if call.result.is_empty() {
-                vec![format!("@{}({})", call.name, args)]
-            } else {
-                vec![format!(
-                    "{} = @{}({})",
-                    format_identifier(&call.result, prefixed_names),
-                    call.name,
-                    args
-                )]
+        mir::MirStmt::Call(call) => match &call.target {
+            mir::MirCallTarget::Builtin(kind) => {
+                let args = render_args(&call.args, prefixed_names);
+                if call.result.is_empty() {
+                    vec![format!("call @{}({})", kind.name(), args)]
+                } else {
+                    vec![format!(
+                        "{} = call @{}({})",
+                        format_identifier(&call.result, prefixed_names),
+                        kind.name(),
+                        args
+                    )]
+                }
             }
-        }
+            mir::MirCallTarget::Field(field) => vec![format!(
+                "call @release_heap_ptr({} - {}w)",
+                format_identifier(&field.env_end, prefixed_names),
+                field.offset_from_end
+            )],
+        },
     }
 }
 
@@ -210,6 +237,24 @@ fn format_type(ty: &mir::SigKind) -> String {
         }
         mir::SigKind::Ident(ident) => ident.name.clone(),
         _ => unreachable!("Unexpected type kind in MIR formatting"),
+    }
+}
+
+fn format_operand(operand: &mir::MirOperand, prefixed_names: &HashSet<String>) -> String {
+    match operand {
+        mir::MirOperand::Binding(name) => format_identifier(name, prefixed_names),
+        mir::MirOperand::Literal(value) => value.to_string(),
+    }
+}
+
+fn format_comparison_kind(kind: &mir::MirComparisonKind) -> &'static str {
+    match kind {
+        mir::MirComparisonKind::Equal => "==",
+        mir::MirComparisonKind::NotEqual => "!=",
+        mir::MirComparisonKind::Less => "<",
+        mir::MirComparisonKind::LessOrEqual => "<=",
+        mir::MirComparisonKind::Greater => ">",
+        mir::MirComparisonKind::GreaterOrEqual => ">=",
     }
 }
 
@@ -268,10 +313,6 @@ fn collect_local_names(function: &mir::MirFunction) -> HashSet<String> {
 
 fn add_local_names_from_stmt(stmt: &mir::MirStmt, locals: &mut HashSet<String>) {
     match stmt {
-        mir::MirStmt::EnvBase(base) => {
-            locals.insert(base.name.clone());
-            locals.insert(base.env_end.clone());
-        }
         mir::MirStmt::EnvField(field) => {
             locals.insert(field.result.clone());
             locals.insert(field.env_end.clone());
@@ -285,12 +326,11 @@ fn add_local_names_from_stmt(stmt: &mir::MirStmt, locals: &mut HashSet<String>) 
         mir::MirStmt::Closure(s) => {
             locals.insert(s.name.clone());
         }
-        mir::MirStmt::Release(release) => {
+        mir::MirStmt::ReleaseClosure(release) => {
             locals.insert(release.name.clone());
         }
-        mir::MirStmt::DeepCopy(deepcopy) => {
-            locals.insert(deepcopy.original.clone());
-            locals.insert(deepcopy.copy.clone());
+        mir::MirStmt::Copy(copy) => {
+            locals.insert(copy.result.clone());
         }
         mir::MirStmt::Op(instr) => {
             locals.extend(instr.outputs.iter().cloned());
@@ -304,6 +344,10 @@ fn add_local_names_from_stmt(stmt: &mir::MirStmt, locals: &mut HashSet<String>) 
             }
         }
         mir::MirStmt::Exec(_) => {}
+        mir::MirStmt::Label(_) => {}
+        mir::MirStmt::Jump(_) => {}
+        mir::MirStmt::CondJump(_) => {}
+        mir::MirStmt::Return(_) => {}
     }
 }
 

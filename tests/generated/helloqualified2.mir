@@ -4,7 +4,16 @@ _1_foo() {
 }
 
 _1_foo_unwrapper($env_end: int) {
+    release $env_end
     _1_foo()
+}
+
+_1_foo_release($env_end: int) {
+    return
+}
+
+_1_foo_deepcopy($env_end: int) {
+    return
 }
 
 exit($code: int) {
@@ -12,19 +21,29 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words
+    $code: int = $env_end - 1w
+    release $env_end
     exit($code)
 }
 
 foo($x: str!) {
     $_1_foo = (_1_foo_unwrapper, {})
-    $__result = @write($x)
+    $__result = call @write($x)
     $_1_foo($__result)
 }
 
 foo_unwrapper($env_end: int) {
-    $x: str! = $env_end - 1 words
+    $x: str! = $env_end - 1w
+    release $env_end
     foo($x)
+}
+
+foo_release($env_end: int) {
+    return
+}
+
+foo_deepcopy($env_end: int) {
+    return
 }
 
 _start() {

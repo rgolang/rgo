@@ -4,7 +4,16 @@ _1_not_const_msg() {
 }
 
 _1_not_const_msg_unwrapper($env_end: int) {
+    release $env_end
     _1_not_const_msg()
+}
+
+_1_not_const_msg_release($env_end: int) {
+    return
+}
+
+_1_not_const_msg_deepcopy($env_end: int) {
+    return
 }
 
 exit($code: int) {
@@ -12,20 +21,30 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words
+    $code: int = $env_end - 1w
+    release $env_end
     exit($code)
 }
 
 not_const_msg($fmt: str!, $value: int!) {
     $_1_not_const_msg = (_1_not_const_msg_unwrapper, {})
-    $__result = @printf($fmt, $value)
+    $__result = call @printf($fmt, $value)
     $_1_not_const_msg($__result)
 }
 
 not_const_msg_unwrapper($env_end: int) {
-    $fmt: str! = $env_end - 2 words
-    $value: int! = $env_end - 1 words
+    $fmt: str! = $env_end - 2w
+    $value: int! = $env_end - 1w
+    release $env_end
     not_const_msg($fmt, $value)
+}
+
+not_const_msg_release($env_end: int) {
+    return
+}
+
+not_const_msg_deepcopy($env_end: int) {
+    return
 }
 
 const_msg($fmt: str!, $value: int!) {
@@ -33,9 +52,18 @@ const_msg($fmt: str!, $value: int!) {
 }
 
 const_msg_unwrapper($env_end: int) {
-    $fmt: str! = $env_end - 2 words
-    $value: int! = $env_end - 1 words
+    $fmt: str! = $env_end - 2w
+    $value: int! = $env_end - 1w
+    release $env_end
     const_msg($fmt, $value)
+}
+
+const_msg_release($env_end: int) {
+    return
+}
+
+const_msg_deepcopy($env_end: int) {
+    return
 }
 
 _start() {

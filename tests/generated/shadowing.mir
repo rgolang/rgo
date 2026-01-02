@@ -4,7 +4,16 @@ _2_bar() {
 }
 
 _2_bar_unwrapper($env_end: int) {
+    release $env_end
     _2_bar()
+}
+
+_2_bar_release($env_end: int) {
+    return
+}
+
+_2_bar_deepcopy($env_end: int) {
+    return
 }
 
 exit($code: int) {
@@ -12,30 +21,61 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words
+    $code: int = $env_end - 1w
+    release $env_end
     exit($code)
 }
 
 bar() {
     $_0 = "outer bar"
     $_2_bar = (_2_bar_unwrapper, {})
-    $__result = @printf($_0)
+    $__result = call @printf($_0)
     $_2_bar($__result)
 }
 
 bar_unwrapper($env_end: int) {
+    release $env_end
     bar()
+}
+
+bar_release($env_end: int) {
+    return
+}
+
+bar_deepcopy($env_end: int) {
+    return
 }
 
 _5_foo_bar($ok: ()) {
     $_6 = "inner bar\n"
-    $__result = @printf($_6)
+    $__result = call @printf($_6)
     $ok($__result)
 }
 
 _5_foo_bar_unwrapper($env_end: int) {
-    $ok: () = $env_end - 1 words
+    $ok: () = $env_end - 1w
+    release $env_end
     _5_foo_bar($ok)
+}
+
+_5_foo_bar_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 1){ jump _5_foo_bar_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 1w)
+    jump _5_foo_bar_release_done
+    _5_foo_bar_release_if_num_curried_lt_1:
+    _5_foo_bar_release_done:
+    return
+}
+
+_5_foo_bar_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 1){ jump _5_foo_bar_deepcopy_if_num_curried_lt_1 }
+    new_env + 0w = call @deepcopy_heap_ptr($env_end - 1w)
+    jump _5_foo_bar_deepcopy_done
+    _5_foo_bar_deepcopy_if_num_curried_lt_1:
+    _5_foo_bar_deepcopy_done:
+    return
 }
 
 foo($ok: ()) {
@@ -43,8 +83,29 @@ foo($ok: ()) {
 }
 
 foo_unwrapper($env_end: int) {
-    $ok: () = $env_end - 1 words
+    $ok: () = $env_end - 1w
+    release $env_end
     foo($ok)
+}
+
+foo_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 1){ jump foo_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 1w)
+    jump foo_release_done
+    foo_release_if_num_curried_lt_1:
+    foo_release_done:
+    return
+}
+
+foo_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 1){ jump foo_deepcopy_if_num_curried_lt_1 }
+    new_env + 0w = call @deepcopy_heap_ptr($env_end - 1w)
+    jump foo_deepcopy_done
+    foo_deepcopy_if_num_curried_lt_1:
+    foo_deepcopy_done:
+    return
 }
 
 _start() {

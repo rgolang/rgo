@@ -2,6 +2,7 @@ use std::collections::{BTreeSet, HashSet};
 
 use crate::compiler::ast;
 use crate::compiler::builtins::MirInstKind;
+use crate::compiler::codegen::ENV_METADATA_NUM_CURRIED_OFFSET;
 use crate::compiler::error::{Code, Error};
 use crate::compiler::hir;
 pub use crate::compiler::mir_ast::*;
@@ -14,29 +15,15 @@ pub fn closure_unwrapper_label(name: &str) -> String {
     format!("{}_unwrapper", name)
 }
 
-#[derive(Debug, Default)]
-pub struct CodegenRequirements {
-    pub release_helper: bool,
-    pub deep_copy_helper: bool,
+pub fn closure_release_label(name: &str) -> String {
+    format!("{}_release", name)
 }
 
-impl CodegenRequirements {
-    pub fn compute(functions: &[MirFunction]) -> Self {
-        let mut requirements = CodegenRequirements::default();
-        for function in functions {
-            for stmt in &function.items {
-                match stmt {
-                    MirStmt::Release(_) => requirements.release_helper = true,
-                    MirStmt::DeepCopy(_) => requirements.deep_copy_helper = true,
-                    _ => {}
-                }
-            }
-        }
-        requirements
-    }
+pub fn closure_deepcopy_label(name: &str) -> String {
+    format!("{}_deepcopy", name)
 }
 
-fn collect_unused_params(params: &[SigItem]) -> HashSet<String> {
+fn collect_unused_param_refs(params: &[SigItem]) -> HashSet<String> {
     params
         .iter()
         .filter(|param| matches!(param.ty, SigKind::Sig(_)))
@@ -60,7 +47,7 @@ fn take_release_statements(unused: &mut HashSet<String>) -> Vec<MirStmt> {
     let names: BTreeSet<_> = unused.drain().collect();
     names
         .into_iter()
-        .map(|name| MirStmt::Release(Release { name }))
+        .map(|name| MirStmt::ReleaseClosure(ReleaseClosure { name }))
         .collect()
 }
 
@@ -190,29 +177,36 @@ pub fn lower_function(
     for param in func.sig.items.iter() {
         locals.insert(param.name.clone());
     }
-    let mut unused_params = collect_unused_params(&params);
+    let mut unused_param_refs = collect_unused_param_refs(&params);
 
-    let mut lowered_items = Vec::new();
-    let mut generated_functions = Vec::new();
+    let mut lowered_items: Vec<MirStmt> = Vec::new();
+    let mut generated_functions: Vec<MirFunction> = Vec::new();
     for item in func.body.items.iter() {
         let lowered = lower_block_item(
             item.clone(),
             &mut locals,
             symbols,
             &mut generated_functions,
-            &mut unused_params,
+            &mut unused_param_refs,
         )?;
         lowered_items.extend(lowered);
     }
 
     let function = MirFunction {
-        sig: sig.clone(),
+        sig: sig,
         items: lowered_items,
     };
 
-    let mut functions = vec![function.clone()];
-    if let Some(unwrapper) = build_closure_unwrapper(&function) {
-        functions.push(unwrapper);
+    let mut functions: Vec<MirFunction> = vec![function.clone()];
+    // TODO: Only generate these helpers if needed.
+    if let Some(f) = build_closure_unwrapper(&function) {
+        functions.push(f);
+    }
+    if let Some(f) = build_release_helper(&function) {
+        functions.push(f);
+    }
+    if let Some(f) = build_deep_copy_helper(&function) {
+        functions.push(f);
     }
     functions.extend(generated_functions.into_iter());
     Ok(functions)
@@ -383,18 +377,12 @@ fn lower_builtin_call(
         .map(|arg| arg.name.clone())
         .unwrap_or_else(String::new);
 
-    let continuation = ast::Arg {
-        name: continuation_arg.name.clone(),
-        span,
-    };
-
     let mut stmts = Vec::new();
     let call_stmt = MirStmt::Call(MirCall {
         result: result_name.clone(),
-        name: kind.name().to_string(),
+        target: MirCallTarget::Builtin(kind),
         args: call_args,
         arg_kinds: call_arg_kinds,
-        continuation,
         span,
     });
     stmts.push(call_stmt);
@@ -424,10 +412,6 @@ fn resolve_target(name: &str, symbols: &SymbolRegistry) -> MirExecTarget {
 }
 
 fn build_closure_unwrapper(function: &MirFunction) -> Option<MirFunction> {
-    if function.sig.name == ENTRY_FUNCTION_NAME {
-        return None;
-    }
-
     let env_param = SigItem {
         name: "env_end".to_string(),
         ty: SigKind::Int,
@@ -519,7 +503,7 @@ fn build_unwrapper_function(
     let mut items = Vec::with_capacity(field_sig_items.len() + 1);
 
     for (idx, sig_item) in field_sig_items.iter().enumerate() {
-        let offset_from_end = env_word_count - offsets[idx];
+        let offset_from_end = env_word_count as isize - offsets[idx] as isize;
         items.push(MirStmt::EnvField(MirEnvField {
             result: sig_item.name.clone(),
             env_end: env_param.name.clone(),
@@ -530,6 +514,10 @@ fn build_unwrapper_function(
             span: sig_item.span,
         }));
     }
+
+    items.push(MirStmt::ReleaseClosure(ReleaseClosure {
+        name: env_param.name.clone(),
+    }));
 
     let exec_args = field_sig_items
         .iter()
@@ -556,6 +544,165 @@ fn build_unwrapper_function(
     }
 }
 
+fn build_release_helper(function: &MirFunction) -> Option<MirFunction> {
+    let env_param = SigItem {
+        name: "env_end".to_string(),
+        ty: SigKind::Int,
+        has_bang: false,
+        span: function.sig.span,
+    };
+
+    let offsets = env_word_offsets_from_params(&function.sig.params);
+    let env_word_count = env_word_count_from_params(&function.sig.params);
+    let mut items = Vec::new();
+    let num_curried_binding = "__num_curried".to_string();
+
+    let reference_fields = function
+        .sig
+        .params
+        .iter()
+        .enumerate()
+        .filter_map(|(idx, param)| {
+            if !is_reference_type(&param.ty) {
+                return None;
+            }
+            Some(env_word_count - offsets[idx])
+        })
+        .collect::<Vec<_>>();
+
+    if !reference_fields.is_empty() {
+        items.push(MirStmt::EnvField(MirEnvField {
+            result: num_curried_binding.clone(),
+            env_end: env_param.name.clone(),
+            field_name: "num_curried".to_string(),
+            offset_from_end: -(NUM_CURRIED_METADATA_WORD_OFFSET as isize),
+            ty: SigKind::Int,
+            continuation_params: Vec::new(),
+            span: function.sig.span,
+        }));
+        let done_label = format!("{}_done", closure_release_label(&function.sig.name));
+
+        for count in (1..=reference_fields.len()).rev() {
+            let skip_label = format!("{}_release_if_num_curried_lt_{}", function.sig.name, count);
+            items.push(MirStmt::CondJump(MirCondJump {
+                left: MirOperand::Binding(num_curried_binding.clone()),
+                right: MirOperand::Literal(count as i64),
+                kind: MirComparisonKind::Less,
+                target: skip_label.clone(),
+            }));
+            for offset in reference_fields.iter().take(count) {
+                items.push(MirStmt::Call(MirCall {
+                    result: String::new(),
+                    target: MirCallTarget::Field(MirField {
+                        env_end: env_param.name.clone(),
+                        offset_from_end: *offset,
+                        span: function.sig.span,
+                    }),
+                    args: Vec::new(),
+                    arg_kinds: Vec::new(),
+                    span: function.sig.span,
+                }));
+            }
+            items.push(MirStmt::Jump(MirJump {
+                target: done_label.clone(),
+            }));
+            items.push(MirStmt::Label(MirLabel { name: skip_label }));
+        }
+        items.push(MirStmt::Label(MirLabel { name: done_label }));
+    }
+
+    items.push(MirStmt::Return(MirReturn { value: None }));
+
+    Some(MirFunction {
+        sig: FunctionSig {
+            name: closure_release_label(&function.sig.name),
+            params: vec![env_param],
+            span: function.sig.span,
+            builtin: None,
+        },
+        items,
+    })
+}
+
+fn build_deep_copy_helper(function: &MirFunction) -> Option<MirFunction> {
+    let env_param = SigItem {
+        name: "env_end".to_string(),
+        ty: SigKind::Int,
+        has_bang: false,
+        span: function.sig.span,
+    };
+
+    let offsets = env_word_offsets_from_params(&function.sig.params);
+    let env_word_count = env_word_count_from_params(&function.sig.params);
+    let mut items = Vec::new();
+    let num_curried_binding = "num_curried".to_string();
+
+    let reference_fields = function
+        .sig
+        .params
+        .iter()
+        .enumerate()
+        .filter_map(|(idx, param)| {
+            if !is_reference_type(&param.ty) {
+                return None;
+            }
+            let env_offset_from_start = offsets[idx];
+            Some((idx, env_offset_from_start))
+        })
+        .collect::<Vec<_>>();
+
+    if !reference_fields.is_empty() {
+        items.push(MirStmt::EnvField(MirEnvField {
+            result: num_curried_binding.clone(),
+            env_end: env_param.name.clone(),
+            field_name: "num_curried".to_string(),
+            offset_from_end: -(NUM_CURRIED_METADATA_WORD_OFFSET as isize),
+            ty: SigKind::Int,
+            continuation_params: Vec::new(),
+            span: function.sig.span,
+        }));
+        let done_label = format!("{}_done", closure_deepcopy_label(&function.sig.name));
+
+        for count in (1..=reference_fields.len()).rev() {
+            let skip_label = format!("{}_deepcopy_if_num_curried_lt_{}", function.sig.name, count);
+            items.push(MirStmt::CondJump(MirCondJump {
+                left: MirOperand::Binding(num_curried_binding.clone()),
+                right: MirOperand::Literal(count as i64),
+                kind: MirComparisonKind::Less,
+                target: skip_label.clone(),
+            }));
+            for &(idx, env_offset_from_start) in reference_fields.iter().take(count) {
+                items.push(MirStmt::Copy(MirCopyField {
+                    env_end: env_param.name.clone(),
+                    offset: env_offset_from_start as isize,
+                    env_word_count,
+                    result: format!("{}_deepcopy_field_{}_{}", function.sig.name, count, idx),
+                    span: function.sig.span,
+                }));
+            }
+            items.push(MirStmt::Jump(MirJump {
+                target: done_label.clone(),
+            }));
+            items.push(MirStmt::Label(MirLabel { name: skip_label }));
+        }
+        items.push(MirStmt::Label(MirLabel {
+            name: done_label.clone(),
+        }));
+    }
+
+    items.push(MirStmt::Return(MirReturn { value: None }));
+
+    Some(MirFunction {
+        sig: FunctionSig {
+            name: closure_deepcopy_label(&function.sig.name),
+            params: vec![env_param],
+            span: function.sig.span,
+            builtin: None,
+        },
+        items,
+    })
+}
+
 fn env_word_count_from_params(params: &[SigItem]) -> usize {
     params.iter().map(|param| words_for_type(&param.ty)).sum()
 }
@@ -577,6 +724,13 @@ fn words_for_type(ty: &SigKind) -> usize {
         ValueKind::Variadic => 0,
     }
 }
+
+fn is_reference_type(ty: &SigKind) -> bool {
+    return matches!(ty, SigKind::Sig(_));
+}
+
+const WORD_SIZE: usize = 8;
+const NUM_CURRIED_METADATA_WORD_OFFSET: usize = ENV_METADATA_NUM_CURRIED_OFFSET / WORD_SIZE;
 
 fn resolved_type_kind(ty: &SigKind) -> ValueKind {
     match ty {
@@ -633,27 +787,16 @@ fn build_builtin_bridge_function(builtin: MirBuiltin, sig: &FunctionSig) -> MirF
             span: sig.span,
         }),
         MirBuiltin::Call(kind) => {
-            let continuation_arg = continuation_signature
-                .as_ref()
-                .map(|(continuation, _)| Arg {
-                    name: continuation.name.clone(),
-                    span: continuation.span,
-                });
             let arg_kinds = input_params
                 .iter()
                 .map(|param| param.ty.clone())
                 .collect::<Vec<_>>();
-            let continuation = continuation_arg.clone().unwrap_or_else(|| Arg {
-                name: String::new(),
-                span: sig.span,
-            });
             let result_name = "__result".to_string();
             MirStmt::Call(MirCall {
                 result: result_name,
-                name: kind.name().to_string(),
+                target: MirCallTarget::Builtin(kind),
                 args: mir_inputs.clone(),
                 arg_kinds,
-                continuation,
                 span: sig.span,
             })
         }

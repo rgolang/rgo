@@ -71,20 +71,68 @@ impl MirFunction {
 }
 
 #[derive(Clone, Debug)]
-pub struct Release {
+pub struct ReleaseClosure {
     pub name: String,
 }
 
+// TODO: Rename to MirEnvField.
 #[derive(Clone, Debug)]
-pub struct DeepCopy {
-    pub original: String,
-    pub copy: String,
+pub struct MirField {
+    pub env_end: String,
+    pub offset_from_end: usize,
     pub span: Span,
 }
 
 #[derive(Clone, Debug)]
+pub struct MirCopyField {
+    pub env_end: String,
+    pub offset: isize,
+    pub env_word_count: usize,
+    pub result: String,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct MirLabel {
+    pub name: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct MirJump {
+    pub target: String,
+}
+
+#[derive(Clone, Debug)]
+pub enum MirComparisonKind {
+    Equal,
+    NotEqual,
+    Less,
+    LessOrEqual,
+    Greater,
+    GreaterOrEqual,
+}
+
+#[derive(Clone, Debug)]
+pub enum MirOperand {
+    Binding(String),
+    Literal(i64),
+}
+
+#[derive(Clone, Debug)]
+pub struct MirCondJump {
+    pub left: MirOperand,
+    pub right: MirOperand,
+    pub kind: MirComparisonKind,
+    pub target: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct MirReturn {
+    pub value: Option<String>,
+}
+
+#[derive(Clone, Debug)]
 pub enum MirStmt {
-    EnvBase(MirEnvBase),
     EnvField(MirEnvField),
     StrDef {
         name: String,
@@ -96,19 +144,15 @@ pub enum MirStmt {
     },
     Exec(MirExec),
     Closure(MirClosure),
-    Release(Release),
-    DeepCopy(DeepCopy),
+    ReleaseClosure(ReleaseClosure),
     Op(MirInstruction),
     SysCall(MirSysCall),
     Call(MirCall),
-}
-
-#[derive(Clone, Debug)]
-pub struct MirEnvBase {
-    pub name: String,
-    pub env_end: String,
-    pub size: usize,
-    pub span: Span,
+    Copy(MirCopyField),
+    Label(MirLabel),
+    Jump(MirJump),
+    CondJump(MirCondJump),
+    Return(MirReturn),
 }
 
 #[derive(Clone, Debug)]
@@ -116,7 +160,7 @@ pub struct MirEnvField {
     pub result: String,
     pub env_end: String,
     pub field_name: String,
-    pub offset_from_end: usize,
+    pub offset_from_end: isize,
     pub ty: SigKind,
     pub continuation_params: Vec<SigKind>,
     pub span: Span,
@@ -133,12 +177,17 @@ pub struct MirInstruction {
 }
 
 #[derive(Clone, Debug)]
+pub enum MirCallTarget {
+    Builtin(MirCallKind),
+    Field(MirField),
+}
+
+#[derive(Clone, Debug)]
 pub struct MirCall {
     pub result: String,
-    pub name: String,
+    pub target: MirCallTarget,
     pub args: Vec<MirArg>,
     pub arg_kinds: Vec<SigKind>,
-    pub continuation: Arg,
     pub span: Span,
 }
 

@@ -4,8 +4,17 @@ _2_lambda($s: str) {
 }
 
 _2_lambda_unwrapper($env_end: int) {
-    $s: str = $env_end - 1 words
+    $s: str = $env_end - 1w
+    release $env_end
     _2_lambda($s)
+}
+
+_2_lambda_release($env_end: int) {
+    return
+}
+
+_2_lambda_deepcopy($env_end: int) {
+    return
 }
 
 exit($code: int) {
@@ -13,7 +22,8 @@ exit($code: int) {
 }
 
 exit_unwrapper($env_end: int) {
-    $code: int = $env_end - 1 words
+    $code: int = $env_end - 1w
+    release $env_end
     exit($code)
 }
 
