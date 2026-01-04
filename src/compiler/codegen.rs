@@ -318,7 +318,7 @@ impl FrameLayout {
             next_offset: 0,
         };
         for param in &mir.sig.params {
-            let continuation_params = mir::continuation_params_for_type(&param.ty);
+            let continuation_params = mir::continuation_params_for_type(&param.kind);
             layout.allocate_param(param, &continuation_params)?;
         }
         for stmt in &mir.items {
@@ -336,7 +336,7 @@ impl FrameLayout {
         continuation_params: &[SigKind],
     ) -> Result<(), Error> {
         let name = &param.name;
-        let ty = &param.ty;
+        let ty = &param.kind;
         let kind = resolved_type_kind(&ty);
         if kind == ValueKind::Variadic {
             return Ok(());
@@ -528,7 +528,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         let mut stack_offset_bytes = 0usize;
         for param in &self.mir.sig.params {
             let name = &param.name;
-            let ty = &param.ty;
+            let ty = &param.kind;
             let required = slots_for_type(&ty);
             let kind = resolved_type_kind(&ty);
             if kind == ValueKind::Variadic {
@@ -840,7 +840,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         }
         let offset_bytes = field.offset_from_end * (WORD_SIZE as isize);
         let abs_offset_bytes = offset_bytes.abs() as i32;
-        match resolved_type_kind(&field.ty) {
+        match resolved_type_kind(&field.kind) {
             ValueKind::Word => {
                 if offset_bytes >= 0 {
                     writeln!(

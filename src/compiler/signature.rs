@@ -16,10 +16,10 @@ pub fn resolve_ast_signature(signature: &ast::Signature, ctx: &mut ctx::Context)
                 } else {
                     item.name.clone()
                 };
-                let ty = lower_sig_kind(&item.ty, ctx, item.has_bang);
+                let ty = lower_sig_kind(&item.kind, ctx, item.has_bang);
                 SigItem {
                     name,
-                    ty,
+                    kind: ty,
                     has_bang: item.has_bang,
                     span: item.span,
                 }
@@ -38,7 +38,7 @@ pub fn normalize_signature(signature: &Signature, ctx: &ctx::Context) -> Signatu
         .iter()
         .map(|item| {
             let mut normalized_item = item.clone();
-            normalized_item.ty = normalize_sig_kind(&item.ty, ctx);
+            normalized_item.kind = normalize_sig_kind(&item.kind, ctx);
             normalized_item
         })
         .collect();
@@ -78,7 +78,7 @@ fn normalize_sig_kind_inner(
                 .iter()
                 .map(|item| {
                     let mut normalized_item = item.clone();
-                    normalized_item.ty = normalize_sig_kind_inner(&item.ty, ctx, seen);
+                    normalized_item.kind = normalize_sig_kind_inner(&item.kind, ctx, seen);
                     normalized_item
                 })
                 .collect();
@@ -138,7 +138,7 @@ pub fn expected_params_for_args<'a>(
     let mut suffix_start = args_len;
     let variadic_index = params
         .iter()
-        .position(|item| matches!(item.ty, SigKind::Variadic));
+        .position(|item| matches!(item.kind, SigKind::Variadic));
 
     if let Some(var_idx) = variadic_index {
         let prefix_count = var_idx;
@@ -267,7 +267,7 @@ fn substitute_signature(signature: &Signature, mapping: &HashMap<String, SigKind
         .iter()
         .map(|item| {
             let mut out = item.clone();
-            out.ty = substitute_kind(&item.ty, mapping);
+            out.kind = substitute_kind(&item.kind, mapping);
             out
         })
         .collect();

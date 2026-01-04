@@ -46,7 +46,7 @@
                 items: [
                     SigItem {
                         name: "x",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [],
                                 span: Span {
@@ -66,7 +66,7 @@
                     },
                     SigItem {
                         name: "y",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [],
                                 span: Span {
@@ -132,7 +132,7 @@
                 items: [
                     SigItem {
                         name: "x",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [],
                                 span: Span {
@@ -152,7 +152,7 @@
                     },
                     SigItem {
                         name: "y",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [],
                                 span: Span {
@@ -218,12 +218,12 @@
                 items: [
                     SigItem {
                         name: "cond",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [
                                     SigItem {
                                         name: "",
-                                        ty: Sig(
+                                        kind: Sig(
                                             Signature {
                                                 items: [],
                                                 span: Span {
@@ -243,7 +243,7 @@
                                     },
                                     SigItem {
                                         name: "",
-                                        ty: Sig(
+                                        kind: Sig(
                                             Signature {
                                                 items: [],
                                                 span: Span {
@@ -279,7 +279,7 @@
                     },
                     SigItem {
                         name: "yes",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [],
                                 span: Span {
@@ -299,7 +299,7 @@
                     },
                     SigItem {
                         name: "no",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [],
                                 span: Span {

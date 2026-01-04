@@ -22,13 +22,13 @@ pub struct FunctionSig {
 
 impl FunctionSig {
     pub fn param_kinds(&self) -> Vec<SigKind> {
-        self.params.iter().map(|item| item.ty.clone()).collect()
+        self.params.iter().map(|item| item.kind.clone()).collect()
     }
 
     pub fn is_variadic(&self) -> bool {
         self.params
             .iter()
-            .any(|param| matches!(param.ty, SigKind::Variadic))
+            .any(|param| matches!(param.kind, SigKind::Variadic))
     }
 }
 
@@ -161,7 +161,7 @@ pub struct MirEnvField {
     pub env_end: String,
     pub field_name: String,
     pub offset_from_end: isize,
-    pub ty: SigKind,
+    pub kind: SigKind,
     pub continuation_params: Vec<SigKind>,
     pub span: Span,
 }

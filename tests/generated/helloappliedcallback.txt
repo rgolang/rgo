@@ -38,7 +38,7 @@
                 items: [
                     SigItem {
                         name: "m1",
-                        ty: Ident(
+                        kind: Ident(
                             SigIdent {
                                 name: "str",
                                 span: Span {
@@ -57,7 +57,7 @@
                     },
                     SigItem {
                         name: "m2",
-                        ty: Ident(
+                        kind: Ident(
                             SigIdent {
                                 name: "str",
                                 span: Span {
@@ -76,7 +76,7 @@
                     },
                     SigItem {
                         name: "ok",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [],
                                 span: Span {
@@ -186,12 +186,12 @@
                 items: [
                     SigItem {
                         name: "cb",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [
                                     SigItem {
                                         name: "",
-                                        ty: Ident(
+                                        kind: Ident(
                                             SigIdent {
                                                 name: "str",
                                                 span: Span {
@@ -210,7 +210,7 @@
                                     },
                                     SigItem {
                                         name: "",
-                                        ty: Sig(
+                                        kind: Sig(
                                             Signature {
                                                 items: [],
                                                 span: Span {
@@ -246,7 +246,7 @@
                     },
                     SigItem {
                         name: "ok",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [],
                                 span: Span {

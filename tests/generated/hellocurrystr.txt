@@ -38,7 +38,7 @@
                 items: [
                     SigItem {
                         name: "n",
-                        ty: Ident(
+                        kind: Ident(
                             SigIdent {
                                 name: "str",
                                 span: Span {
@@ -57,7 +57,7 @@
                     },
                     SigItem {
                         name: "s",
-                        ty: Ident(
+                        kind: Ident(
                             SigIdent {
                                 name: "str",
                                 span: Span {
@@ -76,7 +76,7 @@
                     },
                     SigItem {
                         name: "ok",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [],
                                 span: Span {

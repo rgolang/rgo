@@ -53,7 +53,7 @@ fn format_function_param(param: &mir::SigItem) -> String {
     let ty = if param.name.ends_with("__env_end") {
         "ptr".to_string()
     } else {
-        format_type(&param.ty)
+        format_type(&param.kind)
     };
     format!("{}: {}", format_parameter_name(&param.name), ty)
 }
@@ -61,7 +61,7 @@ fn format_function_param(param: &mir::SigItem) -> String {
 fn format_mir_block_item(item: &mir::MirStmt, prefixed_names: &HashSet<String>) -> Vec<String> {
     match item {
         mir::MirStmt::EnvField(field) => {
-            let ty = format_type(&field.ty);
+            let ty = format_type(&field.kind);
             let offset_words = field.offset_from_end;
             let sign_char = if offset_words >= 0 { '-' } else { '+' };
             let magnitude = offset_words.abs();
@@ -231,7 +231,7 @@ fn format_type(ty: &mir::SigKind) -> String {
             let inner = params
                 .items
                 .iter()
-                .map(|item| format_type(&item.ty))
+                .map(|item| format_type(&item.kind))
                 .collect::<Vec<_>>();
             format!("({})", inner.join(", "))
         }

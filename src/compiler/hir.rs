@@ -68,7 +68,7 @@ fn lower_function(
     let params = signature.items;
     let mut ctx = outer_ctx.enter(&name, display_name.as_deref(), is_root_def);
     for item in &params {
-        ctx.add_param(&item.name, item.ty.clone(), item.span, false)?;
+        ctx.add_param(&item.name, item.kind.clone(), item.span, false)?;
     }
     let mut lowered_items = Vec::with_capacity(lambda.body.items.len());
 
@@ -581,7 +581,7 @@ fn maybe_wrap_builtin(
         return Ok(ast::Term::Ident(ident));
     };
 
-    let SigKind::Sig(signature) = &sig_item.ty else {
+    let SigKind::Sig(signature) = &sig_item.kind else {
         return Ok(ast::Term::Ident(ident));
     };
 
@@ -627,7 +627,7 @@ fn ensure_param_names(ctx: &mut ctx::Context, expected_sig: &Signature) -> ast::
         };
         items.push(ast::SigItem {
             name: param_name,
-            ty: item.ty.clone(),
+            kind: item.kind.clone(),
             has_bang: item.has_bang,
             span: item.span,
         });
@@ -647,11 +647,11 @@ fn validate_input_type(
     let Some(expected) = expected_param else {
         return Ok(());
     };
-    if matches!(expected.ty, SigKind::Variadic) {
+    if matches!(expected.kind, SigKind::Variadic) {
         return Ok(());
     }
 
-    let normalized_expected = signature::normalize_sig_kind(&expected.ty, ctx);
+    let normalized_expected = signature::normalize_sig_kind(&expected.kind, ctx);
     ensure_sig_kind_exists(ctx, &normalized_expected, term.span())?;
 
     let expected_is_compile_time = matches!(
@@ -703,7 +703,7 @@ fn ensure_sig_kind_exists(
         }
         SigKind::Sig(signature) => {
             for item in &signature.items {
-                ensure_sig_kind_exists(ctx, &item.ty, item.span)?;
+                ensure_sig_kind_exists(ctx, &item.kind, item.span)?;
             }
         }
         SigKind::GenericInst { name, args } => {
@@ -764,7 +764,7 @@ fn canonicalize_kind(kind: &SigKind) -> SigKind {
                 .iter()
                 .map(|item| SigItem {
                     name: item.name.clone(),
-                    ty: canonicalize_kind(&item.ty),
+                    kind: canonicalize_kind(&item.kind),
                     has_bang: item.has_bang,
                     span: item.span,
                 })

@@ -38,7 +38,7 @@
                 items: [
                     SigItem {
                         name: "fmt",
-                        ty: Ident(
+                        kind: Ident(
                             SigIdent {
                                 name: "str",
                                 span: Span {
@@ -57,7 +57,7 @@
                     },
                     SigItem {
                         name: "value",
-                        ty: Ident(
+                        kind: Ident(
                             SigIdent {
                                 name: "int",
                                 span: Span {
@@ -167,7 +167,7 @@
                 items: [
                     SigItem {
                         name: "fmt",
-                        ty: Ident(
+                        kind: Ident(
                             SigIdent {
                                 name: "str",
                                 span: Span {
@@ -186,7 +186,7 @@
                     },
                     SigItem {
                         name: "value",
-                        ty: Ident(
+                        kind: Ident(
                             SigIdent {
                                 name: "int",
                                 span: Span {

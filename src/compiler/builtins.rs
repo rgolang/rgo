@@ -63,7 +63,7 @@ pub fn get_spec(name: &str, span: Span) -> Option<BuiltinSpec> {
 fn sig_item(name: &str, ty: SigKind, span: Span) -> SigItem {
     SigItem {
         name: name.to_string(),
-        ty,
+        kind: ty,
         has_bang: false,
         span,
     }

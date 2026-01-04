@@ -199,7 +199,7 @@ impl Context {
             if let Some(entry) = self.inner.get(name) {
                 let item = SigItem {
                     name: name.clone(),
-                    ty: entry.kind.clone(),
+                    kind: entry.kind.clone(),
                     has_bang: false,
                     span: entry.span.clone(),
                 };
@@ -220,7 +220,7 @@ impl Context {
             if let Some(entry) = self.inner.get(name) {
                 let item = SigItem {
                     name: name.clone(),
-                    ty: entry.kind.clone(),
+                    kind: entry.kind.clone(),
                     has_bang: false,
                     span: entry.span.clone(),
                 };

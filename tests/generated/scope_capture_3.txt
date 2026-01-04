@@ -58,7 +58,7 @@
                             items: [
                                 SigItem {
                                     name: "x",
-                                    ty: Ident(
+                                    kind: Ident(
                                         SigIdent {
                                             name: "int",
                                             span: Span {
@@ -153,12 +153,12 @@
                                     items: [
                                         SigItem {
                                             name: "ok",
-                                            ty: Sig(
+                                            kind: Sig(
                                                 Signature {
                                                     items: [
                                                         SigItem {
                                                             name: "",
-                                                            ty: Ident(
+                                                            kind: Ident(
                                                                 SigIdent {
                                                                     name: "int",
                                                                     span: Span {

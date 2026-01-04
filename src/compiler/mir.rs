@@ -26,7 +26,7 @@ pub fn closure_deepcopy_label(name: &str) -> String {
 fn collect_unused_param_refs(params: &[SigItem]) -> HashSet<String> {
     params
         .iter()
-        .filter(|param| matches!(param.ty, SigKind::Sig(_)))
+        .filter(|param| matches!(param.kind, SigKind::Sig(_)))
         .map(|param| param.name.clone())
         .collect()
 }
@@ -414,7 +414,7 @@ fn resolve_target(name: &str, symbols: &SymbolRegistry) -> MirExecTarget {
 fn build_closure_unwrapper(function: &MirFunction) -> Option<MirFunction> {
     let env_param = SigItem {
         name: "env_end".to_string(),
-        ty: SigKind::Int,
+        kind: SigKind::Int,
         has_bang: false,
         span: function.sig.span,
     };
@@ -455,7 +455,7 @@ fn consume_signature_for_args(params: &[SigItem], args: &[Arg]) -> Vec<MirArg> {
     let total = params.len();
     let mut mir_args = Vec::with_capacity(args.len());
     while consumed < args.len() && sig_index < total {
-        match &params[sig_index].ty {
+        match &params[sig_index].kind {
             SigKind::Variadic => {
                 let remaining_args = args.len() - consumed;
                 let final_items = total.saturating_sub(sig_index + 1);
@@ -509,8 +509,8 @@ fn build_unwrapper_function(
             env_end: env_param.name.clone(),
             field_name: sig_item.name.clone(),
             offset_from_end,
-            ty: sig_item.ty.clone(),
-            continuation_params: continuation_params_for_type(&sig_item.ty),
+            kind: sig_item.kind.clone(),
+            continuation_params: continuation_params_for_type(&sig_item.kind),
             span: sig_item.span,
         }));
     }
@@ -523,7 +523,7 @@ fn build_unwrapper_function(
         .iter()
         .map(|item| MirArg {
             name: item.name.clone(),
-            kind: item.ty.clone(),
+            kind: item.kind.clone(),
         })
         .collect::<Vec<_>>();
 
@@ -547,7 +547,7 @@ fn build_unwrapper_function(
 fn build_release_helper(function: &MirFunction) -> Option<MirFunction> {
     let env_param = SigItem {
         name: "env_end".to_string(),
-        ty: SigKind::Int,
+        kind: SigKind::Int,
         has_bang: false,
         span: function.sig.span,
     };
@@ -563,7 +563,7 @@ fn build_release_helper(function: &MirFunction) -> Option<MirFunction> {
         .iter()
         .enumerate()
         .filter_map(|(idx, param)| {
-            if !is_reference_type(&param.ty) {
+            if !is_reference_type(&param.kind) {
                 return None;
             }
             Some(env_word_count - offsets[idx])
@@ -576,7 +576,7 @@ fn build_release_helper(function: &MirFunction) -> Option<MirFunction> {
             env_end: env_param.name.clone(),
             field_name: "num_curried".to_string(),
             offset_from_end: -(NUM_CURRIED_METADATA_WORD_OFFSET as isize),
-            ty: SigKind::Int,
+            kind: SigKind::Int,
             continuation_params: Vec::new(),
             span: function.sig.span,
         }));
@@ -627,7 +627,7 @@ fn build_release_helper(function: &MirFunction) -> Option<MirFunction> {
 fn build_deep_copy_helper(function: &MirFunction) -> Option<MirFunction> {
     let env_param = SigItem {
         name: "env_end".to_string(),
-        ty: SigKind::Int,
+        kind: SigKind::Int,
         has_bang: false,
         span: function.sig.span,
     };
@@ -643,7 +643,7 @@ fn build_deep_copy_helper(function: &MirFunction) -> Option<MirFunction> {
         .iter()
         .enumerate()
         .filter_map(|(idx, param)| {
-            if !is_reference_type(&param.ty) {
+            if !is_reference_type(&param.kind) {
                 return None;
             }
             let env_offset_from_start = offsets[idx];
@@ -657,7 +657,7 @@ fn build_deep_copy_helper(function: &MirFunction) -> Option<MirFunction> {
             env_end: env_param.name.clone(),
             field_name: "num_curried".to_string(),
             offset_from_end: -(NUM_CURRIED_METADATA_WORD_OFFSET as isize),
-            ty: SigKind::Int,
+            kind: SigKind::Int,
             continuation_params: Vec::new(),
             span: function.sig.span,
         }));
@@ -704,7 +704,7 @@ fn build_deep_copy_helper(function: &MirFunction) -> Option<MirFunction> {
 }
 
 fn env_word_count_from_params(params: &[SigItem]) -> usize {
-    params.iter().map(|param| words_for_type(&param.ty)).sum()
+    params.iter().map(|param| words_for_type(&param.kind)).sum()
 }
 
 fn env_word_offsets_from_params(params: &[SigItem]) -> Vec<usize> {
@@ -712,7 +712,7 @@ fn env_word_offsets_from_params(params: &[SigItem]) -> Vec<usize> {
     let mut current = 0usize;
     for param in params {
         offsets.push(current);
-        current += words_for_type(&param.ty);
+        current += words_for_type(&param.kind);
     }
     offsets
 }
@@ -762,7 +762,7 @@ fn build_builtin_bridge_function(builtin: MirBuiltin, sig: &FunctionSig) -> MirF
         .iter()
         .map(|param| MirArg {
             name: param.name.clone(),
-            kind: param.ty.clone(),
+            kind: param.kind.clone(),
         })
         .collect::<Vec<_>>();
     let output_names = outputs
@@ -789,7 +789,7 @@ fn build_builtin_bridge_function(builtin: MirBuiltin, sig: &FunctionSig) -> MirF
         MirBuiltin::Call(kind) => {
             let arg_kinds = input_params
                 .iter()
-                .map(|param| param.ty.clone())
+                .map(|param| param.kind.clone())
                 .collect::<Vec<_>>();
             let result_name = "__result".to_string();
             MirStmt::Call(MirCall {
@@ -857,7 +857,7 @@ fn extract_continuation_signature(
     continuation_params: &[SigItem],
 ) -> Option<(SigItem, ast::Signature)> {
     continuation_params.first().and_then(|continuation| {
-        if let SigKind::Sig(signature) = &continuation.ty {
+        if let SigKind::Sig(signature) = &continuation.kind {
             Some((continuation.clone(), signature.clone()))
         } else {
             None
@@ -884,7 +884,7 @@ fn build_continuation_outputs(
                 };
                 MirArg {
                     name,
-                    kind: item.ty.clone(),
+                    kind: item.kind.clone(),
                 }
             })
             .collect::<Vec<_>>();
@@ -922,7 +922,7 @@ fn split_inputs_and_continuations(params: &[SigItem]) -> (Vec<SigItem>, Vec<SigI
     let mut continuations = Vec::new();
     let mut seen_continuation = false;
     for param in params {
-        if matches!(param.ty, SigKind::Sig(_)) {
+        if matches!(param.kind, SigKind::Sig(_)) {
             seen_continuation = true;
             continuations.push(param.clone());
         } else if seen_continuation {

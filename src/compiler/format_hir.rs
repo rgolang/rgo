@@ -7,12 +7,12 @@ pub fn render_normalized_rgo(items: &[BlockItem]) -> String {
     for (i, item) in items.iter().enumerate() {
         match item {
             BlockItem::FunctionDef(function) => {
-                write_function(function, &mut out, 0);
+                write_function(&function, &mut out, 0);
                 if matches!(items.get(i + 1), Some(BlockItem::FunctionDef(_))) {
                     out.push('\n');
                 }
             }
-            _ => write_block_item(item, &mut out, 0),
+            _ => write_block_item(&item, &mut out, 0),
         }
     }
 
@@ -100,7 +100,7 @@ fn format_param_list(params: &[ast::SigItem]) -> String {
     let entries: Vec<String> = params
         .iter()
         .map(|param| {
-            let ty = format_sig_kind(&param.ty);
+            let ty = format_sig_kind(&param.kind);
             let ty = if param.has_bang && !ty.ends_with('!') {
                 format!("{ty}!")
             } else {
@@ -127,7 +127,7 @@ pub(crate) fn format_sig_kind(kind: &ast::SigKind) -> String {
             let entries = inner
                 .items
                 .iter()
-                .map(|item| format_sig_kind(&item.ty))
+                .map(|item| format_sig_kind(&item.kind))
                 .collect::<Vec<_>>()
                 .join(", ");
             format!("({})", entries)

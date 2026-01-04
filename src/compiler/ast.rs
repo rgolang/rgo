@@ -99,7 +99,7 @@ impl Signature {
             .into_iter()
             .map(|kind| SigItem {
                 name: String::new(), // TODO: could avoid empty string...
-                ty: kind,
+                kind,
                 has_bang: false,
                 span: Span::unknown(),
             })
@@ -112,7 +112,7 @@ impl Signature {
     }
 
     pub fn kinds(&self) -> Vec<SigKind> {
-        self.items.iter().map(|item| item.ty.clone()).collect()
+        self.items.iter().map(|item| item.kind.clone()).collect()
     }
     pub fn from_tuple<I>(items: I, span: Span) -> Signature
     where
@@ -122,7 +122,7 @@ impl Signature {
             .into_iter()
             .map(|kind| SigItem {
                 name: String::new(), // TODO: could avoid empty string...
-                ty: kind,            // TODO: Rename to kind
+                kind,                // TODO: Rename to kind
                 has_bang: false,
                 span: Span::unknown(),
             })
@@ -136,7 +136,7 @@ impl Signature {
     pub fn is_variadic(&self) -> bool {
         self.items
             .iter()
-            .any(|item| matches!(item.ty, SigKind::Variadic))
+            .any(|item| matches!(item.kind, SigKind::Variadic))
     }
     pub fn names(&self) -> Vec<String> {
         self.items.iter().map(|item| item.name.clone()).collect()
@@ -146,7 +146,7 @@ impl Signature {
 #[derive(Debug, Clone)]
 pub struct SigItem {
     pub name: String,
-    pub ty: SigKind,
+    pub kind: SigKind,
     pub has_bang: bool,
     pub span: Span,
 }
@@ -154,13 +154,13 @@ impl Eq for SigItem {}
 impl PartialEq for SigItem {
     fn eq(&self, other: &Self) -> bool {
         // name is ignored for comparison
-        self.ty == other.ty && self.has_bang == other.has_bang
+        self.kind == other.kind && self.has_bang == other.has_bang
     }
 }
 
 impl std::hash::Hash for SigItem {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.ty.hash(state);
+        self.kind.hash(state);
         self.has_bang.hash(state);
     }
 }

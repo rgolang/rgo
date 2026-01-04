@@ -37,12 +37,12 @@
             items: [
                 SigItem {
                     name: "",
-                    ty: Sig(
+                    kind: Sig(
                         Signature {
                             items: [
                                 SigItem {
                                     name: "",
-                                    ty: Ident(
+                                    kind: Ident(
                                         SigIdent {
                                             name: "int",
                                             span: Span {
@@ -61,7 +61,7 @@
                                 },
                                 SigItem {
                                     name: "",
-                                    ty: Ident(
+                                    kind: Ident(
                                         SigIdent {
                                             name: "list",
                                             span: Span {
@@ -96,7 +96,7 @@
                 },
                 SigItem {
                     name: "",
-                    ty: Sig(
+                    kind: Sig(
                         Signature {
                             items: [],
                             span: Span {
@@ -135,12 +135,12 @@
                 items: [
                     SigItem {
                         name: "next",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [
                                     SigItem {
                                         name: "",
-                                        ty: Ident(
+                                        kind: Ident(
                                             SigIdent {
                                                 name: "int",
                                                 span: Span {
@@ -159,7 +159,7 @@
                                     },
                                     SigItem {
                                         name: "",
-                                        ty: Ident(
+                                        kind: Ident(
                                             SigIdent {
                                                 name: "list",
                                                 span: Span {
@@ -194,7 +194,7 @@
                     },
                     SigItem {
                         name: "end",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [],
                                 span: Span {
@@ -260,7 +260,7 @@
                 items: [
                     SigItem {
                         name: "head",
-                        ty: Ident(
+                        kind: Ident(
                             SigIdent {
                                 name: "int",
                                 span: Span {
@@ -279,7 +279,7 @@
                     },
                     SigItem {
                         name: "tail",
-                        ty: Ident(
+                        kind: Ident(
                             SigIdent {
                                 name: "list",
                                 span: Span {
@@ -298,12 +298,12 @@
                     },
                     SigItem {
                         name: "next",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [
                                     SigItem {
                                         name: "",
-                                        ty: Ident(
+                                        kind: Ident(
                                             SigIdent {
                                                 name: "int",
                                                 span: Span {
@@ -322,7 +322,7 @@
                                     },
                                     SigItem {
                                         name: "",
-                                        ty: Ident(
+                                        kind: Ident(
                                             SigIdent {
                                                 name: "list",
                                                 span: Span {
@@ -357,7 +357,7 @@
                     },
                     SigItem {
                         name: "end",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [],
                                 span: Span {
@@ -446,17 +446,17 @@
                 items: [
                     SigItem {
                         name: "iterate",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [
                                     SigItem {
                                         name: "",
-                                        ty: Sig(
+                                        kind: Sig(
                                             Signature {
                                                 items: [
                                                     SigItem {
                                                         name: "",
-                                                        ty: Ident(
+                                                        kind: Ident(
                                                             SigIdent {
                                                                 name: "int",
                                                                 span: Span {
@@ -475,7 +475,7 @@
                                                     },
                                                     SigItem {
                                                         name: "",
-                                                        ty: Sig(
+                                                        kind: Sig(
                                                             Signature {
                                                                 items: [],
                                                                 span: Span {
@@ -511,7 +511,7 @@
                                     },
                                     SigItem {
                                         name: "",
-                                        ty: Ident(
+                                        kind: Ident(
                                             SigIdent {
                                                 name: "list",
                                                 span: Span {
@@ -530,7 +530,7 @@
                                     },
                                     SigItem {
                                         name: "",
-                                        ty: Sig(
+                                        kind: Sig(
                                             Signature {
                                                 items: [],
                                                 span: Span {
@@ -566,12 +566,12 @@
                     },
                     SigItem {
                         name: "handler",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [
                                     SigItem {
                                         name: "",
-                                        ty: Ident(
+                                        kind: Ident(
                                             SigIdent {
                                                 name: "int",
                                                 span: Span {
@@ -590,7 +590,7 @@
                                     },
                                     SigItem {
                                         name: "",
-                                        ty: Sig(
+                                        kind: Sig(
                                             Signature {
                                                 items: [],
                                                 span: Span {
@@ -626,7 +626,7 @@
                     },
                     SigItem {
                         name: "end",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [],
                                 span: Span {
@@ -646,7 +646,7 @@
                     },
                     SigItem {
                         name: "head",
-                        ty: Ident(
+                        kind: Ident(
                             SigIdent {
                                 name: "int",
                                 span: Span {
@@ -665,7 +665,7 @@
                     },
                     SigItem {
                         name: "tail",
-                        ty: Ident(
+                        kind: Ident(
                             SigIdent {
                                 name: "list",
                                 span: Span {
@@ -804,12 +804,12 @@
                 items: [
                     SigItem {
                         name: "handler",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [
                                     SigItem {
                                         name: "",
-                                        ty: Ident(
+                                        kind: Ident(
                                             SigIdent {
                                                 name: "int",
                                                 span: Span {
@@ -828,7 +828,7 @@
                                     },
                                     SigItem {
                                         name: "",
-                                        ty: Sig(
+                                        kind: Sig(
                                             Signature {
                                                 items: [],
                                                 span: Span {
@@ -864,7 +864,7 @@
                     },
                     SigItem {
                         name: "arr",
-                        ty: Ident(
+                        kind: Ident(
                             SigIdent {
                                 name: "list",
                                 span: Span {
@@ -883,7 +883,7 @@
                     },
                     SigItem {
                         name: "end",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [],
                                 span: Span {
@@ -1006,7 +1006,7 @@
                 items: [
                     SigItem {
                         name: "n",
-                        ty: Ident(
+                        kind: Ident(
                             SigIdent {
                                 name: "int",
                                 span: Span {
@@ -1025,7 +1025,7 @@
                     },
                     SigItem {
                         name: "ok",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [],
                                 span: Span {

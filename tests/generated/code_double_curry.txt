@@ -38,12 +38,12 @@
                 items: [
                     SigItem {
                         name: "ok",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [
                                     SigItem {
                                         name: "",
-                                        ty: Ident(
+                                        kind: Ident(
                                             SigIdent {
                                                 name: "str",
                                                 span: Span {
@@ -135,12 +135,12 @@
                 items: [
                     SigItem {
                         name: "ok",
-                        ty: Sig(
+                        kind: Sig(
                             Signature {
                                 items: [
                                     SigItem {
                                         name: "",
-                                        ty: Ident(
+                                        kind: Ident(
                                             SigIdent {
                                                 name: "str",
                                                 span: Span {
@@ -159,7 +159,7 @@
                                     },
                                     SigItem {
                                         name: "",
-                                        ty: Ident(
+                                        kind: Ident(
                                             SigIdent {
                                                 name: "str",
                                                 span: Span {
@@ -263,7 +263,7 @@
                 items: [
                     SigItem {
                         name: "name0",
-                        ty: Ident(
+                        kind: Ident(
                             SigIdent {
                                 name: "str",
                                 span: Span {
@@ -282,7 +282,7 @@
                     },
                     SigItem {
                         name: "name1",
-                        ty: Ident(
+                        kind: Ident(
                             SigIdent {
                                 name: "str",
                                 span: Span {
@@ -301,7 +301,7 @@
                     },
                     SigItem {
                         name: "name2",
-                        ty: Ident(
+                        kind: Ident(
                             SigIdent {
                                 name: "str",
                                 span: Span {

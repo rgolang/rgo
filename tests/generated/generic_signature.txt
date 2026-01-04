@@ -37,12 +37,12 @@
             items: [
                 SigItem {
                     name: "",
-                    ty: Sig(
+                    kind: Sig(
                         Signature {
                             items: [
                                 SigItem {
                                     name: "len",
-                                    ty: Ident(
+                                    kind: Ident(
                                         SigIdent {
                                             name: "int",
                                             span: Span {
@@ -61,12 +61,12 @@
                                 },
                                 SigItem {
                                     name: "nth",
-                                    ty: Sig(
+                                    kind: Sig(
                                         Signature {
                                             items: [
                                                 SigItem {
                                                     name: "idx",
-                                                    ty: Ident(
+                                                    kind: Ident(
                                                         SigIdent {
                                                             name: "int",
                                                             span: Span {
@@ -85,7 +85,7 @@
                                                 },
                                                 SigItem {
                                                     name: "none",
-                                                    ty: Sig(
+                                                    kind: Sig(
                                                         Signature {
                                                             items: [],
                                                             span: Span {
@@ -105,12 +105,12 @@
                                                 },
                                                 SigItem {
                                                     name: "one",
-                                                    ty: Sig(
+                                                    kind: Sig(
                                                         Signature {
                                                             items: [
                                                                 SigItem {
                                                                     name: "",
-                                                                    ty: Generic(
+                                                                    kind: Generic(
                                                                         "T",
                                                                     ),
                                                                     has_bang: false,
@@ -191,7 +191,7 @@
                 items: [
                     SigItem {
                         name: "items",
-                        ty: GenericInst {
+                        kind: GenericInst {
                             name: "arr",
                             args: [
                                 Ident(

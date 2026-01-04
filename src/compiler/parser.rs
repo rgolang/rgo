@@ -403,7 +403,7 @@ impl<R: BufRead> Parser<R> {
 
         Ok(ast::SigItem {
             name: name.unwrap_or_default(),
-            ty,
+            kind: ty,
             has_bang,
             span: item_span,
         })
@@ -462,7 +462,7 @@ impl<R: BufRead> Parser<R> {
     }
 
     fn collect_param_kinds(params: &[SigItem]) -> Result<Vec<ast::SigKind>, Error> {
-        Ok(params.iter().map(|param| param.ty.clone()).collect())
+        Ok(params.iter().map(|param| param.kind.clone()).collect())
     }
 
     fn parse_type_arguments(&mut self) -> Result<Vec<ast::SigKind>, Error> {

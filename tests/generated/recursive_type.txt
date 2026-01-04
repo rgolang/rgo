@@ -37,7 +37,7 @@
             items: [
                 SigItem {
                     name: "",
-                    ty: Ident(
+                    kind: Ident(
                         SigIdent {
                             name: "int",
                             span: Span {
@@ -56,7 +56,7 @@
                 },
                 SigItem {
                     name: "",
-                    ty: Ident(
+                    kind: Ident(
                         SigIdent {
                             name: "tail",
                             span: Span {
@@ -94,7 +94,7 @@
                 items: [
                     SigItem {
                         name: "node",
-                        ty: Ident(
+                        kind: Ident(
                             SigIdent {
                                 name: "tail",
                                 span: Span {

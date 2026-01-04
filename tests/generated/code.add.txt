@@ -53,7 +53,7 @@
                             items: [
                                 SigItem {
                                     name: "n",
-                                    ty: Ident(
+                                    kind: Ident(
                                         SigIdent {
                                             name: "int",
                                             span: Span {
