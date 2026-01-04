@@ -67,6 +67,8 @@ Instead, the parser interprets the form in one of two ways:
 When application appears on the right-hand side of a definition `end: exit(0)` or as a direct argument `foo(exit(0))`
 it is treated as applying arguments to a closure. No execution happens at this point, it creates an applied closure that can be executed later.
 
+i.e. `foo(x)` with a name or as an argument produces a closure (an executable value) by binding x (and any captured scope) without executing.
+
 2. **Tail jump (control transfer)**
 When application appears as a standalone action in a block .e.g `foo(end)`
 it is compiled as a tail jump to `foo`. Control transfers directly to `foo`
