@@ -1,0 +1,20 @@
+foo() {
+    foo()
+}
+
+foo_unwrapper($env_end: int) {
+    release $env_end
+    foo()
+}
+
+foo_release($env_end: int) {
+    return
+}
+
+foo_deepcopy($env_end: int) {
+    return
+}
+
+_start() {
+    foo()
+}

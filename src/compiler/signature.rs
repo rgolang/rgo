@@ -62,7 +62,7 @@ fn normalize_sig_kind_inner(
     match kind {
         SigKind::Ident(ident) => {
             if seen.contains(&ident.name) {
-                return SigKind::tuple(Vec::<SigKind>::new());
+                return SigKind::Ident(ident.clone());
             }
             if let Some(entry) = ctx.get(&ident.name) {
                 seen.insert(ident.name.clone());

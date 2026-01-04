@@ -356,6 +356,46 @@ bar_deepcopy_done:
     leave
     ret
 
+global _3_lambda
+_3_lambda:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov rax, 0 ; load literal integer
+    mov [rbp-16], rax ; save evaluated scalar in frame
+    mov rax, [rbp-16] ; load scalar from frame
+    push rax ; stack arg: scalar
+    pop rdi ; restore scalar arg into register
+    leave ; unwind before named jump
+    jmp exit ; jump to fully applied function
+global _3_lambda_unwrapper
+_3_lambda_unwrapper:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov [rbp-16], rdi ; store scalar arg in frame
+    mov rdi, [rbp-16] ; load closure env_end pointer
+    call release_heap_ptr ; release closure environment
+    leave ; unwind before named jump
+    jmp _3_lambda ; jump to fully applied function
+global _3_lambda_release
+_3_lambda_release:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov [rbp-16], rdi ; store scalar arg in frame
+    leave
+    ret
+
+global _3_lambda_deepcopy
+_3_lambda_deepcopy:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov [rbp-16], rdi ; store scalar arg in frame
+    leave
+    ret
+
 global exit
 exit:
     push rbp ; save executor frame pointer
@@ -386,46 +426,9 @@ global _start
 _start:
     push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
-    sub rsp, 64 ; reserve stack space for locals
+    sub rsp, 48 ; reserve stack space for locals
     lea rax, [rel msg] ; point to string literal
     mov [rbp-16], rax ; save evaluated scalar in frame
-    mov rax, 0 ; load literal integer
-    mov [rbp-32], rax ; save evaluated scalar in frame
-    mov rax, 9 ; mmap syscall
-    xor rdi, rdi ; addr = NULL hint
-    mov rsi, 56 ; length for allocation
-    mov rdx, 3 ; prot = read/write
-    mov r10, 34 ; flags: private & anonymous
-    mov r8, -1 ; fd = -1
-    xor r9, r9 ; offset = 0
-    syscall ; allocate env pages
-    mov rdx, rax ; store env base pointer
-    add rdx, 8 ; bump pointer past env header
-    mov qword [rdx+24], 8 ; env size metadata
-    mov qword [rdx+32], 56 ; heap size metadata
-    mov rax, exit_unwrapper ; load unwrapper entry point
-    mov qword [rdx+0], rax ; store unwrapper entry in metadata
-    mov rax, exit_release ; load release helper entry point
-    mov qword [rdx+8], rax ; store release pointer in metadata
-    mov rax, exit_deepcopy ; load deep copy helper entry point
-    mov qword [rdx+16], rax ; store deep copy pointer in metadata
-    xor rax, rax ; zero num_curried metadata
-    mov qword [rdx+40], rax ; store num_curried
-    sub rsp, 24 ; allocate temporary stack for closure state
-    mov [rsp], rax ; save closure code pointer temporarily
-    mov [rsp+8], rdx ; save closure env_end pointer temporarily
-    mov rax, [rbp-32] ; load scalar from frame
-    mov rbx, [rsp+8] ; env_end pointer
-    sub rbx, 8 ; compute slot for next argument
-    mov [rbx], rax ; store scalar arg in env
-    mov rbx, [rsp+8] ; env_end pointer for num_curried update
-    mov rax, [rbx+40] ; load current num_curried
-    add rax, 1 ; increment num_curried
-    mov [rbx+40], rax ; store updated num_curried
-    mov rax, [rsp] ; restore closure code pointer
-    mov rdx, [rsp+8] ; restore closure env_end pointer
-    add rsp, 24 ; pop temporary closure state
-    mov [rbp-48], rdx ; update closure env_end pointer
     mov rax, 9 ; mmap syscall
     xor rdi, rdi ; addr = NULL hint
     mov rsi, 64 ; length for allocation
@@ -446,12 +449,32 @@ _start:
     mov qword [rdx+16], rax ; store deep copy pointer in metadata
     xor rax, rax ; zero num_curried metadata
     mov qword [rdx+40], rax ; store num_curried
-    mov [rbp-64], rdx ; update closure env_end pointer
+    mov [rbp-32], rdx ; update closure env_end pointer
+    mov rax, 9 ; mmap syscall
+    xor rdi, rdi ; addr = NULL hint
+    mov rsi, 48 ; length for allocation
+    mov rdx, 3 ; prot = read/write
+    mov r10, 34 ; flags: private & anonymous
+    mov r8, -1 ; fd = -1
+    xor r9, r9 ; offset = 0
+    syscall ; allocate env pages
+    mov rdx, rax ; store env base pointer
+    mov qword [rdx+24], 0 ; env size metadata
+    mov qword [rdx+32], 48 ; heap size metadata
+    mov rax, _3_lambda_unwrapper ; load unwrapper entry point
+    mov qword [rdx+0], rax ; store unwrapper entry in metadata
+    mov rax, _3_lambda_release ; load release helper entry point
+    mov qword [rdx+8], rax ; store release pointer in metadata
+    mov rax, _3_lambda_deepcopy ; load deep copy helper entry point
+    mov qword [rdx+16], rax ; store deep copy pointer in metadata
+    xor rax, rax ; zero num_curried metadata
+    mov qword [rdx+40], rax ; store num_curried
+    mov [rbp-48], rdx ; update closure env_end pointer
     mov rdx, [rbp-48] ; load closure env_end pointer
     mov rax, [rdx+0] ; load closure unwrapper entry point
     push rdx ; stack arg: closure env_end
     push rax ; stack arg: closure code
-    mov rdx, [rbp-64] ; load closure env_end pointer
+    mov rdx, [rbp-32] ; load closure env_end pointer
     mov rax, [rdx+0] ; load closure unwrapper entry point
     push rdx ; stack arg: closure env_end
     push rax ; stack arg: closure code

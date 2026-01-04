@@ -72,6 +72,24 @@ bar_deepcopy($env_end: int) {
     return
 }
 
+_3_lambda() {
+    $_4 = 0
+    exit($_4)
+}
+
+_3_lambda_unwrapper($env_end: int) {
+    release $env_end
+    _3_lambda()
+}
+
+_3_lambda_release($env_end: int) {
+    return
+}
+
+_3_lambda_deepcopy($env_end: int) {
+    return
+}
+
 exit($code: int) {
     syscall exit($code)
 }
@@ -84,10 +102,7 @@ exit_unwrapper($env_end: int) {
 
 _start() {
     $msg = "hello world"
-    $_2 = 0
-    $_3_exit = (exit_unwrapper, {int})
-    $_3_exit.$code = $_2
-
     $foo = (foo_unwrapper, {})
-    bar($msg, $foo, $_3_exit)
+    $_3_lambda = (_3_lambda_unwrapper, {})
+    bar($msg, $foo, $_3_lambda)
 }

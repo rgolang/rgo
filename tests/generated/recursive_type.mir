@@ -26,7 +26,7 @@ exit_unwrapper($env_end: int) {
     exit($code)
 }
 
-identity($node: (int, ())) {
+identity($node: (int, tail)) {
     $_2 = "unused\n"
     $_4_identity = (_4_identity_unwrapper, {})
     $__result = call @printf($_2)
@@ -35,7 +35,7 @@ identity($node: (int, ())) {
 }
 
 identity_unwrapper($env_end: int) {
-    $node: (int, ()) = $env_end - 1w
+    $node: (int, tail) = $env_end - 1w
     release $env_end
     identity($node)
 }

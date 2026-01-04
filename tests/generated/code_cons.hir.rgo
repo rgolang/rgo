@@ -2,10 +2,10 @@
 @/int
 @/printf
 list: ((int, list), ())
-nil: (cb:(int, ((int, ()), ())), end:()){
+nil: (cb:(int, ((int, list), ())), end:()){
     end()
 }
 
-cons: (h: int, t:((int, ()), ()), cb:(int, ((int, ()), ())), end:()){
+cons: (h: int, t:((int, list), ()), cb:(int, ((int, list), ())), end:()){
     cb(h, t)
 }

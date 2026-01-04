@@ -1,0 +1,14 @@
+// 1. Foo knows nothing about Bar.
+// It just takes a function 'ok' and execs it.
+foo: (ok:()) {
+   ok()
+}
+
+// 2. Bar is defined later. It execs Foo.
+// But it passes ITSELF as the argument.
+bar: {
+   foo(bar)
+}
+
+// 3. trigger the chain
+bar()

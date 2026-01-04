@@ -8,7 +8,7 @@ _4_identity: (){
     exit(_5)
 }
 
-identity: (node:(int, ())){
+identity: (node:(int, tail)){
     _2: "unused\n"
     printf(_2, _4_identity)
 }

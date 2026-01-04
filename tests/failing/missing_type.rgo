@@ -1,0 +1,7 @@
+@/exit
+omega: (x:(x, k:()), k:()){
+    x(x, k)
+}
+
+start: (){ omega(omega, start) }
+start()

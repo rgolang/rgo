@@ -1,10 +1,10 @@
-nil($cb: (int, ((int, ()), ())), $end: ()) {
+nil($cb: (int, ((int, list), ())), $end: ()) {
     release $cb
     $end()
 }
 
 nil_unwrapper($env_end: int) {
-    $cb: (int, ((int, ()), ())) = $env_end - 2w
+    $cb: (int, ((int, list), ())) = $env_end - 2w
     $end: () = $env_end - 1w
     release $env_end
     nil($cb, $end)
@@ -40,15 +40,15 @@ nil_deepcopy($env_end: int) {
     return
 }
 
-cons($h: int, $t: ((int, ()), ()), $cb: (int, ((int, ()), ())), $end: ()) {
+cons($h: int, $t: ((int, list), ()), $cb: (int, ((int, list), ())), $end: ()) {
     release $end
     $cb($h, $t)
 }
 
 cons_unwrapper($env_end: int) {
     $h: int = $env_end - 4w
-    $t: ((int, ()), ()) = $env_end - 3w
-    $cb: (int, ((int, ()), ())) = $env_end - 2w
+    $t: ((int, list), ()) = $env_end - 3w
+    $cb: (int, ((int, list), ())) = $env_end - 2w
     $end: () = $env_end - 1w
     release $env_end
     cons($h, $t, $cb, $end)

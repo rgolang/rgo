@@ -9,6 +9,9 @@ foo: (input: str, ok:()){
 bar: (msg: str!, cb:(str, ()), ok:()){
     cb(msg, ok)
 }
-_2: 0
-_3_exit: exit(_2)
-bar(msg, foo, _3_exit)
+
+_3_lambda: (){
+    _4: 0
+    exit(_4)
+}
+bar(msg, foo, _3_lambda)

@@ -243,15 +243,21 @@ fn lower_block_item(
             }])
         }
         ast::BlockItem::SigDef { name, sig, span } => {
-            let hir_sig = signature::resolve_ast_signature(&sig, ctx);
-            let normalized_sig = signature::normalize_signature(&hir_sig, ctx);
             ctx.add_type(
                 &name,
                 &name,
-                SigKind::Sig(normalized_sig.clone()),
+                SigKind::Ident(ast::SigIdent {
+                    name: name.clone(),
+                    span,
+                }),
                 span,
                 false,
             )?;
+            let hir_sig = signature::resolve_ast_signature(&sig, ctx);
+            let normalized_sig = signature::normalize_signature(&hir_sig, ctx);
+            if let Some(entry) = ctx.get_mut(&name) {
+                entry.kind = SigKind::Sig(normalized_sig.clone());
+            }
             let sig_def = BlockItem::SigDef {
                 name,
                 sig: normalized_sig,
@@ -536,7 +542,7 @@ fn resolve_target(
             )
         })?;
 
-    let params = signature.items.get(target.captures.len()..).unwrap_or(&[]);
+    let params = &signature.items;
     let expected_params = signature::expected_params_for_args(params, ast_args.len());
 
     let mut lowered = Vec::with_capacity(ast_args.len());
@@ -646,22 +652,20 @@ fn validate_input_type(
     }
 
     let normalized_expected = signature::normalize_sig_kind(&expected.ty, ctx);
-    if let SigKind::Ident(ident) = &normalized_expected {
-        if ctx.get(&ident.name).is_none() {
-            return Err(error::new(
-                Code::HIR,
-                format!("type `{}` is not defined", ident.name),
-                term.span(),
-            ));
-        }
-    }
+    ensure_sig_kind_exists(ctx, &normalized_expected, term.span())?;
 
     let expected_is_compile_time = matches!(
         normalized_expected,
         SigKind::CompileTimeInt | SigKind::CompileTimeStr
     );
+    let expected_is_unit_sig = if let SigKind::Sig(sig) = &normalized_expected {
+        sig.items.is_empty()
+    } else {
+        false
+    };
+    let allow_idents = expected_is_compile_time || expected_is_unit_sig;
 
-    let Some(actual_kind) = term_sig_kind(ctx, term, expected_is_compile_time) else {
+    let Some(actual_kind) = term_sig_kind(ctx, term, allow_idents) else {
         return Ok(());
     };
 
@@ -680,6 +684,43 @@ fn validate_input_type(
         ),
         term.span(),
     ))
+}
+
+fn ensure_sig_kind_exists(
+    ctx: &ctx::Context,
+    kind: &SigKind,
+    fallback_span: Span,
+) -> Result<(), Error> {
+    match kind {
+        SigKind::Ident(ident) => {
+            if ctx.get(&ident.name).is_none() {
+                return Err(error::new(
+                    Code::HIR,
+                    format!("type `{}` is not defined", ident.name),
+                    ident.span,
+                ));
+            }
+        }
+        SigKind::Sig(signature) => {
+            for item in &signature.items {
+                ensure_sig_kind_exists(ctx, &item.ty, item.span)?;
+            }
+        }
+        SigKind::GenericInst { name, args } => {
+            if ctx.get(name).is_none() {
+                return Err(error::new(
+                    Code::HIR,
+                    format!("type `{}` is not defined", name),
+                    fallback_span,
+                ));
+            }
+            for arg in args {
+                ensure_sig_kind_exists(ctx, arg, fallback_span)?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
 }
 
 fn term_sig_kind(ctx: &mut ctx::Context, term: &ast::Term, allow_idents: bool) -> Option<SigKind> {

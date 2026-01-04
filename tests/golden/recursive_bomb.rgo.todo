@@ -1,0 +1,6 @@
+@/exit
+foo: (foo:(())){
+    foo(foo)
+}
+
+foo(foo)

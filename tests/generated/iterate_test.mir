@@ -1,10 +1,10 @@
-nil($next: (int, ((int, ()), ())), $end: ()) {
+nil($next: (int, ((int, list), ())), $end: ()) {
     release $next
     $end()
 }
 
 nil_unwrapper($env_end: int) {
-    $next: (int, ((int, ()), ())) = $env_end - 2w
+    $next: (int, ((int, list), ())) = $env_end - 2w
     $end: () = $env_end - 1w
     release $env_end
     nil($next, $end)
@@ -40,15 +40,15 @@ nil_deepcopy($env_end: int) {
     return
 }
 
-cons($head: int, $tail: ((int, ()), ()), $next: (int, ((int, ()), ())), $end: ()) {
+cons($head: int, $tail: ((int, list), ()), $next: (int, ((int, list), ())), $end: ()) {
     release $end
     $next($head, $tail)
 }
 
 cons_unwrapper($env_end: int) {
     $head: int = $env_end - 4w
-    $tail: ((int, ()), ()) = $env_end - 3w
-    $next: (int, ((int, ()), ())) = $env_end - 2w
+    $tail: ((int, list), ()) = $env_end - 3w
+    $next: (int, ((int, list), ())) = $env_end - 2w
     $end: () = $env_end - 1w
     release $env_end
     cons($head, $tail, $next, $end)
@@ -96,17 +96,17 @@ cons_deepcopy($env_end: int) {
     return
 }
 
-iterate_inner($iterate: ((int, ()), ((int, ()), ()), ()), $handler: (int, ()), $end: (), $head: int, $tail: ((int, ()), ())) {
+iterate_inner($iterate: ((int, ()), ((int, list), ()), ()), $handler: (int, ()), $end: (), $head: int, $tail: ((int, list), ())) {
     $x = ($iterate, {int, int, int})
     $handler($head, $x)
 }
 
 iterate_inner_unwrapper($env_end: int) {
-    $iterate: ((int, ()), ((int, ()), ()), ()) = $env_end - 5w
+    $iterate: ((int, ()), ((int, list), ()), ()) = $env_end - 5w
     $handler: (int, ()) = $env_end - 4w
     $end: () = $env_end - 3w
     $head: int = $env_end - 2w
-    $tail: ((int, ()), ()) = $env_end - 1w
+    $tail: ((int, list), ()) = $env_end - 1w
     release $env_end
     iterate_inner($iterate, $handler, $end, $head, $tail)
 }
@@ -167,9 +167,9 @@ iterate_inner_deepcopy($env_end: int) {
     return
 }
 
-iterate($handler: (int, ()), $arr: ((int, ()), ()), $end: ()) {
+iterate($handler: (int, ()), $arr: ((int, list), ()), $end: ()) {
     $iterate = (iterate_unwrapper, {})
-    $_17_iterate_inner = (iterate_inner_unwrapper, {((int, ()), ((int, ()), ()), ()), (int, ()), ()})
+    $_17_iterate_inner = (iterate_inner_unwrapper, {((int, ()), ((int, list), ()), ()), (int, ()), ()})
     $_17_iterate_inner.$iterate = $iterate
     $_17_iterate_inner.$handler = $handler
     $_17_iterate_inner.$end = $end
@@ -179,7 +179,7 @@ iterate($handler: (int, ()), $arr: ((int, ()), ()), $end: ()) {
 
 iterate_unwrapper($env_end: int) {
     $handler: (int, ()) = $env_end - 3w
-    $arr: ((int, ()), ()) = $env_end - 2w
+    $arr: ((int, list), ()) = $env_end - 2w
     $end: () = $env_end - 1w
     release $env_end
     iterate($handler, $arr, $end)
@@ -314,19 +314,19 @@ _start() {
     $_26 = 3
     $_27 = 4
     $nil = (nil_unwrapper, {})
-    $_28_cons = (cons_unwrapper, {int, ((int, ()), ())})
+    $_28_cons = (cons_unwrapper, {int, ((int, list), ())})
     $_28_cons.$head = $_27
     $_28_cons.$tail = $nil
 
-    $_29_cons = (cons_unwrapper, {int, ((int, ()), ())})
+    $_29_cons = (cons_unwrapper, {int, ((int, list), ())})
     $_29_cons.$head = $_26
     $_29_cons.$tail = $_28_cons
 
-    $_30_cons = (cons_unwrapper, {int, ((int, ()), ())})
+    $_30_cons = (cons_unwrapper, {int, ((int, list), ())})
     $_30_cons.$head = $_25
     $_30_cons.$tail = $_29_cons
 
-    $mylist = (cons_unwrapper, {int, ((int, ()), ())})
+    $mylist = (cons_unwrapper, {int, ((int, list), ())})
     $mylist.$head = $_24
     $mylist.$tail = $_30_cons
 

@@ -1,0 +1,58 @@
+[
+    FunctionDef {
+        name: "foo",
+        lambda: Lambda {
+            params: Signature {
+                items: [],
+                span: Span {
+                    line: 1,
+                    column: 6,
+                    offset: 5,
+                },
+                generics: [],
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "foo",
+                            args: [],
+                            span: Span {
+                                line: 2,
+                                column: 5,
+                                offset: 13,
+                            },
+                        },
+                    ),
+                ],
+                span: Span {
+                    line: 1,
+                    column: 8,
+                    offset: 7,
+                },
+            },
+            args: [],
+            span: Span {
+                line: 1,
+                column: 1,
+                offset: 0,
+            },
+        },
+        span: Span {
+            line: 1,
+            column: 1,
+            offset: 0,
+        },
+    },
+    Ident(
+        Ident {
+            name: "foo",
+            args: [],
+            span: Span {
+                line: 4,
+                column: 1,
+                offset: 21,
+            },
+        },
+    ),
+]

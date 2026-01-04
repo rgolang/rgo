@@ -1,0 +1,34 @@
+foo($x: ()) {
+    $x()
+}
+
+foo_unwrapper($env_end: int) {
+    $x: () = $env_end - 1w
+    release $env_end
+    foo($x)
+}
+
+foo_release($env_end: int) {
+    $__num_curried: int = $env_end + 5w
+    if ($__num_curried < 1){ jump foo_release_if_num_curried_lt_1 }
+    call @release_heap_ptr($env_end - 1w)
+    jump foo_release_done
+    foo_release_if_num_curried_lt_1:
+    foo_release_done:
+    return
+}
+
+foo_deepcopy($env_end: int) {
+    $num_curried: int = $env_end + 5w
+    if ($num_curried < 1){ jump foo_deepcopy_if_num_curried_lt_1 }
+    new_env + 0w = call @deepcopy_heap_ptr($env_end - 1w)
+    jump foo_deepcopy_done
+    foo_deepcopy_if_num_curried_lt_1:
+    foo_deepcopy_done:
+    return
+}
+
+_start() {
+    $foo = (foo_unwrapper, {})
+    $foo($foo)
+}

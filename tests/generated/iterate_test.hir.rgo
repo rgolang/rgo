@@ -3,20 +3,20 @@
 @/printf
 @/exit
 list: ((int, list), ())
-nil: (next:(int, ((int, ()), ())), end:()){
+nil: (next:(int, ((int, list), ())), end:()){
     end()
 }
 
-cons: (head: int, tail:((int, ()), ()), next:(int, ((int, ()), ())), end:()){
+cons: (head: int, tail:((int, list), ()), next:(int, ((int, list), ())), end:()){
     next(head, tail)
 }
 
-iterate_inner: (iterate:((int, ()), ((int, ()), ()), ()), handler:(int, ()), end:(), head: int, tail:((int, ()), ())){
+iterate_inner: (iterate:((int, ()), ((int, list), ()), ()), handler:(int, ()), end:(), head: int, tail:((int, list), ())){
     x: iterate(handler, tail, end)
     handler(head, x)
 }
 
-iterate: (handler:(int, ()), arr:((int, ()), ()), end:()){
+iterate: (handler:(int, ()), arr:((int, list), ()), end:()){
     _17_iterate_inner: iterate_inner(iterate, handler, end)
     arr(_17_iterate_inner, end)
 }

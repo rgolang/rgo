@@ -6,6 +6,9 @@ x: "Hello world!\n"
 foo: (x: str!, ok:()){
     write(x, ok)
 }
-_0: 0
-_1_exit: exit(_0)
-foo(x, _1_exit)
+
+_1_lambda: (){
+    _2: 0
+    exit(_2)
+}
+foo(x, _1_lambda)
