@@ -1,6 +1,6 @@
-@/printf
-@/exit
-@/int
+printf: @/printf
+exit: @/exit
+int: @/int
 write: (n: int, ok:()){
     _0: "Gotcha: %d"
     printf(_0, n, ok)

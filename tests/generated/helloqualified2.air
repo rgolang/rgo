@@ -1,0 +1,47 @@
+_1_foo():
+    @exit($_2: int = 0)
+
+
+_1_foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_1_foo)
+
+
+_1_foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_1_foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+foo($x: str!):
+    $_1_foo = @newclosure<>(_1_foo)
+    @write($x: str, $_1_foo)
+
+
+foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $x = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(foo, $x: str!)
+
+
+foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    @jumpargs(foo, $x: str! = "Hello world!\n")
+

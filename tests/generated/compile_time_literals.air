@@ -1,0 +1,71 @@
+_1_not_const_msg():
+    @exit($_2: int = 0)
+
+
+_1_not_const_msg_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_1_not_const_msg)
+
+
+_1_not_const_msg_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_1_not_const_msg_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+not_const_msg($fmt: str!, $value: int!):
+    $_1_not_const_msg = @newclosure<>(_1_not_const_msg)
+    @printf($fmt: str!, $value: int, $_1_not_const_msg)
+
+
+not_const_msg_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $fmt = @field($__env_end, -2)
+    $value = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(not_const_msg, $fmt: str!, $value: int!)
+
+
+not_const_msg_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+not_const_msg_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+const_msg($fmt: str!, $value: int!):
+    @jumpargs(not_const_msg, $fmt: str!, $value: int!)
+
+
+const_msg_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $fmt = @field($__env_end, -2)
+    $value = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(const_msg, $fmt: str!, $value: int!)
+
+
+const_msg_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+const_msg_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    @jumpargs(const_msg, $_4: str! = "compile-time value %d\n", $_5: int! = 7)
+

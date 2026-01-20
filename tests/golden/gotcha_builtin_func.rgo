@@ -1,6 +1,6 @@
-@/printf
-@/exit
-@/int
+printf: @/printf
+exit: @/exit
+int: @/int
 
 // This is the gotcha, write is a built-in function! But this is valid in this language.
 write: (n: int, ok: ()){

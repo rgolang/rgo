@@ -1,7 +1,7 @@
-@/str
-@/int
-@/printf
-@/exit
+str: @/str
+int: @/int
+printf: @/printf
+exit: @/exit
 foo: (ok:(str)){
     _1: "charlie"
     ok(_1)

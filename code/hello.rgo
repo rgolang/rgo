@@ -1,10 +1,10 @@
-@/str
-@/int
-@/printf
-@/sprintf
-@/write
-@/add
-@/exit
+str: @/str
+int: @/int
+printf: @/printf
+sprintf: @/sprintf
+write: @/write
+add: @/add
+exit: @/exit
 
 foo: (ok:()){
     (x: int) = add(1, 2)

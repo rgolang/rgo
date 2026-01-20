@@ -1,0 +1,10 @@
+int: @/int
+exit: @/exit
+
+bar: (ok:()){
+    ok()
+}
+foo: (x: int, y: int) {
+    exit(0)
+}
+bar(foo(1, 2, 3))

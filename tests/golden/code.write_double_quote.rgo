@@ -1,4 +1,4 @@
-@/write
-@/exit
+write: @/write
+exit: @/exit
 
 write("hello\n", exit(0))

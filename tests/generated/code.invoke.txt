@@ -1,30 +1,20 @@
 [
     Import {
-        name: "/write",
-        span: Span {
-            line: 1,
-            column: 1,
-            offset: 0,
-        },
+        label: "write",
+        path: "/write",
+        span: ,
     },
     Import {
-        name: "/exit",
-        span: Span {
-            line: 2,
-            column: 1,
-            offset: 8,
-        },
+        label: "exit",
+        path: "/exit",
+        span: ,
     },
     FunctionDef {
         name: "foo",
         lambda: Lambda {
             params: Signature {
                 items: [],
-                span: Span {
-                    line: 4,
-                    column: 6,
-                    offset: 21,
-                },
+                span: ,
                 generics: [],
             },
             body: Block {
@@ -33,11 +23,7 @@
                         Lambda {
                             params: Signature {
                                 items: [],
-                                span: Span {
-                                    line: 5,
-                                    column: 5,
-                                    offset: 30,
-                                },
+                                span: ,
                                 generics: [],
                             },
                             body: Block {
@@ -46,90 +32,54 @@
                                         Ident {
                                             name: "write",
                                             args: [
-                                                String(
-                                                    StrLiteral {
-                                                        value: "foo,",
-                                                        span: Span {
-                                                            line: 6,
-                                                            column: 15,
-                                                            offset: 48,
-                                                        },
+                                                Lit(
+                                                    Literal {
+                                                        value: Str(
+                                                            "foo,",
+                                                        ),
+                                                        span: ,
                                                     },
                                                 ),
                                                 Ident(
                                                     Ident {
                                                         name: "exit",
                                                         args: [
-                                                            Int(
-                                                                IntLiteral {
-                                                                    value: 0,
-                                                                    span: Span {
-                                                                        line: 6,
-                                                                        column: 28,
-                                                                        offset: 61,
-                                                                    },
+                                                            Lit(
+                                                                Literal {
+                                                                    value: Int(
+                                                                        0,
+                                                                    ),
+                                                                    span: ,
                                                                 },
                                                             ),
                                                         ],
-                                                        span: Span {
-                                                            line: 6,
-                                                            column: 23,
-                                                            offset: 56,
-                                                        },
+                                                        span: ,
                                                     },
                                                 ),
                                             ],
-                                            span: Span {
-                                                line: 6,
-                                                column: 9,
-                                                offset: 42,
-                                            },
+                                            span: ,
                                         },
                                     ),
                                 ],
-                                span: Span {
-                                    line: 5,
-                                    column: 7,
-                                    offset: 32,
-                                },
+                                span: ,
                             },
                             args: [],
-                            span: Span {
-                                line: 5,
-                                column: 7,
-                                offset: 32,
-                            },
+                            span: ,
                         },
                     ),
                 ],
-                span: Span {
-                    line: 4,
-                    column: 9,
-                    offset: 24,
-                },
+                span: ,
             },
             args: [],
-            span: Span {
-                line: 4,
-                column: 1,
-                offset: 16,
-            },
+            span: ,
         },
-        span: Span {
-            line: 4,
-            column: 1,
-            offset: 16,
-        },
+        span: ,
     },
     Ident(
         Ident {
             name: "foo",
             args: [],
-            span: Span {
-                line: 9,
-                column: 1,
-                offset: 73,
-            },
+            span: ,
         },
     ),
 ]

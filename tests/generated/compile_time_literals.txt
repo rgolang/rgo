@@ -1,35 +1,23 @@
 [
     Import {
-        name: "/str",
-        span: Span {
-            line: 1,
-            column: 1,
-            offset: 0,
-        },
+        label: "str",
+        path: "/str",
+        span: ,
     },
     Import {
-        name: "/int",
-        span: Span {
-            line: 2,
-            column: 1,
-            offset: 6,
-        },
+        label: "int",
+        path: "/int",
+        span: ,
     },
     Import {
-        name: "/printf",
-        span: Span {
-            line: 3,
-            column: 1,
-            offset: 12,
-        },
+        label: "printf",
+        path: "/printf",
+        span: ,
     },
     Import {
-        name: "/exit",
-        span: Span {
-            line: 4,
-            column: 1,
-            offset: 21,
-        },
+        label: "exit",
+        path: "/exit",
+        span: ,
     },
     FunctionDef {
         name: "not_const_msg",
@@ -41,45 +29,25 @@
                         kind: Ident(
                             SigIdent {
                                 name: "str",
-                                span: Span {
-                                    line: 6,
-                                    column: 22,
-                                    offset: 50,
-                                },
+                                span: ,
                             },
                         ),
                         has_bang: true,
-                        span: Span {
-                            line: 6,
-                            column: 17,
-                            offset: 45,
-                        },
+                        span: ,
                     },
                     SigItem {
                         name: "value",
                         kind: Ident(
                             SigIdent {
                                 name: "int",
-                                span: Span {
-                                    line: 6,
-                                    column: 35,
-                                    offset: 63,
-                                },
+                                span: ,
                             },
                         ),
                         has_bang: true,
-                        span: Span {
-                            line: 6,
-                            column: 28,
-                            offset: 56,
-                        },
+                        span: ,
                     },
                 ],
-                span: Span {
-                    line: 6,
-                    column: 16,
-                    offset: 44,
-                },
+                span: ,
                 generics: [],
             },
             body: Block {
@@ -92,73 +60,43 @@
                                     Ident {
                                         name: "fmt",
                                         args: [],
-                                        span: Span {
-                                            line: 7,
-                                            column: 12,
-                                            offset: 82,
-                                        },
+                                        span: ,
                                     },
                                 ),
                                 Ident(
                                     Ident {
                                         name: "value",
                                         args: [],
-                                        span: Span {
-                                            line: 7,
-                                            column: 17,
-                                            offset: 87,
-                                        },
+                                        span: ,
                                     },
                                 ),
                                 Ident(
                                     Ident {
                                         name: "exit",
                                         args: [
-                                            Int(
-                                                IntLiteral {
-                                                    value: 0,
-                                                    span: Span {
-                                                        line: 7,
-                                                        column: 29,
-                                                        offset: 99,
-                                                    },
+                                            Lit(
+                                                Literal {
+                                                    value: Int(
+                                                        0,
+                                                    ),
+                                                    span: ,
                                                 },
                                             ),
                                         ],
-                                        span: Span {
-                                            line: 7,
-                                            column: 24,
-                                            offset: 94,
-                                        },
+                                        span: ,
                                     },
                                 ),
                             ],
-                            span: Span {
-                                line: 7,
-                                column: 5,
-                                offset: 75,
-                            },
+                            span: ,
                         },
                     ),
                 ],
-                span: Span {
-                    line: 6,
-                    column: 41,
-                    offset: 69,
-                },
+                span: ,
             },
             args: [],
-            span: Span {
-                line: 6,
-                column: 1,
-                offset: 29,
-            },
+            span: ,
         },
-        span: Span {
-            line: 6,
-            column: 1,
-            offset: 29,
-        },
+        span: ,
     },
     FunctionDef {
         name: "const_msg",
@@ -170,45 +108,25 @@
                         kind: Ident(
                             SigIdent {
                                 name: "str",
-                                span: Span {
-                                    line: 9,
-                                    column: 18,
-                                    offset: 122,
-                                },
+                                span: ,
                             },
                         ),
                         has_bang: true,
-                        span: Span {
-                            line: 9,
-                            column: 13,
-                            offset: 117,
-                        },
+                        span: ,
                     },
                     SigItem {
                         name: "value",
                         kind: Ident(
                             SigIdent {
                                 name: "int",
-                                span: Span {
-                                    line: 9,
-                                    column: 31,
-                                    offset: 135,
-                                },
+                                span: ,
                             },
                         ),
                         has_bang: true,
-                        span: Span {
-                            line: 9,
-                            column: 24,
-                            offset: 128,
-                        },
+                        span: ,
                     },
                 ],
-                span: Span {
-                    line: 9,
-                    column: 12,
-                    offset: 116,
-                },
+                span: ,
                 generics: [],
             },
             body: Block {
@@ -221,82 +139,50 @@
                                     Ident {
                                         name: "fmt",
                                         args: [],
-                                        span: Span {
-                                            line: 10,
-                                            column: 19,
-                                            offset: 161,
-                                        },
+                                        span: ,
                                     },
                                 ),
                                 Ident(
                                     Ident {
                                         name: "value",
                                         args: [],
-                                        span: Span {
-                                            line: 10,
-                                            column: 24,
-                                            offset: 166,
-                                        },
+                                        span: ,
                                     },
                                 ),
                             ],
-                            span: Span {
-                                line: 10,
-                                column: 5,
-                                offset: 147,
-                            },
+                            span: ,
                         },
                     ),
                 ],
-                span: Span {
-                    line: 9,
-                    column: 37,
-                    offset: 141,
-                },
+                span: ,
             },
             args: [],
-            span: Span {
-                line: 9,
-                column: 1,
-                offset: 105,
-            },
+            span: ,
         },
-        span: Span {
-            line: 9,
-            column: 1,
-            offset: 105,
-        },
+        span: ,
     },
     Ident(
         Ident {
             name: "const_msg",
             args: [
-                String(
-                    StrLiteral {
-                        value: "compile-time value %d\n",
-                        span: Span {
-                            line: 12,
-                            column: 11,
-                            offset: 185,
-                        },
+                Lit(
+                    Literal {
+                        value: Str(
+                            "compile-time value %d\n",
+                        ),
+                        span: ,
                     },
                 ),
-                Int(
-                    IntLiteral {
-                        value: 7,
-                        span: Span {
-                            line: 12,
-                            column: 38,
-                            offset: 212,
-                        },
+                Lit(
+                    Literal {
+                        value: Int(
+                            7,
+                        ),
+                        span: ,
                     },
                 ),
             ],
-            span: Span {
-                line: 12,
-                column: 1,
-                offset: 175,
-            },
+            span: ,
         },
     ),
 ]

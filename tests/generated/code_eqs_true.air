@@ -1,0 +1,97 @@
+_6_lambda():
+    @exit($_7: int = 0)
+
+
+_6_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_6_lambda)
+
+
+_6_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_6_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_3_lambda():
+    $_6_lambda = @newclosure<>(_6_lambda)
+    @write($_4: str = "true", $_6_lambda)
+
+
+_3_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_3_lambda)
+
+
+_3_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_3_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_14_lambda():
+    @exit($_15: int = 0)
+
+
+_14_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_14_lambda)
+
+
+_14_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_14_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_11_lambda():
+    $_14_lambda = @newclosure<>(_14_lambda)
+    @write($_12: str = "false", $_14_lambda)
+
+
+_11_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_11_lambda)
+
+
+_11_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_11_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    $_3_lambda = @newclosure<>(_3_lambda)
+    $_11_lambda = @newclosure<>(_11_lambda)
+    @eqs(eqs_true, $_0: str = "aaa", $_1: str = "aaa")
+eqs_false:
+    @release($_3_lambda)
+    @jumpclosure($_11_lambda)
+eqs_true:
+    @release($_11_lambda)
+    @jumpclosure($_3_lambda)
+

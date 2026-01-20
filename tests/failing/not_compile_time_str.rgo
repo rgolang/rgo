@@ -1,6 +1,6 @@
-@/str
-@/exit
-@/printf
+str: @/str
+exit: @/exit
+printf: @/printf
 bar: (fmt: str!) {
     printf(fmt, exit(0))
 }

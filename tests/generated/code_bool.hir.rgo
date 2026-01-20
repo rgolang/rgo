@@ -1,0 +1,34 @@
+printf: @/printf
+exit: @/exit
+true: (x:(), y:()){
+    x()
+}
+
+false: (x:(), y:()){
+    y()
+}
+
+_6_if: (){
+    _7: 0
+    exit(_7)
+}
+
+_3_if: (){
+    _4: "does not work\n"
+    printf(_4, _6_if)
+}
+
+if: (cond:((), ()), on_true:()){
+    cond(on_true, _3_if)
+}
+
+_14_lambda: (){
+    _15: 0
+    exit(_15)
+}
+
+_11_lambda: (){
+    _12: "works\n"
+    printf(_12, _14_lambda)
+}
+if(true, _11_lambda)

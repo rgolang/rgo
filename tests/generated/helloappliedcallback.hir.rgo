@@ -1,7 +1,7 @@
-@/int
-@/str
-@/printf
-@/exit
+int: @/int
+str: @/str
+printf: @/printf
+exit: @/exit
 bar: (m1: str, m2: str, ok:()){
     _0: "msg1: %s, msg2: %s\n"
     printf(_0, m1, m2, ok)

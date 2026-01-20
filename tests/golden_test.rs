@@ -7,10 +7,10 @@ use compiler::compiler::error::{self, Code, Error};
 use compiler::compiler::hir;
 use compiler::compiler::span::Span;
 use compiler::compiler::{
-    compile, format_hir::render_normalized_rgo, format_mir::render_mir_functions, lexer::Lexer,
+    compile, format_air::render_air_functions, format_hir::render_normalized_rgo, lexer::Lexer,
     parser::Parser,
 };
-use compiler::debug_tools::test_helpers::generate_mir_functions;
+use compiler::debug_tools::test_helpers::generate_air_functions;
 
 const GENERATED_DIR: &str = "tests/generated";
 
@@ -84,7 +84,7 @@ fn compile_source(source: &str) -> Result<String, Error> {
             Span::unknown(),
         )
     })?;
-    Ok(asm) // TODO: This mir_module can be done better
+    Ok(asm) // TODO: This air_module can be done better
 }
 
 fn build_reference_for_path(path: &Path, out_dir: &Path, kind: SnapshotKind) -> Result<(), Error> {
@@ -127,7 +127,7 @@ fn build_reference_for_path(path: &Path, out_dir: &Path, kind: SnapshotKind) -> 
 struct GeneratedArtifacts {
     parser_output: String,
     normalized_hir: String,
-    mir: String,
+    air: String,
     asm: String,
 }
 
@@ -158,14 +158,14 @@ fn generate_artifacts(source: &str) -> Result<GeneratedArtifacts, Error> {
     let normalized_hir = render_normalized_rgo(&hir_block_items);
     let parser_output = format!("{:#?}", block_items);
 
-    let mir_functions = generate_mir_functions(&hir_block_items)?;
-    let mir = render_mir_functions(&mir_functions);
+    let air_functions = generate_air_functions(&hir_block_items)?;
+    let air = render_air_functions(&air_functions);
 
     let asm = compile_source(source)?;
     Ok(GeneratedArtifacts {
         parser_output,
         normalized_hir,
-        mir,
+        air,
         asm,
     })
 }
@@ -183,7 +183,7 @@ fn write_artifacts(
         out_dir.join(format!("{stem}.hir.rgo")),
         &artifacts.normalized_hir,
     )?;
-    fs::write(out_dir.join(format!("{stem}.mir")), &artifacts.mir)?;
+    fs::write(out_dir.join(format!("{stem}.air")), &artifacts.air)?;
     fs::write(out_dir.join(format!("{stem}.asm")), &artifacts.asm)?;
     Ok(())
 }

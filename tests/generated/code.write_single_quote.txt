@@ -1,62 +1,44 @@
 [
     Import {
-        name: "/write",
-        span: Span {
-            line: 1,
-            column: 1,
-            offset: 0,
-        },
+        label: "write",
+        path: "/write",
+        span: ,
     },
     Import {
-        name: "/exit",
-        span: Span {
-            line: 2,
-            column: 1,
-            offset: 8,
-        },
+        label: "exit",
+        path: "/exit",
+        span: ,
     },
     Ident(
         Ident {
             name: "write",
             args: [
-                String(
-                    StrLiteral {
-                        value: "hello\\n",
-                        span: Span {
-                            line: 4,
-                            column: 7,
-                            offset: 22,
-                        },
+                Lit(
+                    Literal {
+                        value: Str(
+                            "hello\\n",
+                        ),
+                        span: ,
                     },
                 ),
                 Ident(
                     Ident {
                         name: "exit",
                         args: [
-                            Int(
-                                IntLiteral {
-                                    value: 0,
-                                    span: Span {
-                                        line: 4,
-                                        column: 23,
-                                        offset: 38,
-                                    },
+                            Lit(
+                                Literal {
+                                    value: Int(
+                                        0,
+                                    ),
+                                    span: ,
                                 },
                             ),
                         ],
-                        span: Span {
-                            line: 4,
-                            column: 18,
-                            offset: 33,
-                        },
+                        span: ,
                     },
                 ),
             ],
-            span: Span {
-                line: 4,
-                column: 1,
-                offset: 16,
-            },
+            span: ,
         },
     ),
 ]

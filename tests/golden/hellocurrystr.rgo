@@ -1,7 +1,7 @@
-@/str
-@/int
-@/printf
-@/exit
+str: @/str
+int: @/int
+printf: @/printf
+exit: @/exit
 
 foo: (n:str, s:str, ok:()){
 	printf("The winning number for %s is %s\n", s, n, ok)

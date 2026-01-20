@@ -1,6 +1,6 @@
-@/str
-@/write
-@/exit
+str: @/str
+write: @/write
+exit: @/exit
 bar: (v: str, ok:()){
     write(v, ok)
 }

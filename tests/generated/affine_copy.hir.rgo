@@ -1,13 +1,13 @@
-@/exit
-@/int
-@/add
-@/printf
+exit: @/exit
+int: @/int
+add: @/add
+printf: @/printf
 bar: (a: int, b: int, ok:(int)){
     add(a, b, ok)
 }
 
 _5_foo: (ok:(), x: int){
-    _6: "got: %d"
+    _6: "got: %d\n"
     printf(_6, x, ok)
 }
 

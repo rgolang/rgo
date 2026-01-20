@@ -1,6 +1,6 @@
-@/printf
-@/exit
-@/str
+printf: @/printf
+exit: @/exit
+str: @/str
 w: (s: str, ok:()){
     _0: "Gotcha: %s"
     printf(_0, s, ok)

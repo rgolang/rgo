@@ -1,8 +1,8 @@
-@/str
-@/int
-@/printf
-@/add
-@/exit
+str: @/str
+int: @/int
+printf: @/printf
+add: @/add
+exit: @/exit
 
 (x: int) = add(1,2)
 () = printf("result: %d", x)

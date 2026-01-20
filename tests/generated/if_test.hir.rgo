@@ -1,8 +1,8 @@
-@/int
-@/eqi
-@/write
-@/printf
-@/exit
+int: @/int
+eqi: @/eqi
+write: @/write
+printf: @/printf
+exit: @/exit
 true: (x:(), y:()){
     x()
 }

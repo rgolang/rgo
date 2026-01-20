@@ -1,8 +1,8 @@
-@/exit
-@/int
-@/add
-@/sub
-@/printf
+exit: @/exit
+int: @/int
+add: @/add
+sub: @/sub
+printf: @/printf
 
 bar: (){
     printf("outer bar", exit(0))

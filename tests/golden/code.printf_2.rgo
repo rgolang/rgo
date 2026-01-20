@@ -1,6 +1,6 @@
-@/int
-@/printf
-@/exit
+int: @/int
+printf: @/printf
+exit: @/exit
 
 x: 41
 () = printf("the answer is: %d", 42)

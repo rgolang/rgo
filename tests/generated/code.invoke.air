@@ -1,0 +1,67 @@
+_4_foo():
+    @exit($_5: int = 0)
+
+
+_4_foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_4_foo)
+
+
+_4_foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_4_foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_1_foo():
+    $_4_foo = @newclosure<>(_4_foo)
+    @write($_2: str = "foo,", $_4_foo)
+
+
+_1_foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_1_foo)
+
+
+_1_foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_1_foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+foo():
+    @jumpargs(_1_foo)
+
+
+foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(foo)
+
+
+foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    @jumpargs(foo)
+

@@ -1,8 +1,8 @@
-@/int
-@/str
-@/printf
-@/write
-@/exit
+int: @/int
+str: @/str
+printf: @/printf
+write: @/write
+exit: @/exit
 
 foo: (ok:(())){
     ok(exit(0))

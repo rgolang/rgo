@@ -1,35 +1,23 @@
 [
     Import {
-        name: "/int",
-        span: Span {
-            line: 1,
-            column: 1,
-            offset: 0,
-        },
+        label: "int",
+        path: "/int",
+        span: ,
     },
     Import {
-        name: "/printf",
-        span: Span {
-            line: 2,
-            column: 1,
-            offset: 6,
-        },
+        label: "printf",
+        path: "/printf",
+        span: ,
     },
     Import {
-        name: "/add",
-        span: Span {
-            line: 3,
-            column: 1,
-            offset: 15,
-        },
+        label: "add",
+        path: "/add",
+        span: ,
     },
     Import {
-        name: "/exit",
-        span: Span {
-            line: 4,
-            column: 1,
-            offset: 21,
-        },
+        label: "exit",
+        path: "/exit",
+        span: ,
     },
     FunctionDef {
         name: "print_sum",
@@ -41,27 +29,15 @@
                         kind: Sig(
                             Signature {
                                 items: [],
-                                span: Span {
-                                    line: 6,
-                                    column: 16,
-                                    offset: 44,
-                                },
+                                span: ,
                                 generics: [],
                             },
                         ),
                         has_bang: false,
-                        span: Span {
-                            line: 6,
-                            column: 13,
-                            offset: 41,
-                        },
+                        span: ,
                     },
                 ],
-                span: Span {
-                    line: 6,
-                    column: 12,
-                    offset: 40,
-                },
+                span: ,
                 generics: [],
             },
             body: Block {
@@ -74,26 +50,14 @@
                                     kind: Ident(
                                         SigIdent {
                                             name: "int",
-                                            span: Span {
-                                                line: 7,
-                                                column: 12,
-                                                offset: 60,
-                                            },
+                                            span: ,
                                         },
                                     ),
                                     has_bang: false,
-                                    span: Span {
-                                        line: 7,
-                                        column: 6,
-                                        offset: 54,
-                                    },
+                                    span: ,
                                 },
                             ],
-                            span: Span {
-                                line: 7,
-                                column: 5,
-                                offset: 53,
-                            },
+                            span: ,
                             generics: [],
                         },
                         continuation: Block {
@@ -102,119 +66,73 @@
                                     Ident {
                                         name: "printf",
                                         args: [
-                                            String(
-                                                StrLiteral {
-                                                    value: "sum is %d\n",
-                                                    span: Span {
-                                                        line: 8,
-                                                        column: 12,
-                                                        offset: 88,
-                                                    },
+                                            Lit(
+                                                Literal {
+                                                    value: Str(
+                                                        "sum is %d\n",
+                                                    ),
+                                                    span: ,
                                                 },
                                             ),
                                             Ident(
                                                 Ident {
                                                     name: "total",
                                                     args: [],
-                                                    span: Span {
-                                                        line: 8,
-                                                        column: 27,
-                                                        offset: 103,
-                                                    },
+                                                    span: ,
                                                 },
                                             ),
                                             Ident(
                                                 Ident {
                                                     name: "ok",
                                                     args: [],
-                                                    span: Span {
-                                                        line: 8,
-                                                        column: 34,
-                                                        offset: 110,
-                                                    },
+                                                    span: ,
                                                 },
                                             ),
                                         ],
-                                        span: Span {
-                                            line: 8,
-                                            column: 5,
-                                            offset: 81,
-                                        },
+                                        span: ,
                                     },
                                 ),
                             ],
-                            span: Span {
-                                line: 7,
-                                column: 5,
-                                offset: 53,
-                            },
+                            span: ,
                         },
                         term: Ident(
                             Ident {
                                 name: "add",
                                 args: [
-                                    Int(
-                                        IntLiteral {
-                                            value: 3,
-                                            span: Span {
-                                                line: 7,
-                                                column: 23,
-                                                offset: 71,
-                                            },
+                                    Lit(
+                                        Literal {
+                                            value: Int(
+                                                3,
+                                            ),
+                                            span: ,
                                         },
                                     ),
-                                    Int(
-                                        IntLiteral {
-                                            value: 4,
-                                            span: Span {
-                                                line: 7,
-                                                column: 26,
-                                                offset: 74,
-                                            },
+                                    Lit(
+                                        Literal {
+                                            value: Int(
+                                                4,
+                                            ),
+                                            span: ,
                                         },
                                     ),
                                 ],
-                                span: Span {
-                                    line: 7,
-                                    column: 19,
-                                    offset: 67,
-                                },
+                                span: ,
                             },
                         ),
-                        span: Span {
-                            line: 7,
-                            column: 5,
-                            offset: 53,
-                        },
+                        span: ,
                     },
                 ],
-                span: Span {
-                    line: 6,
-                    column: 19,
-                    offset: 47,
-                },
+                span: ,
             },
             args: [],
-            span: Span {
-                line: 6,
-                column: 1,
-                offset: 29,
-            },
+            span: ,
         },
-        span: Span {
-            line: 6,
-            column: 1,
-            offset: 29,
-        },
+        span: ,
     },
     ScopeCapture {
         params: Signature {
             items: [],
-            span: Span {
-                line: 11,
-                column: 1,
-                offset: 117,
-            },
+            span: ,
             generics: [],
         },
         continuation: Block {
@@ -223,46 +141,28 @@
                     Ident {
                         name: "exit",
                         args: [
-                            Int(
-                                IntLiteral {
-                                    value: 0,
-                                    span: Span {
-                                        line: 12,
-                                        column: 6,
-                                        offset: 137,
-                                    },
+                            Lit(
+                                Literal {
+                                    value: Int(
+                                        0,
+                                    ),
+                                    span: ,
                                 },
                             ),
                         ],
-                        span: Span {
-                            line: 12,
-                            column: 1,
-                            offset: 132,
-                        },
+                        span: ,
                     },
                 ),
             ],
-            span: Span {
-                line: 11,
-                column: 1,
-                offset: 117,
-            },
+            span: ,
         },
         term: Ident(
             Ident {
                 name: "print_sum",
                 args: [],
-                span: Span {
-                    line: 11,
-                    column: 6,
-                    offset: 122,
-                },
+                span: ,
             },
         ),
-        span: Span {
-            line: 11,
-            column: 1,
-            offset: 117,
-        },
+        span: ,
     },
 ]

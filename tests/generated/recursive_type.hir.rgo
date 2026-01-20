@@ -1,7 +1,7 @@
-@/int
-@/printf
-@/str
-@/exit
+int: @/int
+printf: @/printf
+str: @/str
+exit: @/exit
 tail: (int, tail)
 _4_identity: (){
     _5: 0

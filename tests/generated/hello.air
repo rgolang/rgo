@@ -1,0 +1,25 @@
+_2_lambda():
+    @exit($_3: int = 0)
+
+
+_2_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_2_lambda)
+
+
+_2_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_2_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    $_2_lambda = @newclosure<>(_2_lambda)
+    @printf($_0: str! = "Hello, world!\n", $_2_lambda)
+

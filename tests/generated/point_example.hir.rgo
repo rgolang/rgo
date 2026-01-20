@@ -1,0 +1,29 @@
+int: @/int
+exit: @/exit
+printf: @/printf
+point: (int, int)
+new_point: (x: int, y: int, ok:(int, int)){
+    ok(x, y)
+}
+
+_7_bar: (){
+    _8: 0
+    exit(_8)
+}
+
+_4_bar: (x: int, y: int){
+    _5: "x: %d, y: %d"
+    printf(_5, x, y, _7_bar)
+}
+
+bar: (p:((int, int))){
+    p(_4_bar)
+}
+
+foo: (){
+    _11: 1
+    _12: 2
+    p: new_point(_11, _12)
+    bar(p)
+}
+foo()

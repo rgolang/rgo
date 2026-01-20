@@ -1,7 +1,7 @@
-@/int
-@/printf
-@/add
-@/exit
+int: @/int
+printf: @/printf
+add: @/add
+exit: @/exit
 _3_print_sum: (ok:(), total: int){
     _4: "sum is %d\n"
     printf(_4, total, ok)

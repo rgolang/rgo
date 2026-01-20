@@ -60,7 +60,7 @@ bar:
     mov rax, 0 ; load literal integer
     mov [rbp-64], rax ; save evaluated scalar in frame
     mov rax, 9 ; mmap syscall
-    xor rdi, rdi ; addr = NULL hint
+    xor rdi, rdi ; addr hint for kernel base selection
     mov rsi, 32 ; length for allocation
     mov rdx, 3 ; prot = read/write
     mov r10, 34 ; flags: private & anonymous
@@ -134,7 +134,7 @@ _start:
     lea rax, [rel str_literal_2] ; point to string literal
     mov [rbp-16], rax ; save evaluated scalar in frame
     mov rax, 9 ; mmap syscall
-    xor rdi, rdi ; addr = NULL hint
+    xor rdi, rdi ; addr hint for kernel base selection
     mov rsi, 40 ; length for allocation
     mov rdx, 3 ; prot = read/write
     mov r10, 34 ; flags: private & anonymous
@@ -156,7 +156,7 @@ _start:
     mov r12, rbx ; compute env base pointer for clone
     sub r12, r13 ; env base pointer for clone source
     mov rax, 9 ; mmap syscall
-    xor rdi, rdi ; addr = NULL hint
+    xor rdi, rdi ; addr hint for kernel base selection
     mov rsi, r14 ; length for cloned environment
     mov rdx, 3 ; prot = read/write
     mov r10, 34 ; flags: private & anonymous

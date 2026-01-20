@@ -10,7 +10,7 @@ _1_foo__0_foo__0_foo__0_foo:
     mov rax, 0 ; load literal integer
     mov [rbp-32], rax ; save evaluated scalar in frame
     mov rax, 9 ; mmap syscall
-    xor rdi, rdi ; addr = NULL hint
+    xor rdi, rdi ; addr hint for kernel base selection
     mov rsi, 32 ; length for allocation
     mov rdx, 3 ; prot = read/write
     mov r10, 34 ; flags: private & anonymous
@@ -77,7 +77,7 @@ _1_foo__0_foo:
     sub rsp, 32 ; reserve stack space for locals
     mov [rbp-16], rdi ; store scalar arg in frame
     mov rax, 9 ; mmap syscall
-    xor rdi, rdi ; addr = NULL hint
+    xor rdi, rdi ; addr hint for kernel base selection
     mov rsi, 32 ; length for allocation
     mov rdx, 3 ; prot = read/write
     mov r10, 34 ; flags: private & anonymous
@@ -128,7 +128,7 @@ foo:
     mov [rbp-16], rdi ; store scalar arg in frame
     mov [rbp-32], rsi ; store scalar arg in frame
     mov rax, 9 ; mmap syscall
-    xor rdi, rdi ; addr = NULL hint
+    xor rdi, rdi ; addr hint for kernel base selection
     mov rsi, 32 ; length for allocation
     mov rdx, 3 ; prot = read/write
     mov r10, 34 ; flags: private & anonymous
@@ -219,7 +219,7 @@ itoa:
     je itoa_min_value
     push rdi ; keep integer while mmap runs
     mov rax, 9 ; mmap syscall
-    xor rdi, rdi ; addr = NULL hint
+    xor rdi, rdi ; addr hint for kernel base selection
     mov rsi, 64 ; allocate buffer for digits
     mov rdx, 3 ; prot = read/write
     mov r10, 34 ; flags: private & anonymous
@@ -236,7 +236,7 @@ itoa:
     mov r10, 1
 itoa_abs_done:
     lea r9, [r8+64] ; pointer past buffer end
-    mov byte [r9-1], 0 ; null terminator
+    mov byte [r9-1], 0 ; string terminator
     mov r11, r9 ; cursor for digits
     mov rcx, 10
     cmp rax, 0

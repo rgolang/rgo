@@ -1,8 +1,8 @@
+use crate::compiler::air::ENTRY_FUNCTION_NAME;
 use crate::compiler::ast::{SigItem, SigKind, Signature};
 use crate::compiler::builtins;
 use crate::compiler::error::{Code, Error};
 use crate::compiler::hir::Closure;
-use crate::compiler::mir::ENTRY_FUNCTION_NAME;
 use crate::compiler::span::Span;
 use crate::last_slug;
 use std::cell::Cell;
@@ -344,7 +344,12 @@ impl Context {
     }
 }
 
-pub fn register_import(ctx: &mut Context, import_path: &str, span: Span) -> Result<(), Error> {
+pub fn register_import(
+    ctx: &mut Context,
+    alias: &str,
+    import_path: &str,
+    span: Span,
+) -> Result<(), Error> {
     let name = last_slug(import_path);
 
     let spec = builtins::get_spec(name, span).ok_or_else(|| {
@@ -357,10 +362,10 @@ pub fn register_import(ctx: &mut Context, import_path: &str, span: Span) -> Resu
 
     match spec {
         builtins::BuiltinSpec::Function(sig) => {
-            ctx.add_sig(name, name, sig, span, true)?;
+            ctx.add_sig(alias, alias, sig, span, true)?;
         }
         builtins::BuiltinSpec::Type(ty) => {
-            ctx.add_type(name, name, ty, span, true)?;
+            ctx.add_type(alias, alias, ty, span, true)?;
         }
     }
 

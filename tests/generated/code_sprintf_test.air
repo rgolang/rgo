@@ -1,0 +1,48 @@
+_5_lambda():
+    @exit($_6: int = 0)
+
+
+_5_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_5_lambda)
+
+
+_5_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_5_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_3_lambda($s: str):
+    $_5_lambda = @newclosure<>(_5_lambda)
+    @write($s: str, $_5_lambda)
+
+
+_3_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $s = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_3_lambda, $s: str)
+
+
+_3_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_3_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    $_3_lambda = @newclosure<str>(_3_lambda)
+    @sprintf($_0: str! = "result: %d", $_1: int = 3, $_3_lambda)
+

@@ -1,8 +1,8 @@
-@/str
-@/int
-@/printf
-@/add
-@/exit
+str: @/str
+int: @/int
+printf: @/printf
+add: @/add
+exit: @/exit
 _2_foo: (ok:(int)){
     _3: 1
     _4: 2

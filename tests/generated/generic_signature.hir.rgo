@@ -1,7 +1,7 @@
-@/int
-@/str
-@/exit
-@/write
+int: @/int
+str: @/str
+exit: @/exit
+write: @/write
 arr: <T>((int, (int, (), (T))))
 _4_foo: (){
     _5: 0

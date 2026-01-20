@@ -1,18 +1,19 @@
 use std::io::{BufRead, Write};
 
+pub mod air;
+pub mod air_ast;
 pub mod ast;
 pub mod builtins;
 pub mod codegen;
 pub mod error;
+pub mod format_air;
 pub mod format_hir;
-pub mod format_mir;
 pub mod hir;
 pub mod hir_ast;
 pub mod hir_context;
 pub mod lexer;
-pub mod mir;
-pub mod mir_ast;
 pub mod parser;
+pub mod runtime;
 pub mod signature;
 pub mod span;
 pub mod symbol;
@@ -37,11 +38,10 @@ pub fn compile<R: BufRead, W: Write>(input: R, out: &mut W) -> Result<(), Error>
     let mut parser = Parser::new(lexer);
     let mut symbols = SymbolRegistry::new();
     let mut hir_ctx = hir::Context::new();
-    let mut mir_functions: Vec<mir::MirFunction> = Vec::new();
+    let mut air_functions: Vec<air::AirFunction> = Vec::new();
 
     // Emit preamble (globals, default labels, etc.).
     codegen::write_preamble(out)?;
-    codegen::emit_runtime_helpers(out)?;
 
     let mut lowerer = Lowerer::new();
     let mut entry_items: Vec<hir::BlockItem> = Vec::new();
@@ -52,14 +52,14 @@ pub fn compile<R: BufRead, W: Write>(input: R, out: &mut W) -> Result<(), Error>
         // produce many functions/types etc (hoisted)
         while let Some(lowered) = lowerer.produce() {
             match lowered.clone() {
-                hir::BlockItem::Import { name, span } => {
-                    symbol::register_builtin_import(&name, span, &mut symbols)?;
+                hir::BlockItem::Import { label, path, span } => {
+                    symbol::register_builtin_import(&label, &path, span, &mut symbols)?;
                 }
-                hir::BlockItem::SigDef { name, sig, span } => {
-                    symbols.install_type(name.to_string(), SigKind::Sig(sig.clone()), span)?;
+                hir::BlockItem::SigDef { name, sig, .. } => {
+                    symbols.install_type(name.to_string(), SigKind::Sig(sig.clone()))?;
                 }
                 hir::BlockItem::FunctionDef(function) => {
-                    mir_functions.extend(mir::lower_function(&function, &mut symbols)?);
+                    air_functions.extend(air::lower_function(&function, &mut symbols)?);
                 }
                 _ => {
                     entry_items.push(lowered);
@@ -69,13 +69,12 @@ pub fn compile<R: BufRead, W: Write>(input: R, out: &mut W) -> Result<(), Error>
     }
 
     if !entry_items.is_empty() {
-        let mir_funcs = mir::entry_function(entry_items, &mut symbols)?;
-        mir_functions.extend(mir_funcs);
+        let air_funcs = air::entry_function(entry_items, &mut symbols)?;
+        air_functions.extend(air_funcs);
     }
 
-    mir_functions.extend(mir::builtin_functions(&symbols));
-    let mut artifacts = codegen::Artifacts::collect(&mir_functions);
-    for func in mir_functions {
+    let mut artifacts = codegen::Artifacts::collect(&air_functions);
+    for func in air_functions {
         codegen::function(func, &mut artifacts, out)?;
     }
     codegen::emit_externs(&artifacts.externs, out)?;

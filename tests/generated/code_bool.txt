@@ -1,0 +1,274 @@
+[
+    Import {
+        label: "printf",
+        path: "/printf",
+        span: ,
+    },
+    Import {
+        label: "exit",
+        path: "/exit",
+        span: ,
+    },
+    FunctionDef {
+        name: "true",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "x",
+                        kind: Sig(
+                            Signature {
+                                items: [],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "y",
+                        kind: Sig(
+                            Signature {
+                                items: [],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                ],
+                span: ,
+                generics: [],
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "x",
+                            args: [],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "false",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "x",
+                        kind: Sig(
+                            Signature {
+                                items: [],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "y",
+                        kind: Sig(
+                            Signature {
+                                items: [],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                ],
+                span: ,
+                generics: [],
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "y",
+                            args: [],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "if",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "cond",
+                        kind: Sig(
+                            Signature {
+                                items: [
+                                    SigItem {
+                                        name: "",
+                                        kind: Sig(
+                                            Signature {
+                                                items: [],
+                                                span: ,
+                                                generics: [],
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                    SigItem {
+                                        name: "",
+                                        kind: Sig(
+                                            Signature {
+                                                items: [],
+                                                span: ,
+                                                generics: [],
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                ],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "on_true",
+                        kind: Sig(
+                            Signature {
+                                items: [],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                ],
+                span: ,
+                generics: [],
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "cond",
+                            args: [
+                                Ident(
+                                    Ident {
+                                        name: "on_true",
+                                        args: [],
+                                        span: ,
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "printf",
+                                        args: [
+                                            Lit(
+                                                Literal {
+                                                    value: Str(
+                                                        "does not work\n",
+                                                    ),
+                                                    span: ,
+                                                },
+                                            ),
+                                            Ident(
+                                                Ident {
+                                                    name: "exit",
+                                                    args: [
+                                                        Lit(
+                                                            Literal {
+                                                                value: Int(
+                                                                    0,
+                                                                ),
+                                                                span: ,
+                                                            },
+                                                        ),
+                                                    ],
+                                                    span: ,
+                                                },
+                                            ),
+                                        ],
+                                        span: ,
+                                    },
+                                ),
+                            ],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    Ident(
+        Ident {
+            name: "if",
+            args: [
+                Ident(
+                    Ident {
+                        name: "true",
+                        args: [],
+                        span: ,
+                    },
+                ),
+                Ident(
+                    Ident {
+                        name: "printf",
+                        args: [
+                            Lit(
+                                Literal {
+                                    value: Str(
+                                        "works\n",
+                                    ),
+                                    span: ,
+                                },
+                            ),
+                            Ident(
+                                Ident {
+                                    name: "exit",
+                                    args: [
+                                        Lit(
+                                            Literal {
+                                                value: Int(
+                                                    0,
+                                                ),
+                                                span: ,
+                                            },
+                                        ),
+                                    ],
+                                    span: ,
+                                },
+                            ),
+                        ],
+                        span: ,
+                    },
+                ),
+            ],
+            span: ,
+        },
+    ),
+]

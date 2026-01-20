@@ -1,40 +1,29 @@
 [
     Import {
-        name: "/str",
-        span: Span {
-            line: 1,
-            column: 1,
-            offset: 0,
-        },
+        label: "str",
+        path: "/str",
+        span: ,
     },
     Import {
-        name: "/itoa",
-        span: Span {
-            line: 2,
-            column: 1,
-            offset: 6,
-        },
+        label: "itoa",
+        path: "/itoa",
+        span: ,
     },
     Import {
-        name: "/exit",
-        span: Span {
-            line: 3,
-            column: 1,
-            offset: 13,
-        },
+        label: "exit",
+        path: "/exit",
+        span: ,
     },
     Ident(
         Ident {
             name: "itoa",
             args: [
-                Int(
-                    IntLiteral {
-                        value: 1,
-                        span: Span {
-                            line: 5,
-                            column: 6,
-                            offset: 26,
-                        },
+                Lit(
+                    Literal {
+                        value: Int(
+                            1,
+                        ),
+                        span: ,
                     },
                 ),
                 Lambda(
@@ -46,26 +35,14 @@
                                     kind: Ident(
                                         SigIdent {
                                             name: "str",
-                                            span: Span {
-                                                line: 5,
-                                                column: 13,
-                                                offset: 33,
-                                            },
+                                            span: ,
                                         },
                                     ),
                                     has_bang: false,
-                                    span: Span {
-                                        line: 5,
-                                        column: 10,
-                                        offset: 30,
-                                    },
+                                    span: ,
                                 },
                             ],
-                            span: Span {
-                                line: 5,
-                                column: 9,
-                                offset: 29,
-                            },
+                            span: ,
                             generics: [],
                         },
                         body: Block {
@@ -74,45 +51,27 @@
                                     Ident {
                                         name: "exit",
                                         args: [
-                                            Int(
-                                                IntLiteral {
-                                                    value: 0,
-                                                    span: Span {
-                                                        line: 5,
-                                                        column: 24,
-                                                        offset: 44,
-                                                    },
+                                            Lit(
+                                                Literal {
+                                                    value: Int(
+                                                        0,
+                                                    ),
+                                                    span: ,
                                                 },
                                             ),
                                         ],
-                                        span: Span {
-                                            line: 5,
-                                            column: 19,
-                                            offset: 39,
-                                        },
+                                        span: ,
                                     },
                                 ),
                             ],
-                            span: Span {
-                                line: 5,
-                                column: 17,
-                                offset: 37,
-                            },
+                            span: ,
                         },
                         args: [],
-                        span: Span {
-                            line: 5,
-                            column: 9,
-                            offset: 29,
-                        },
+                        span: ,
                     },
                 ),
             ],
-            span: Span {
-                line: 5,
-                column: 1,
-                offset: 21,
-            },
+            span: ,
         },
     ),
 ]

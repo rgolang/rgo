@@ -1,6 +1,6 @@
-@/int
-@/printf
-@/exit
+int: @/int
+printf: @/printf
+exit: @/exit
 
 x: 42
 printf("Hello %d!", 42, exit(0))

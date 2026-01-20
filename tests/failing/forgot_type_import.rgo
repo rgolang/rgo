@@ -1,5 +1,5 @@
-@/printf
-@/exit
+printf: @/printf
+exit: @/exit
 foo: (n: int) {  // Error: forgot to import int
     printf("Number\n", exit(0))
 }

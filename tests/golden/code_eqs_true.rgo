@@ -1,6 +1,6 @@
-@/eqs
-@/write
-@/exit
+eqs: @/eqs
+write: @/write
+exit: @/exit
 
 eqs("aaa", "aaa", (){
     write("true", exit(0))

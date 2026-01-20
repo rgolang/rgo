@@ -1,80 +1,57 @@
 [
     Import {
-        name: "/int",
-        span: Span {
-            line: 1,
-            column: 1,
-            offset: 0,
-        },
+        label: "int",
+        path: "/int",
+        span: ,
     },
     Import {
-        name: "/printf",
-        span: Span {
-            line: 2,
-            column: 1,
-            offset: 6,
-        },
+        label: "printf",
+        path: "/printf",
+        span: ,
     },
     Import {
-        name: "/exit",
-        span: Span {
-            line: 3,
-            column: 1,
-            offset: 15,
-        },
+        label: "exit",
+        path: "/exit",
+        span: ,
     },
     Ident(
         Ident {
             name: "printf",
             args: [
-                String(
-                    StrLiteral {
-                        value: "hello %s\n",
-                        span: Span {
-                            line: 5,
-                            column: 8,
-                            offset: 30,
-                        },
+                Lit(
+                    Literal {
+                        value: Str(
+                            "hello %s\n",
+                        ),
+                        span: ,
                     },
                 ),
-                String(
-                    StrLiteral {
-                        value: "world",
-                        span: Span {
-                            line: 5,
-                            column: 22,
-                            offset: 44,
-                        },
+                Lit(
+                    Literal {
+                        value: Str(
+                            "world",
+                        ),
+                        span: ,
                     },
                 ),
                 Ident(
                     Ident {
                         name: "exit",
                         args: [
-                            Int(
-                                IntLiteral {
-                                    value: 0,
-                                    span: Span {
-                                        line: 5,
-                                        column: 36,
-                                        offset: 58,
-                                    },
+                            Lit(
+                                Literal {
+                                    value: Int(
+                                        0,
+                                    ),
+                                    span: ,
                                 },
                             ),
                         ],
-                        span: Span {
-                            line: 5,
-                            column: 31,
-                            offset: 53,
-                        },
+                        span: ,
                     },
                 ),
             ],
-            span: Span {
-                line: 5,
-                column: 1,
-                offset: 23,
-            },
+            span: ,
         },
     ),
 ]

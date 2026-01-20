@@ -1,0 +1,89 @@
+_0_foo_w($ok: (), $s: str):
+    @write($s: str, $ok)
+
+
+_0_foo_w_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $ok = @field($__env_end, -2)
+    $s = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_0_foo_w, $ok: (), $s: str)
+
+
+_0_foo_w_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_0_foo_w_release_skip_0, $__num_remaining, 1)
+    $_0_foo_w_release_field_0 = @field($__env_end, -2)
+    @callptr($_0_foo_w_release_field_0)
+_0_foo_w_release_skip_0:
+    @release($__env_end)
+    @return()
+
+
+_0_foo_w_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_0_foo_w_deepcopy_skip_0, $num_remaining, 1)
+    @deepcopy($_0_foo_w_deepcopy_field_0, $__env_end, -2)
+_0_foo_w_deepcopy_skip_0:
+    @return()
+
+
+foo($x: str, $ok: ()):
+    @jumpargs(_0_foo_w, $ok: (), $x: str)
+
+
+foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $x = @field($__env_end, -2)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(foo, $x: str, $ok: ())
+
+
+foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(foo_release_skip_1, $__num_remaining, 0)
+    $foo_release_field_1 = @field($__env_end, -1)
+    @callptr($foo_release_field_1)
+foo_release_skip_1:
+    @release($__env_end)
+    @return()
+
+
+foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(foo_deepcopy_skip_1, $num_remaining, 0)
+    @deepcopy($foo_deepcopy_field_1, $__env_end, -1)
+foo_deepcopy_skip_1:
+    @return()
+
+
+_3_lambda():
+    @exit($_4: int = 0)
+
+
+_3_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_3_lambda)
+
+
+_3_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_3_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    $_3_lambda = @newclosure<>(_3_lambda)
+    @jumpargs(foo, $_1: str = "hello world", $_3_lambda: ())
+

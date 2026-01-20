@@ -1,0 +1,321 @@
+[
+    Import {
+        label: "int",
+        path: "/int",
+        span: ,
+    },
+    Import {
+        label: "exit",
+        path: "/exit",
+        span: ,
+    },
+    Import {
+        label: "printf",
+        path: "/printf",
+        span: ,
+    },
+    SigDef {
+        name: "point",
+        sig: Signature {
+            items: [
+                SigItem {
+                    name: "",
+                    kind: Ident(
+                        SigIdent {
+                            name: "int",
+                            span: ,
+                        },
+                    ),
+                    has_bang: false,
+                    span: ,
+                },
+                SigItem {
+                    name: "",
+                    kind: Ident(
+                        SigIdent {
+                            name: "int",
+                            span: ,
+                        },
+                    ),
+                    has_bang: false,
+                    span: ,
+                },
+            ],
+            span: ,
+            generics: [],
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "new_point",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "x",
+                        kind: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: ,
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "y",
+                        kind: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: ,
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "ok",
+                        kind: Ident(
+                            SigIdent {
+                                name: "point",
+                                span: ,
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                ],
+                span: ,
+                generics: [],
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "ok",
+                            args: [
+                                Ident(
+                                    Ident {
+                                        name: "x",
+                                        args: [],
+                                        span: ,
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "y",
+                                        args: [],
+                                        span: ,
+                                    },
+                                ),
+                            ],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "bar",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "p",
+                        kind: Sig(
+                            Signature {
+                                items: [
+                                    SigItem {
+                                        name: "",
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "point",
+                                                span: ,
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                ],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                ],
+                span: ,
+                generics: [],
+            },
+            body: Block {
+                items: [
+                    ScopeCapture {
+                        params: Signature {
+                            items: [
+                                SigItem {
+                                    name: "x",
+                                    kind: Ident(
+                                        SigIdent {
+                                            name: "int",
+                                            span: ,
+                                        },
+                                    ),
+                                    has_bang: false,
+                                    span: ,
+                                },
+                                SigItem {
+                                    name: "y",
+                                    kind: Ident(
+                                        SigIdent {
+                                            name: "int",
+                                            span: ,
+                                        },
+                                    ),
+                                    has_bang: false,
+                                    span: ,
+                                },
+                            ],
+                            span: ,
+                            generics: [],
+                        },
+                        continuation: Block {
+                            items: [
+                                Ident(
+                                    Ident {
+                                        name: "printf",
+                                        args: [
+                                            Lit(
+                                                Literal {
+                                                    value: Str(
+                                                        "x: %d, y: %d",
+                                                    ),
+                                                    span: ,
+                                                },
+                                            ),
+                                            Ident(
+                                                Ident {
+                                                    name: "x",
+                                                    args: [],
+                                                    span: ,
+                                                },
+                                            ),
+                                            Ident(
+                                                Ident {
+                                                    name: "y",
+                                                    args: [],
+                                                    span: ,
+                                                },
+                                            ),
+                                            Ident(
+                                                Ident {
+                                                    name: "exit",
+                                                    args: [
+                                                        Lit(
+                                                            Literal {
+                                                                value: Int(
+                                                                    0,
+                                                                ),
+                                                                span: ,
+                                                            },
+                                                        ),
+                                                    ],
+                                                    span: ,
+                                                },
+                                            ),
+                                        ],
+                                        span: ,
+                                    },
+                                ),
+                            ],
+                            span: ,
+                        },
+                        term: Ident(
+                            Ident {
+                                name: "p",
+                                args: [],
+                                span: ,
+                            },
+                        ),
+                        span: ,
+                    },
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "foo",
+        lambda: Lambda {
+            params: Signature {
+                items: [],
+                span: ,
+                generics: [],
+            },
+            body: Block {
+                items: [
+                    IdentDef {
+                        name: "p",
+                        ident: Ident {
+                            name: "new_point",
+                            args: [
+                                Lit(
+                                    Literal {
+                                        value: Int(
+                                            1,
+                                        ),
+                                        span: ,
+                                    },
+                                ),
+                                Lit(
+                                    Literal {
+                                        value: Int(
+                                            2,
+                                        ),
+                                        span: ,
+                                    },
+                                ),
+                            ],
+                            span: ,
+                        },
+                        span: ,
+                    },
+                    Ident(
+                        Ident {
+                            name: "bar",
+                            args: [
+                                Ident(
+                                    Ident {
+                                        name: "p",
+                                        args: [],
+                                        span: ,
+                                    },
+                                ),
+                            ],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    Ident(
+        Ident {
+            name: "foo",
+            args: [],
+            span: ,
+        },
+    ),
+]

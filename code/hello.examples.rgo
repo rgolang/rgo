@@ -1,7 +1,7 @@
-@str
-@int
-@printf
-@exit
+str: @str
+int: @int
+printf: @printf
+exit: @exit
 
 // #### print
 // printf("hello world %d\n", 42, exit(0))

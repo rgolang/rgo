@@ -4,7 +4,8 @@ use crate::compiler::span::Span;
 #[derive(Debug, Clone)]
 pub enum BlockItem {
     Import {
-        name: String,
+        label: String,
+        path: String,
         span: Span,
     },
     SigDef {
@@ -17,14 +18,9 @@ pub enum BlockItem {
         lambda: Lambda,
         span: Span,
     },
-    StrDef {
+    LitDef {
         name: String,
-        literal: StrLiteral,
-        span: Span,
-    },
-    IntDef {
-        name: String,
-        literal: IntLiteral,
+        literal: Literal,
         span: Span,
     },
     IdentDef {
@@ -48,8 +44,7 @@ impl BlockItem {
             BlockItem::Import { span, .. }
             | BlockItem::SigDef { span, .. }
             | BlockItem::FunctionDef { span, .. }
-            | BlockItem::StrDef { span, .. }
-            | BlockItem::IntDef { span, .. }
+            | BlockItem::LitDef { span, .. }
             | BlockItem::IdentDef { span, .. } => *span,
             BlockItem::ScopeCapture { span, .. } => *span,
             BlockItem::Ident(ident) => ident.span,
@@ -173,8 +168,7 @@ pub struct Block {
 
 #[derive(Debug, Clone)]
 pub enum Term {
-    Int(IntLiteral),
-    String(StrLiteral),
+    Lit(Literal),
     Lambda(Lambda),
     Ident(Ident),
 }
@@ -182,24 +176,23 @@ pub enum Term {
 impl Term {
     pub fn span(&self) -> Span {
         match self {
-            Term::Int(literal) => literal.span,
+            Term::Lit(literal) => literal.span,
             Term::Ident(ident) => ident.span,
-            Term::String(literal) => literal.span,
             Term::Lambda(lambda) => lambda.span,
         }
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct StrLiteral {
-    pub value: String,
+pub struct Literal {
+    pub value: Lit,
     pub span: Span,
 }
 
-#[derive(Debug, Clone)]
-pub struct IntLiteral {
-    pub value: i64,
-    pub span: Span,
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum Lit {
+    Str(String),
+    Int(isize),
 }
 
 #[derive(Debug, Clone)]

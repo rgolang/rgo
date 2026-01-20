@@ -1,0 +1,98 @@
+foo($input: str, $ok: ()):
+    @write($input: str, $ok)
+
+
+foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $input = @field($__env_end, -2)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(foo, $input: str, $ok: ())
+
+
+foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(foo_release_skip_1, $__num_remaining, 0)
+    $foo_release_field_1 = @field($__env_end, -1)
+    @callptr($foo_release_field_1)
+foo_release_skip_1:
+    @release($__env_end)
+    @return()
+
+
+foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(foo_deepcopy_skip_1, $num_remaining, 0)
+    @deepcopy($foo_deepcopy_field_1, $__env_end, -1)
+foo_deepcopy_skip_1:
+    @return()
+
+
+bar($msg: str!, $cb: (), $ok: ()):
+    @jumpclosure($cb, $msg: int, $ok: int)
+
+
+bar_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $msg = @field($__env_end, -3)
+    $cb = @field($__env_end, -2)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(bar, $msg: str!, $cb: (), $ok: ())
+
+
+bar_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(bar_release_skip_1, $__num_remaining, 1)
+    $bar_release_field_1 = @field($__env_end, -2)
+    @callptr($bar_release_field_1)
+bar_release_skip_1:
+    @gt(bar_release_skip_2, $__num_remaining, 0)
+    $bar_release_field_2 = @field($__env_end, -1)
+    @callptr($bar_release_field_2)
+bar_release_skip_2:
+    @release($__env_end)
+    @return()
+
+
+bar_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(bar_deepcopy_skip_1, $num_remaining, 1)
+    @deepcopy($bar_deepcopy_field_1, $__env_end, -2)
+bar_deepcopy_skip_1:
+    @gt(bar_deepcopy_skip_2, $num_remaining, 0)
+    @deepcopy($bar_deepcopy_field_2, $__env_end, -1)
+bar_deepcopy_skip_2:
+    @return()
+
+
+_3_lambda():
+    @exit($_4: int = 0)
+
+
+_3_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_3_lambda)
+
+
+_3_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_3_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    $foo = @newclosure<str, ()>(foo)
+    $_3_lambda = @newclosure<>(_3_lambda)
+    @jumpargs(bar, $msg: str! = "hello world", $foo: (), $_3_lambda: ())
+

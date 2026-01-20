@@ -1,0 +1,48 @@
+_4_lambda():
+    @exit($_5: int = 0)
+
+
+_4_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_4_lambda)
+
+
+_4_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_4_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_1_lambda($x: int):
+    $_4_lambda = @newclosure<>(_4_lambda)
+    @printf($_2: str! = "the answer is: %d", $x: int, $_4_lambda)
+
+
+_1_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $x = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_1_lambda, $x: int)
+
+
+_1_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_1_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    $_8_ = @newclosure<int>(_1_lambda, $_7: int = 42)
+    @jumpclosure($_8_)
+

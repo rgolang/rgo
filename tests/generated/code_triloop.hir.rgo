@@ -1,4 +1,4 @@
-@/write
+write: @/write
 bar: (ok:()){
     _0: "bar,"
     write(_0, ok)

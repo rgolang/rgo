@@ -1,0 +1,1151 @@
+[
+    Import {
+        label: "str",
+        path: "/str",
+        span: ,
+    },
+    Import {
+        label: "int",
+        path: "/int",
+        span: ,
+    },
+    Import {
+        label: "printf",
+        path: "/printf",
+        span: ,
+    },
+    Import {
+        label: "exit",
+        path: "/exit",
+        span: ,
+    },
+    SigDef {
+        name: "list",
+        sig: Signature {
+            items: [
+                SigItem {
+                    name: "",
+                    kind: Sig(
+                        Signature {
+                            items: [
+                                SigItem {
+                                    name: "",
+                                    kind: Ident(
+                                        SigIdent {
+                                            name: "int",
+                                            span: ,
+                                        },
+                                    ),
+                                    has_bang: false,
+                                    span: ,
+                                },
+                                SigItem {
+                                    name: "",
+                                    kind: Ident(
+                                        SigIdent {
+                                            name: "list",
+                                            span: ,
+                                        },
+                                    ),
+                                    has_bang: false,
+                                    span: ,
+                                },
+                            ],
+                            span: ,
+                            generics: [],
+                        },
+                    ),
+                    has_bang: false,
+                    span: ,
+                },
+                SigItem {
+                    name: "",
+                    kind: Sig(
+                        Signature {
+                            items: [],
+                            span: ,
+                            generics: [],
+                        },
+                    ),
+                    has_bang: false,
+                    span: ,
+                },
+            ],
+            span: ,
+            generics: [],
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "nil",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "next",
+                        kind: Sig(
+                            Signature {
+                                items: [
+                                    SigItem {
+                                        name: "",
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "int",
+                                                span: ,
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                    SigItem {
+                                        name: "",
+                                        kind: Sig(
+                                            Signature {
+                                                items: [
+                                                    SigItem {
+                                                        name: "",
+                                                        kind: Sig(
+                                                            Signature {
+                                                                items: [
+                                                                    SigItem {
+                                                                        name: "",
+                                                                        kind: Ident(
+                                                                            SigIdent {
+                                                                                name: "int",
+                                                                                span: ,
+                                                                            },
+                                                                        ),
+                                                                        has_bang: false,
+                                                                        span: ,
+                                                                    },
+                                                                    SigItem {
+                                                                        name: "",
+                                                                        kind: Ident(
+                                                                            SigIdent {
+                                                                                name: "list",
+                                                                                span: ,
+                                                                            },
+                                                                        ),
+                                                                        has_bang: false,
+                                                                        span: ,
+                                                                    },
+                                                                ],
+                                                                span: ,
+                                                                generics: [],
+                                                            },
+                                                        ),
+                                                        has_bang: false,
+                                                        span: ,
+                                                    },
+                                                    SigItem {
+                                                        name: "",
+                                                        kind: Sig(
+                                                            Signature {
+                                                                items: [],
+                                                                span: ,
+                                                                generics: [],
+                                                            },
+                                                        ),
+                                                        has_bang: false,
+                                                        span: ,
+                                                    },
+                                                ],
+                                                span: ,
+                                                generics: [],
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                ],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "end",
+                        kind: Sig(
+                            Signature {
+                                items: [],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                ],
+                span: ,
+                generics: [],
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "end",
+                            args: [],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "cons",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "head",
+                        kind: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: ,
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "tail",
+                        kind: Sig(
+                            Signature {
+                                items: [
+                                    SigItem {
+                                        name: "",
+                                        kind: Sig(
+                                            Signature {
+                                                items: [
+                                                    SigItem {
+                                                        name: "",
+                                                        kind: Ident(
+                                                            SigIdent {
+                                                                name: "int",
+                                                                span: ,
+                                                            },
+                                                        ),
+                                                        has_bang: false,
+                                                        span: ,
+                                                    },
+                                                    SigItem {
+                                                        name: "",
+                                                        kind: Ident(
+                                                            SigIdent {
+                                                                name: "list",
+                                                                span: ,
+                                                            },
+                                                        ),
+                                                        has_bang: false,
+                                                        span: ,
+                                                    },
+                                                ],
+                                                span: ,
+                                                generics: [],
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                    SigItem {
+                                        name: "",
+                                        kind: Sig(
+                                            Signature {
+                                                items: [],
+                                                span: ,
+                                                generics: [],
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                ],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "next",
+                        kind: Sig(
+                            Signature {
+                                items: [
+                                    SigItem {
+                                        name: "",
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "int",
+                                                span: ,
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                    SigItem {
+                                        name: "",
+                                        kind: Sig(
+                                            Signature {
+                                                items: [
+                                                    SigItem {
+                                                        name: "",
+                                                        kind: Sig(
+                                                            Signature {
+                                                                items: [
+                                                                    SigItem {
+                                                                        name: "",
+                                                                        kind: Ident(
+                                                                            SigIdent {
+                                                                                name: "int",
+                                                                                span: ,
+                                                                            },
+                                                                        ),
+                                                                        has_bang: false,
+                                                                        span: ,
+                                                                    },
+                                                                    SigItem {
+                                                                        name: "",
+                                                                        kind: Ident(
+                                                                            SigIdent {
+                                                                                name: "list",
+                                                                                span: ,
+                                                                            },
+                                                                        ),
+                                                                        has_bang: false,
+                                                                        span: ,
+                                                                    },
+                                                                ],
+                                                                span: ,
+                                                                generics: [],
+                                                            },
+                                                        ),
+                                                        has_bang: false,
+                                                        span: ,
+                                                    },
+                                                    SigItem {
+                                                        name: "",
+                                                        kind: Sig(
+                                                            Signature {
+                                                                items: [],
+                                                                span: ,
+                                                                generics: [],
+                                                            },
+                                                        ),
+                                                        has_bang: false,
+                                                        span: ,
+                                                    },
+                                                ],
+                                                span: ,
+                                                generics: [],
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                ],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "end",
+                        kind: Sig(
+                            Signature {
+                                items: [],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                ],
+                span: ,
+                generics: [],
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "next",
+                            args: [
+                                Ident(
+                                    Ident {
+                                        name: "head",
+                                        args: [],
+                                        span: ,
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "tail",
+                                        args: [],
+                                        span: ,
+                                    },
+                                ),
+                            ],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "iterate_iterate_inner",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "iterate",
+                        kind: Sig(
+                            Signature {
+                                items: [
+                                    SigItem {
+                                        name: "",
+                                        kind: Sig(
+                                            Signature {
+                                                items: [
+                                                    SigItem {
+                                                        name: "",
+                                                        kind: Ident(
+                                                            SigIdent {
+                                                                name: "int",
+                                                                span: ,
+                                                            },
+                                                        ),
+                                                        has_bang: false,
+                                                        span: ,
+                                                    },
+                                                    SigItem {
+                                                        name: "",
+                                                        kind: Sig(
+                                                            Signature {
+                                                                items: [],
+                                                                span: ,
+                                                                generics: [],
+                                                            },
+                                                        ),
+                                                        has_bang: false,
+                                                        span: ,
+                                                    },
+                                                ],
+                                                span: ,
+                                                generics: [],
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                    SigItem {
+                                        name: "",
+                                        kind: Sig(
+                                            Signature {
+                                                items: [
+                                                    SigItem {
+                                                        name: "",
+                                                        kind: Sig(
+                                                            Signature {
+                                                                items: [
+                                                                    SigItem {
+                                                                        name: "",
+                                                                        kind: Ident(
+                                                                            SigIdent {
+                                                                                name: "int",
+                                                                                span: ,
+                                                                            },
+                                                                        ),
+                                                                        has_bang: false,
+                                                                        span: ,
+                                                                    },
+                                                                    SigItem {
+                                                                        name: "",
+                                                                        kind: Sig(
+                                                                            Signature {
+                                                                                items: [
+                                                                                    SigItem {
+                                                                                        name: "",
+                                                                                        kind: Sig(
+                                                                                            Signature {
+                                                                                                items: [
+                                                                                                    SigItem {
+                                                                                                        name: "",
+                                                                                                        kind: Ident(
+                                                                                                            SigIdent {
+                                                                                                                name: "int",
+                                                                                                                span: ,
+                                                                                                            },
+                                                                                                        ),
+                                                                                                        has_bang: false,
+                                                                                                        span: ,
+                                                                                                    },
+                                                                                                    SigItem {
+                                                                                                        name: "",
+                                                                                                        kind: Ident(
+                                                                                                            SigIdent {
+                                                                                                                name: "list",
+                                                                                                                span: ,
+                                                                                                            },
+                                                                                                        ),
+                                                                                                        has_bang: false,
+                                                                                                        span: ,
+                                                                                                    },
+                                                                                                ],
+                                                                                                span: ,
+                                                                                                generics: [],
+                                                                                            },
+                                                                                        ),
+                                                                                        has_bang: false,
+                                                                                        span: ,
+                                                                                    },
+                                                                                    SigItem {
+                                                                                        name: "",
+                                                                                        kind: Sig(
+                                                                                            Signature {
+                                                                                                items: [],
+                                                                                                span: ,
+                                                                                                generics: [],
+                                                                                            },
+                                                                                        ),
+                                                                                        has_bang: false,
+                                                                                        span: ,
+                                                                                    },
+                                                                                ],
+                                                                                span: ,
+                                                                                generics: [],
+                                                                            },
+                                                                        ),
+                                                                        has_bang: false,
+                                                                        span: ,
+                                                                    },
+                                                                ],
+                                                                span: ,
+                                                                generics: [],
+                                                            },
+                                                        ),
+                                                        has_bang: false,
+                                                        span: ,
+                                                    },
+                                                    SigItem {
+                                                        name: "",
+                                                        kind: Sig(
+                                                            Signature {
+                                                                items: [],
+                                                                span: ,
+                                                                generics: [],
+                                                            },
+                                                        ),
+                                                        has_bang: false,
+                                                        span: ,
+                                                    },
+                                                ],
+                                                span: ,
+                                                generics: [],
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                    SigItem {
+                                        name: "",
+                                        kind: Sig(
+                                            Signature {
+                                                items: [],
+                                                span: ,
+                                                generics: [],
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                ],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "handler",
+                        kind: Sig(
+                            Signature {
+                                items: [
+                                    SigItem {
+                                        name: "",
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "int",
+                                                span: ,
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                    SigItem {
+                                        name: "",
+                                        kind: Sig(
+                                            Signature {
+                                                items: [],
+                                                span: ,
+                                                generics: [],
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                ],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "end",
+                        kind: Sig(
+                            Signature {
+                                items: [],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "head",
+                        kind: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: ,
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "tail",
+                        kind: Sig(
+                            Signature {
+                                items: [
+                                    SigItem {
+                                        name: "",
+                                        kind: Sig(
+                                            Signature {
+                                                items: [
+                                                    SigItem {
+                                                        name: "",
+                                                        kind: Ident(
+                                                            SigIdent {
+                                                                name: "int",
+                                                                span: ,
+                                                            },
+                                                        ),
+                                                        has_bang: false,
+                                                        span: ,
+                                                    },
+                                                    SigItem {
+                                                        name: "",
+                                                        kind: Ident(
+                                                            SigIdent {
+                                                                name: "list",
+                                                                span: ,
+                                                            },
+                                                        ),
+                                                        has_bang: false,
+                                                        span: ,
+                                                    },
+                                                ],
+                                                span: ,
+                                                generics: [],
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                    SigItem {
+                                        name: "",
+                                        kind: Sig(
+                                            Signature {
+                                                items: [],
+                                                span: ,
+                                                generics: [],
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                ],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                ],
+                span: ,
+                generics: [],
+            },
+            body: Block {
+                items: [
+                    IdentDef {
+                        name: "next_iterate",
+                        ident: Ident {
+                            name: "iterate",
+                            args: [
+                                Ident(
+                                    Ident {
+                                        name: "handler",
+                                        args: [],
+                                        span: ,
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "tail",
+                                        args: [],
+                                        span: ,
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "end",
+                                        args: [],
+                                        span: ,
+                                    },
+                                ),
+                            ],
+                            span: ,
+                        },
+                        span: ,
+                    },
+                    Ident(
+                        Ident {
+                            name: "handler",
+                            args: [
+                                Ident(
+                                    Ident {
+                                        name: "head",
+                                        args: [],
+                                        span: ,
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "next_iterate",
+                                        args: [],
+                                        span: ,
+                                    },
+                                ),
+                            ],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "iterate",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "handler",
+                        kind: Sig(
+                            Signature {
+                                items: [
+                                    SigItem {
+                                        name: "",
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "int",
+                                                span: ,
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                    SigItem {
+                                        name: "",
+                                        kind: Sig(
+                                            Signature {
+                                                items: [],
+                                                span: ,
+                                                generics: [],
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                ],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "arr",
+                        kind: Sig(
+                            Signature {
+                                items: [
+                                    SigItem {
+                                        name: "",
+                                        kind: Sig(
+                                            Signature {
+                                                items: [
+                                                    SigItem {
+                                                        name: "",
+                                                        kind: Ident(
+                                                            SigIdent {
+                                                                name: "int",
+                                                                span: ,
+                                                            },
+                                                        ),
+                                                        has_bang: false,
+                                                        span: ,
+                                                    },
+                                                    SigItem {
+                                                        name: "",
+                                                        kind: Ident(
+                                                            SigIdent {
+                                                                name: "list",
+                                                                span: ,
+                                                            },
+                                                        ),
+                                                        has_bang: false,
+                                                        span: ,
+                                                    },
+                                                ],
+                                                span: ,
+                                                generics: [],
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                    SigItem {
+                                        name: "",
+                                        kind: Sig(
+                                            Signature {
+                                                items: [],
+                                                span: ,
+                                                generics: [],
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                ],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "end",
+                        kind: Sig(
+                            Signature {
+                                items: [],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                ],
+                span: ,
+                generics: [],
+            },
+            body: Block {
+                items: [
+                    IdentDef {
+                        name: "iterate_inner",
+                        ident: Ident {
+                            name: "iterate_iterate_inner",
+                            args: [
+                                Ident(
+                                    Ident {
+                                        name: "iterate",
+                                        args: [],
+                                        span: ,
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "handler",
+                                        args: [],
+                                        span: ,
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "end",
+                                        args: [],
+                                        span: ,
+                                    },
+                                ),
+                            ],
+                            span: ,
+                        },
+                        span: ,
+                    },
+                    Ident(
+                        Ident {
+                            name: "arr",
+                            args: [
+                                Ident(
+                                    Ident {
+                                        name: "iterate_inner",
+                                        args: [],
+                                        span: ,
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "end",
+                                        args: [],
+                                        span: ,
+                                    },
+                                ),
+                            ],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "handler",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "n",
+                        kind: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: ,
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "ok",
+                        kind: Sig(
+                            Signature {
+                                items: [],
+                                span: ,
+                                generics: [],
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                ],
+                span: ,
+                generics: [],
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "printf",
+                            args: [
+                                Lit(
+                                    Literal {
+                                        value: Str(
+                                            "%d, ",
+                                        ),
+                                        span: ,
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "n",
+                                        args: [],
+                                        span: ,
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "ok",
+                                        args: [],
+                                        span: ,
+                                    },
+                                ),
+                            ],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "end_exit",
+        lambda: Lambda {
+            params: Signature {
+                items: [],
+                span: ,
+                generics: [],
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "exit",
+                            args: [
+                                Lit(
+                                    Literal {
+                                        value: Int(
+                                            0,
+                                        ),
+                                        span: ,
+                                    },
+                                ),
+                            ],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "end",
+        lambda: Lambda {
+            params: Signature {
+                items: [],
+                span: ,
+                generics: [],
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "printf",
+                            args: [
+                                Lit(
+                                    Literal {
+                                        value: Str(
+                                            "end\n",
+                                        ),
+                                        span: ,
+                                    },
+                                ),
+                                Ident(
+                                    Ident {
+                                        name: "end_exit",
+                                        args: [],
+                                        span: ,
+                                    },
+                                ),
+                            ],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    IdentDef {
+        name: "mylist",
+        ident: Ident {
+            name: "cons",
+            args: [
+                Lit(
+                    Literal {
+                        value: Int(
+                            1,
+                        ),
+                        span: ,
+                    },
+                ),
+                Ident(
+                    Ident {
+                        name: "nil",
+                        args: [],
+                        span: ,
+                    },
+                ),
+            ],
+            span: ,
+        },
+        span: ,
+    },
+    Ident(
+        Ident {
+            name: "iterate",
+            args: [
+                Ident(
+                    Ident {
+                        name: "handler",
+                        args: [],
+                        span: ,
+                    },
+                ),
+                Ident(
+                    Ident {
+                        name: "mylist",
+                        args: [],
+                        span: ,
+                    },
+                ),
+                Ident(
+                    Ident {
+                        name: "end",
+                        args: [],
+                        span: ,
+                    },
+                ),
+            ],
+            span: ,
+        },
+    ),
+]

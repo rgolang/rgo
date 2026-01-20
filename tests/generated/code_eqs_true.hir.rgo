@@ -1,6 +1,6 @@
-@/eqs
-@/write
-@/exit
+eqs: @/eqs
+write: @/write
+exit: @/exit
 _6_lambda: (){
     _7: 0
     exit(_7)

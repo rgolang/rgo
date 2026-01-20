@@ -20,7 +20,8 @@ pub struct Block {
 #[derive(Debug, Clone)]
 pub enum BlockItem {
     Import {
-        name: String,
+        label: String,
+        path: String,
         span: Span,
     },
     FunctionDef(Function),
@@ -29,13 +30,9 @@ pub enum BlockItem {
         sig: Signature,
         span: Span,
     },
-    StrDef {
+    LitDef {
         name: String,
-        literal: ast::StrLiteral,
-    },
-    IntDef {
-        name: String,
-        literal: ast::IntLiteral,
+        literal: ast::Literal,
     },
     ClosureDef(Closure),
     Exec(Exec),
@@ -45,8 +42,7 @@ impl BlockItem {
     pub fn span(&self) -> Span {
         match self {
             BlockItem::FunctionDef(function) => function.span,
-            BlockItem::StrDef { literal, .. } => literal.span,
-            BlockItem::IntDef { literal, .. } => literal.span,
+            BlockItem::LitDef { literal, .. } => literal.span,
             BlockItem::ClosureDef(Closure { span, .. })
             | BlockItem::Import { span, .. }
             | BlockItem::Exec(Exec { span, .. }) => *span,

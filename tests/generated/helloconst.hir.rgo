@@ -1,6 +1,6 @@
-@/int
-@/write
-@/exit
+int: @/int
+write: @/write
+exit: @/exit
 x: "Hello world!\n"
 _1_lambda: (){
     _2: 0

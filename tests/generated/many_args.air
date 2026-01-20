@@ -1,0 +1,78 @@
+foo($a1: int, $a2: int, $a3: int, $a4: int, $a5: int, $a6: int, $a7: int, $a8: int, $a9: int, $a10: int, $a11: int, $a12: int, $a13: int, $a14: int, $a15: int, $a16: int, $a17: int, $a18: int, $a19: int, $a20: int, $a21: int, $a22: int, $ok: ()):
+    @printf($_0: str! = "a1: %d, a11: %d, a21: %d\n", $a1: int, $a11: int, $a21: int, $ok)
+
+
+foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $a1 = @field($__env_end, -23)
+    $a2 = @field($__env_end, -22)
+    $a3 = @field($__env_end, -21)
+    $a4 = @field($__env_end, -20)
+    $a5 = @field($__env_end, -19)
+    $a6 = @field($__env_end, -18)
+    $a7 = @field($__env_end, -17)
+    $a8 = @field($__env_end, -16)
+    $a9 = @field($__env_end, -15)
+    $a10 = @field($__env_end, -14)
+    $a11 = @field($__env_end, -13)
+    $a12 = @field($__env_end, -12)
+    $a13 = @field($__env_end, -11)
+    $a14 = @field($__env_end, -10)
+    $a15 = @field($__env_end, -9)
+    $a16 = @field($__env_end, -8)
+    $a17 = @field($__env_end, -7)
+    $a18 = @field($__env_end, -6)
+    $a19 = @field($__env_end, -5)
+    $a20 = @field($__env_end, -4)
+    $a21 = @field($__env_end, -3)
+    $a22 = @field($__env_end, -2)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(foo, $a1: int, $a2: int, $a3: int, $a4: int, $a5: int, $a6: int, $a7: int, $a8: int, $a9: int, $a10: int, $a11: int, $a12: int, $a13: int, $a14: int, $a15: int, $a16: int, $a17: int, $a18: int, $a19: int, $a20: int, $a21: int, $a22: int, $ok: ())
+
+
+foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(foo_release_skip_22, $__num_remaining, 0)
+    $foo_release_field_22 = @field($__env_end, -1)
+    @callptr($foo_release_field_22)
+foo_release_skip_22:
+    @release($__env_end)
+    @return()
+
+
+foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(foo_deepcopy_skip_22, $num_remaining, 0)
+    @deepcopy($foo_deepcopy_field_22, $__env_end, -1)
+foo_deepcopy_skip_22:
+    @return()
+
+
+_24_lambda():
+    @exit($_25: int = 0)
+
+
+_24_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_24_lambda)
+
+
+_24_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_24_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    $_24_lambda = @newclosure<>(_24_lambda)
+    @jumpargs(foo, $_1: int = 1, $_2: int = 2, $_3: int = 3, $_4: int = 4, $_5: int = 5, $_6: int = 6, $_7: int = 7, $_8: int = 8, $_9: int = 9, $_10: int = 10, $_11: int = 11, $_12: int = 12, $_13: int = 13, $_14: int = 14, $_15: int = 15, $_16: int = 16, $_17: int = 17, $_18: int = 18, $_19: int = 19, $_20: int = 20, $_21: int = 21, $_22: int = 22, $_24_lambda: ())
+

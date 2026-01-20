@@ -1,0 +1,13 @@
+printf: @/printf
+exit: @/exit
+
+true: (x: (), y: ()){
+    x()
+}
+false: (x: (), y: ()){
+    y()
+}
+if: (cond: ((),()), on_true:()){
+    cond(on_true, printf("does not work\n", exit(0)))
+}
+if(true, printf("works\n", exit(0)))

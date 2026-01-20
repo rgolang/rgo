@@ -1,6 +1,6 @@
-@/int
-@/add
-@/exit
+int: @/int
+add: @/add
+exit: @/exit
 _3_lambda: (n: int){
     _4: 0
     exit(_4)

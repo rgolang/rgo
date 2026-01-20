@@ -1,8 +1,8 @@
-@/int
-@/str
-@/sprintf
-@/write
-@/exit
+int: @/int
+str: @/str
+sprintf: @/sprintf
+write: @/write
+exit: @/exit
 _5_lambda: (){
     _6: 0
     exit(_6)

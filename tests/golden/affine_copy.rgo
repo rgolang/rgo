@@ -1,7 +1,7 @@
-@/exit
-@/int
-@/add
-@/printf
+exit: @/exit
+int: @/int
+add: @/add
+printf: @/printf
 
 bar: (a:int, b:int, ok:(int)){
     add(a, b, ok)
@@ -10,6 +10,6 @@ foo: (ok:()) {
     b: bar(1)
     c1: b(2)
     c2: b(3)
-    c1((x:int){printf("got: %d", x, ok)})
+    c1((x:int){printf("got: %d\n", x, ok)})
 }
 foo(exit(0))

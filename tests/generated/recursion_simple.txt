@@ -4,11 +4,7 @@
         lambda: Lambda {
             params: Signature {
                 items: [],
-                span: Span {
-                    line: 1,
-                    column: 6,
-                    offset: 5,
-                },
+                span: ,
                 generics: [],
             },
             body: Block {
@@ -17,42 +13,22 @@
                         Ident {
                             name: "foo",
                             args: [],
-                            span: Span {
-                                line: 2,
-                                column: 5,
-                                offset: 13,
-                            },
+                            span: ,
                         },
                     ),
                 ],
-                span: Span {
-                    line: 1,
-                    column: 8,
-                    offset: 7,
-                },
+                span: ,
             },
             args: [],
-            span: Span {
-                line: 1,
-                column: 1,
-                offset: 0,
-            },
+            span: ,
         },
-        span: Span {
-            line: 1,
-            column: 1,
-            offset: 0,
-        },
+        span: ,
     },
     Ident(
         Ident {
             name: "foo",
             args: [],
-            span: Span {
-                line: 4,
-                column: 1,
-                offset: 21,
-            },
+            span: ,
         },
     ),
 ]

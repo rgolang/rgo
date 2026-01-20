@@ -1,7 +1,7 @@
-@/int
-@/printf
-@/add
-@/exit
+int: @/int
+printf: @/printf
+add: @/add
+exit: @/exit
 
 print_sum: (ok:()){
     (total:int) = add(3, 4)

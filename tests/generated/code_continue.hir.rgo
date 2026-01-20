@@ -1,8 +1,8 @@
-@/str
-@/int
-@/exit
-@/printf
-@/add
+str: @/str
+int: @/int
+exit: @/exit
+printf: @/printf
+add: @/add
 foo: (x: int, y: int, ok:(int)){
     add(x, y, ok)
 }

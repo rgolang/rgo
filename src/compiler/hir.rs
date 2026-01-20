@@ -1,5 +1,5 @@
 use crate::compiler::ast;
-use crate::compiler::ast::{Arg, SigItem, SigKind, Signature};
+use crate::compiler::ast::{Arg, Lit, SigItem, SigKind, Signature};
 use crate::compiler::error;
 use crate::compiler::error::{Code, Error};
 use crate::compiler::format_hir;
@@ -26,13 +26,14 @@ impl Lowerer {
 
     pub fn consume(&mut self, ctx: &mut ctx::Context, stmt: ast::BlockItem) -> Result<(), Error> {
         match stmt {
-            ast::BlockItem::Import { name, span } => {
+            ast::BlockItem::Import { label, path, span } => {
                 let item = BlockItem::Import {
-                    name: name.clone(),
+                    label: label.clone(),
+                    path: path.clone(),
                     span,
                 };
                 self.ready.push_back(item);
-                ctx::register_import(ctx, &name, span)?; // TODO: Get a definition from builtins and reg it.
+                ctx::register_import(ctx, &label, &path, span)?;
             }
             ast::BlockItem::FunctionDef { name, lambda, .. } => {
                 let display_name = name.clone();
@@ -212,32 +213,17 @@ fn lower_block_item(
         }
         ast::BlockItem::Ident(term) => lower_exec(ctx, ast::Term::Ident(term), hoisted),
         ast::BlockItem::Lambda(lambda) => lower_exec(ctx, ast::Term::Lambda(lambda), hoisted),
-        ast::BlockItem::StrDef {
+        ast::BlockItem::LitDef {
             name,
             literal,
             span,
         } => {
-            let literal_item = ast::StrLiteral {
+            let literal_item = ast::Literal {
                 value: literal.value,
                 span,
             };
             ctx.add_literal(&name, SigKind::CompileTimeStr, span)?;
-            Ok(vec![BlockItem::StrDef {
-                name: name.clone(),
-                literal: literal_item,
-            }])
-        }
-        ast::BlockItem::IntDef {
-            name,
-            literal,
-            span,
-        } => {
-            let literal_item = ast::IntLiteral {
-                value: literal.value,
-                span,
-            };
-            ctx.add_literal(&name, SigKind::CompileTimeInt, span)?;
-            Ok(vec![BlockItem::IntDef {
+            Ok(vec![BlockItem::LitDef {
                 name: name.clone(),
                 literal: literal_item,
             }])
@@ -344,7 +330,8 @@ fn lower_exec(
         ast::Term::Ident(ast_ident) => {
             let ast::Ident { name, args, span } = ast_ident;
             maybe_capture_name(ctx, &name)?;
-            let (target, args) = resolve_target(ctx, &name, args, hoisted, &mut lowered_items)?;
+            let (target, args) =
+                resolve_target(ctx, &name, args, hoisted, &mut lowered_items, span)?;
             let of = emit_closure_for_term(ctx, &target.name, &mut lowered_items, &mut emitted);
             Exec { of, args, span }
         }
@@ -360,7 +347,7 @@ fn lower_exec(
         }
         other => unreachable!("expected exec term, got {:?}", other),
     };
-    // Builtins like printf, sprintf, write, and puts rely on the MIR-level FFI bridge
+    // Builtins like printf, sprintf, write, and puts rely on the AIR-level FFI bridge
     // so continuations and variadic arguments are resolved consistently later.
     lowered_items.push(BlockItem::Exec(exec));
     Ok(lowered_items)
@@ -379,7 +366,7 @@ fn lower_closure(
         args: ast_args,
         span,
     } = ident;
-    let (target, args) = resolve_target(ctx, &target_name, ast_args, hoisted, lowered_items)?;
+    let (target, args) = resolve_target(ctx, &target_name, ast_args, hoisted, lowered_items, span)?;
 
     Ok(Closure {
         name,
@@ -401,7 +388,14 @@ fn lower_lambda_term(
     let contextual_name = ctx.new_name();
     lower_function(ctx, contextual_name.clone(), None, lambda, hoisted, false)?;
 
-    let (target, args) = resolve_target(ctx, &contextual_name, ast_args, hoisted, lowered_items)?;
+    let (target, args) = resolve_target(
+        ctx,
+        &contextual_name,
+        ast_args,
+        hoisted,
+        lowered_items,
+        span,
+    )?;
 
     let target_name = target.name.clone();
 
@@ -429,8 +423,14 @@ fn lower_arg(
         ast::Term::Ident(ast_ident) => {
             maybe_capture_name(ctx, &ast_ident.name)?;
 
-            let (target, args) =
-                resolve_target(ctx, &ast_ident.name, ast_ident.args, hoisted, lowered_items)?;
+            let (target, args) = resolve_target(
+                ctx,
+                &ast_ident.name,
+                ast_ident.args,
+                hoisted,
+                lowered_items,
+                ast_ident.span,
+            )?;
 
             if args.is_empty() {
                 Arg {
@@ -451,34 +451,17 @@ fn lower_arg(
                 }
             }
         }
-        ast::Term::Int(literal) => {
+        ast::Term::Lit(literal) => {
             let new_name = ctx.new_name_for_literal();
+            let span = literal.span.clone();
             // Can theoretically get pushed to the root level
-            lowered_items.push(BlockItem::IntDef {
+            lowered_items.push(BlockItem::LitDef {
                 name: new_name.clone(),
-                literal: ast::IntLiteral {
-                    value: literal.value,
-                    span: literal.span,
-                },
+                literal: literal,
             });
             Arg {
                 name: new_name,
-                span: literal.span,
-            }
-        }
-        ast::Term::String(literal) => {
-            let new_name = ctx.new_name_for_literal();
-            // Can theoretically get pushed to the root level
-            lowered_items.push(BlockItem::StrDef {
-                name: new_name.clone(),
-                literal: ast::StrLiteral {
-                    value: literal.value,
-                    span: literal.span,
-                },
-            });
-            Arg {
-                name: new_name,
-                span: literal.span,
+                span: span,
             }
         }
         ast::Term::Lambda(lambda) => {
@@ -506,6 +489,7 @@ fn resolve_target(
     ast_args: Vec<ast::Term>,
     hoisted: &mut VecDeque<BlockItem>,
     lowered_items: &mut Vec<BlockItem>,
+    call_span: Span,
 ) -> Result<(ContextEntry, Vec<Arg>), Error> {
     let target: ContextEntry = ctx.get(name).cloned().ok_or_else(|| {
         error::new(
@@ -528,7 +512,8 @@ fn resolve_target(
         })
         .collect();
 
-    if ast_args.is_empty() {
+    let ast_args_len = ast_args.len();
+    if ast_args_len == 0 {
         return Ok((target, args));
     }
 
@@ -543,9 +528,9 @@ fn resolve_target(
         })?;
 
     let params = &signature.items;
-    let expected_params = signature::expected_params_for_args(params, ast_args.len());
+    let expected_params = signature::expected_params_for_args(params, ast_args_len);
 
-    let mut lowered = Vec::with_capacity(ast_args.len());
+    let mut lowered = Vec::with_capacity(ast_args_len);
     for (term, expected_param) in ast_args.into_iter().zip(expected_params.into_iter()) {
         lowered.push(lower_arg(
             ctx,
@@ -557,6 +542,19 @@ fn resolve_target(
     }
 
     args.extend(lowered);
+    let total_param_count = params.len() + target.captures.len();
+    if !signature.is_variadic() && args.len() > total_param_count {
+        return Err(error::new(
+            Code::HIR,
+            format!(
+                "function '{}' expected {} arguments but got {}",
+                target.name,
+                total_param_count,
+                args.len()
+            ),
+            call_span,
+        ));
+    }
     Ok((target, args))
 }
 
@@ -725,8 +723,12 @@ fn ensure_sig_kind_exists(
 
 fn term_sig_kind(ctx: &mut ctx::Context, term: &ast::Term, allow_idents: bool) -> Option<SigKind> {
     match term {
-        ast::Term::Int(_) => Some(SigKind::CompileTimeInt),
-        ast::Term::String(_) => Some(SigKind::CompileTimeStr),
+        ast::Term::Lit(ast::Literal {
+            value: Lit::Int(_), ..
+        }) => Some(SigKind::CompileTimeInt),
+        ast::Term::Lit(ast::Literal {
+            value: Lit::Str(_), ..
+        }) => Some(SigKind::CompileTimeStr),
         ast::Term::Ident(ast_ident) => {
             if allow_idents && ast_ident.args.is_empty() {
                 ctx.get(&ast_ident.name).map(|entry| entry.kind.clone())
@@ -735,9 +737,10 @@ fn term_sig_kind(ctx: &mut ctx::Context, term: &ast::Term, allow_idents: bool) -
             }
         }
         ast::Term::Lambda(lambda) => {
-            let signature = signature::resolve_ast_signature(&lambda.params, ctx);
-            let normalized = signature::normalize_signature(&signature, ctx);
-            Some(SigKind::Sig(normalized))
+            let mut signature = signature::resolve_ast_signature(&lambda.params, ctx);
+            let drop_count = lambda.args.len().min(signature.items.len());
+            signature.items.drain(0..drop_count);
+            Some(SigKind::Sig(signature))
         }
     }
 }

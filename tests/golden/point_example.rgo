@@ -1,0 +1,17 @@
+int: @/int
+exit: @/exit
+printf: @/printf
+point: (x:int, y:int)
+// This is a struct function
+new_point: (x:int, y:int, ok:point){
+    ok(x, y)
+}
+bar: (p:(point)){ // This might not be a struct function
+    (x:int, y:int) = p
+    printf("x: %d, y: %d", x, y, exit(0))
+}
+foo: (){
+    p: new_point(1, 2)
+    bar(p)
+}
+foo()

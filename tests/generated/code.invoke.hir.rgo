@@ -1,5 +1,5 @@
-@/write
-@/exit
+write: @/write
+exit: @/exit
 _4_foo: (){
     _5: 0
     exit(_5)

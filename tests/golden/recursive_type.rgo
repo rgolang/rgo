@@ -1,7 +1,7 @@
-@/int
-@/printf
-@/str
-@/exit
+int: @/int
+printf: @/printf
+str: @/str
+exit: @/exit
 
 tail: (x: int, rest: tail)
 

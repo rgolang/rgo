@@ -1,7 +1,7 @@
-@/str
-@/int
-@/write
-@/exit
+str: @/str
+int: @/int
+write: @/write
+exit: @/exit
 _0_foo_w: (ok:(), s: str){
     write(s, ok)
 }

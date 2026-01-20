@@ -1,0 +1,233 @@
+foo($p: (), $ok: ()):
+    @jumpclosure($p, $ok: int)
+
+
+foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $p = @field($__env_end, -2)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(foo, $p: (), $ok: ())
+
+
+foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(foo_release_skip_0, $__num_remaining, 1)
+    $foo_release_field_0 = @field($__env_end, -2)
+    @callptr($foo_release_field_0)
+foo_release_skip_0:
+    @gt(foo_release_skip_1, $__num_remaining, 0)
+    $foo_release_field_1 = @field($__env_end, -1)
+    @callptr($foo_release_field_1)
+foo_release_skip_1:
+    @release($__env_end)
+    @return()
+
+
+foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(foo_deepcopy_skip_0, $num_remaining, 1)
+    @deepcopy($foo_deepcopy_field_0, $__env_end, -2)
+foo_deepcopy_skip_0:
+    @gt(foo_deepcopy_skip_1, $num_remaining, 0)
+    @deepcopy($foo_deepcopy_field_1, $__env_end, -1)
+foo_deepcopy_skip_1:
+    @return()
+
+
+print1($n: str, $ok: ()):
+    @printf($_1: str! = "The losing number is %s\n", $n: int, $ok)
+
+
+print1_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $n = @field($__env_end, -2)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(print1, $n: str, $ok: ())
+
+
+print1_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(print1_release_skip_1, $__num_remaining, 0)
+    $print1_release_field_1 = @field($__env_end, -1)
+    @callptr($print1_release_field_1)
+print1_release_skip_1:
+    @release($__env_end)
+    @return()
+
+
+print1_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(print1_deepcopy_skip_1, $num_remaining, 0)
+    @deepcopy($print1_deepcopy_field_1, $__env_end, -1)
+print1_deepcopy_skip_1:
+    @return()
+
+
+print2($n: str, $ok: ()):
+    @printf($_2: str! = "The winning number is %s\n", $n: int, $ok)
+
+
+print2_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $n = @field($__env_end, -2)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(print2, $n: str, $ok: ())
+
+
+print2_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(print2_release_skip_1, $__num_remaining, 0)
+    $print2_release_field_1 = @field($__env_end, -1)
+    @callptr($print2_release_field_1)
+print2_release_skip_1:
+    @release($__env_end)
+    @return()
+
+
+print2_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(print2_deepcopy_skip_1, $num_remaining, 0)
+    @deepcopy($print2_deepcopy_field_1, $__env_end, -1)
+print2_deepcopy_skip_1:
+    @return()
+
+
+p1($ok: ()):
+    @jumpargs(print1, $_3: str = "41", $ok: ())
+
+
+p1_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(p1, $ok: ())
+
+
+p1_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(p1_release_skip_0, $__num_remaining, 0)
+    $p1_release_field_0 = @field($__env_end, -1)
+    @callptr($p1_release_field_0)
+p1_release_skip_0:
+    @release($__env_end)
+    @return()
+
+
+p1_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(p1_deepcopy_skip_0, $num_remaining, 0)
+    @deepcopy($p1_deepcopy_field_0, $__env_end, -1)
+p1_deepcopy_skip_0:
+    @return()
+
+
+p2($ok: ()):
+    @jumpargs(print2, $_4: str = "42", $ok: ())
+
+
+p2_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(p2, $ok: ())
+
+
+p2_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(p2_release_skip_0, $__num_remaining, 0)
+    $p2_release_field_0 = @field($__env_end, -1)
+    @callptr($p2_release_field_0)
+p2_release_skip_0:
+    @release($__env_end)
+    @return()
+
+
+p2_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(p2_deepcopy_skip_0, $num_remaining, 0)
+    @deepcopy($p2_deepcopy_field_0, $__env_end, -1)
+p2_deepcopy_skip_0:
+    @return()
+
+
+_8_lambda():
+    @exit($_9: int = 0)
+
+
+_8_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_8_lambda)
+
+
+_8_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_8_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_6_lambda($foo: (), $p2: ()):
+    $_8_lambda = @newclosure<>(_8_lambda)
+    @jumpclosure($foo, $p2: int, $_8_lambda: int)
+
+
+_6_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $foo = @field($__env_end, -2)
+    $p2 = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_6_lambda, $foo: (), $p2: ())
+
+
+_6_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_6_lambda_release_skip_0, $__num_remaining, 1)
+    $_6_lambda_release_field_0 = @field($__env_end, -2)
+    @callptr($_6_lambda_release_field_0)
+_6_lambda_release_skip_0:
+    @gt(_6_lambda_release_skip_1, $__num_remaining, 0)
+    $_6_lambda_release_field_1 = @field($__env_end, -1)
+    @callptr($_6_lambda_release_field_1)
+_6_lambda_release_skip_1:
+    @release($__env_end)
+    @return()
+
+
+_6_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_6_lambda_deepcopy_skip_0, $num_remaining, 1)
+    @deepcopy($_6_lambda_deepcopy_field_0, $__env_end, -2)
+_6_lambda_deepcopy_skip_0:
+    @gt(_6_lambda_deepcopy_skip_1, $num_remaining, 0)
+    @deepcopy($_6_lambda_deepcopy_field_1, $__env_end, -1)
+_6_lambda_deepcopy_skip_1:
+    @return()
+
+
+_start():
+    $foo = @newclosure<($_0_: ()), ()>(foo)
+    $p2 = @newclosure<()>(p2)
+    $_11_ = @newclosure<($p: (), $ok: ()), ($ok: ())>(_6_lambda, $foo: (), $p2: ())
+    $p1 = @newclosure<()>(p1)
+    @jumpclosure($foo, $p1: int, $_11_: int)
+

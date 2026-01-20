@@ -1,6 +1,6 @@
-@/int
-@/printf
-@/exit
+int: @/int
+printf: @/printf
+exit: @/exit
 _2_lambda: (){
     _3: 0
     exit(_3)

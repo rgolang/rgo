@@ -47,15 +47,17 @@ fn write_block_item(item: &BlockItem, out: &mut String, indent: usize) {
 
     write_indent(out, indent);
     match item {
-        BlockItem::Import { name, .. } => {
-            write!(out, "@{}", name).unwrap();
+        BlockItem::Import { label, path, .. } => {
+            write!(out, "{}: @{}", label, path).unwrap();
         }
-        BlockItem::StrDef { name, literal } => {
-            write!(out, "{}: {}", name, format_string_literal(&literal.value)).unwrap();
-        }
-        BlockItem::IntDef { name, literal } => {
-            write!(out, "{}: {}", name, literal.value).unwrap();
-        }
+        BlockItem::LitDef { name, literal } => match &literal.value {
+            ast::Lit::Str(s) => {
+                write!(out, "{}: {}", name, format_string_literal(&s)).unwrap();
+            }
+            ast::Lit::Int(i) => {
+                write!(out, "{}: {}", name, i).unwrap();
+            }
+        },
         BlockItem::ClosureDef(Closure { name, of, args, .. }) => {
             write!(out, "{}: {}(", name, of).unwrap();
             write_args(args, out);
@@ -117,7 +119,7 @@ fn format_param_list(params: &[ast::SigItem]) -> String {
     format!("({})", entries.join(", "))
 }
 
-pub(crate) fn format_sig_kind(kind: &ast::SigKind) -> String {
+pub fn format_sig_kind(kind: &ast::SigKind) -> String {
     match kind {
         ast::SigKind::Int => "int".to_string(),
         ast::SigKind::Str => "str".to_string(),

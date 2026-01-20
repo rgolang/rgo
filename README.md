@@ -26,7 +26,7 @@ printf("hello %s", name, exit(0))
 
 ## Execution Model & Core Semantics
 
-It is a **identifier-driven, definition-oriented, continuation-passing language**.  
+It is a **identifier-driven, definition-oriented, definition before use, static single assignment, expression-less, continuation-passing language**.  
 Programs are built from two fundamental actions:
 
 - **defining identifiers for values**, and  
@@ -150,7 +150,7 @@ ld -dynamic-linker /lib64/ld-linux-x86-64.so.2 -lc bin/hello.o -o bin/hello
 
 - Rebuild the compiler or run the golden snapshot suite with `cargo test`. This also executes `tests/golden_test.rs`, which regenerates snapshots under `tests/generated/`:
   - `*.asm` contains the final NASM output.
-  - `*.mir` records the pseudo-assembly that feeds the final backend.
+  - `*.air` records the pseudo-assembly that feeds the final backend.
   - `*.hir.rgo` is the normalized high-level IR after parsing.
   - `*.hir.debug.txt` shows the HIR structure.
   - `*.txt` captures the parser AST dump.
@@ -168,10 +168,10 @@ The compilation process flows as follows:
 1. `Lexer`: Transforms source text into a stream of `Token`s.
 2. `Parser`: Consumes tokens to produce an Abstract Syntax Tree (AST).
 3. `HIR`: AST is desugared and type checked.
-4. `MIR`: Control flow analysis and memory management.
+4. `AIR`: Control flow analysis and memory management.
 5. `Codegen`: Optimization and assembly output.
 6. `Assembler`: Converts assembly text into machine object files.
-7. `Linker`: Combines object files and libraries into the final executable.
+7. TODO: `Linker`: Combines object files and libraries into the final executable.
 
 ## Current Limitations & Roadmap Notes
 
@@ -186,9 +186,9 @@ Functions such as sin, cos, sqrt, and friends are not yet exposed. Interfacing t
 - No arrays or slices  
 Aggregate data structures are not yet supported. There is no syntax or type-level encoding for contiguous memory layouts, indexing, or bounds semantics.
 - Minimal runtime surface  
-At present, the only “standard library” consists of printf, sprintf, and arbitrary native NASM instructions. Everything else must be built manually.
+At present, the only “standard library” consists of write, printf, sprintf, and arbitrary native NASM instructions. Everything else must be built manually.
 - Loops leak memory  
-Loops are implemented using recursion, they should not leak, but this hasn't been throughly tested
+Loops are implemented using recursion, they should not leak, but this hasn't been fixed yet.
 
 Despite that, functionality is slowly expanding, and the compiler architecture is structured so these features can be added piece by piece while keeping the language’s core goals (simplicity, explicitness, and predictability) intact.
 

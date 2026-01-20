@@ -1,0 +1,92 @@
+foo($n: str, $s: str, $ok: ()):
+    @printf($_0: str! = "The winning number for %s is %s\n", $s: int, $n: int, $ok)
+
+
+foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $n = @field($__env_end, -3)
+    $s = @field($__env_end, -2)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(foo, $n: str, $s: str, $ok: ())
+
+
+foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(foo_release_skip_2, $__num_remaining, 0)
+    $foo_release_field_2 = @field($__env_end, -1)
+    @callptr($foo_release_field_2)
+foo_release_skip_2:
+    @release($__env_end)
+    @return()
+
+
+foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(foo_deepcopy_skip_2, $num_remaining, 0)
+    @deepcopy($foo_deepcopy_field_2, $__env_end, -1)
+foo_deepcopy_skip_2:
+    @return()
+
+
+_8_lambda():
+    @exit($_9: int = 0)
+
+
+_8_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_8_lambda)
+
+
+_8_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_8_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_6_lambda($baz: ()):
+    $_8_lambda = @newclosure<>(_8_lambda)
+    @jumpclosure($baz, $_8_lambda: int)
+
+
+_6_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $baz = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_6_lambda, $baz: ())
+
+
+_6_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_6_lambda_release_skip_0, $__num_remaining, 0)
+    $_6_lambda_release_field_0 = @field($__env_end, -1)
+    @callptr($_6_lambda_release_field_0)
+_6_lambda_release_skip_0:
+    @release($__env_end)
+    @return()
+
+
+_6_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_6_lambda_deepcopy_skip_0, $num_remaining, 0)
+    @deepcopy($_6_lambda_deepcopy_field_0, $__env_end, -1)
+_6_lambda_deepcopy_skip_0:
+    @return()
+
+
+_start():
+    $baz = @newclosure<str, str, ()>(foo, $_2: str = "43", $_3: str = "Bob")
+    $_11_ = @newclosure<($ok: ())>(_6_lambda, $baz: ())
+    $bar = @newclosure<str, str, ()>(foo, $_1: str = "42")
+    @jumpclosure($bar, $_4: int = "Alice", $_11_: int)
+

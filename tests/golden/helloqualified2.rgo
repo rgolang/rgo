@@ -1,7 +1,7 @@
-@/str
-@/int
-@/write
-@/exit
+str: @/str
+int: @/int
+write: @/write
+exit: @/exit
 
 x: "Hello world!\n"
 foo: (){

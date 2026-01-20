@@ -1,5 +1,5 @@
-@/str
-@/itoa
-@/exit
+str: @/str
+itoa: @/itoa
+exit: @/exit
 
 itoa(1, (s: str){ exit(0) })

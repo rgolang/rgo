@@ -1,0 +1,89 @@
+_3_print_sum($ok: (), $total: int):
+    @printf($_4: str! = "sum is %d\n", $total: int, $ok)
+
+
+_3_print_sum_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $ok = @field($__env_end, -2)
+    $total = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_3_print_sum, $ok: (), $total: int)
+
+
+_3_print_sum_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_3_print_sum_release_skip_0, $__num_remaining, 1)
+    $_3_print_sum_release_field_0 = @field($__env_end, -2)
+    @callptr($_3_print_sum_release_field_0)
+_3_print_sum_release_skip_0:
+    @release($__env_end)
+    @return()
+
+
+_3_print_sum_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_3_print_sum_deepcopy_skip_0, $num_remaining, 1)
+    @deepcopy($_3_print_sum_deepcopy_field_0, $__env_end, -2)
+_3_print_sum_deepcopy_skip_0:
+    @return()
+
+
+print_sum($ok: ()):
+    $_5_print_sum = @newclosure<(), int>(_3_print_sum, $ok: ())
+    @add($_0: int = 3, $_1: int = 4, $_5_print_sum)
+
+
+print_sum_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(print_sum, $ok: ())
+
+
+print_sum_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(print_sum_release_skip_0, $__num_remaining, 0)
+    $print_sum_release_field_0 = @field($__env_end, -1)
+    @callptr($print_sum_release_field_0)
+print_sum_release_skip_0:
+    @release($__env_end)
+    @return()
+
+
+print_sum_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(print_sum_deepcopy_skip_0, $num_remaining, 0)
+    @deepcopy($print_sum_deepcopy_field_0, $__env_end, -1)
+print_sum_deepcopy_skip_0:
+    @return()
+
+
+_7_lambda():
+    @exit($_8: int = 0)
+
+
+_7_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_7_lambda)
+
+
+_7_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_7_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    $_7_lambda = @newclosure<>(_7_lambda)
+    @jumpargs(print_sum, $_7_lambda: ())
+

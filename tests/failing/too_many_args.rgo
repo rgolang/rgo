@@ -1,5 +1,5 @@
-@/int
-@/exit
+int: @/int
+exit: @/exit
 
 foo: (x: int, y: int) {
     exit(0)

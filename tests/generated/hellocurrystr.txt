@@ -1,35 +1,23 @@
 [
     Import {
-        name: "/str",
-        span: Span {
-            line: 1,
-            column: 1,
-            offset: 0,
-        },
+        label: "str",
+        path: "/str",
+        span: ,
     },
     Import {
-        name: "/int",
-        span: Span {
-            line: 2,
-            column: 1,
-            offset: 6,
-        },
+        label: "int",
+        path: "/int",
+        span: ,
     },
     Import {
-        name: "/printf",
-        span: Span {
-            line: 3,
-            column: 1,
-            offset: 12,
-        },
+        label: "printf",
+        path: "/printf",
+        span: ,
     },
     Import {
-        name: "/exit",
-        span: Span {
-            line: 4,
-            column: 1,
-            offset: 21,
-        },
+        label: "exit",
+        path: "/exit",
+        span: ,
     },
     FunctionDef {
         name: "foo",
@@ -41,65 +29,37 @@
                         kind: Ident(
                             SigIdent {
                                 name: "str",
-                                span: Span {
-                                    line: 6,
-                                    column: 9,
-                                    offset: 37,
-                                },
+                                span: ,
                             },
                         ),
                         has_bang: false,
-                        span: Span {
-                            line: 6,
-                            column: 7,
-                            offset: 35,
-                        },
+                        span: ,
                     },
                     SigItem {
                         name: "s",
                         kind: Ident(
                             SigIdent {
                                 name: "str",
-                                span: Span {
-                                    line: 6,
-                                    column: 16,
-                                    offset: 44,
-                                },
+                                span: ,
                             },
                         ),
                         has_bang: false,
-                        span: Span {
-                            line: 6,
-                            column: 14,
-                            offset: 42,
-                        },
+                        span: ,
                     },
                     SigItem {
                         name: "ok",
                         kind: Sig(
                             Signature {
                                 items: [],
-                                span: Span {
-                                    line: 6,
-                                    column: 24,
-                                    offset: 52,
-                                },
+                                span: ,
                                 generics: [],
                             },
                         ),
                         has_bang: false,
-                        span: Span {
-                            line: 6,
-                            column: 21,
-                            offset: 49,
-                        },
+                        span: ,
                     },
                 ],
-                span: Span {
-                    line: 6,
-                    column: 6,
-                    offset: 34,
-                },
+                span: ,
                 generics: [],
             },
             body: Block {
@@ -108,166 +68,108 @@
                         Ident {
                             name: "printf",
                             args: [
-                                String(
-                                    StrLiteral {
-                                        value: "The winning number for %s is %s\n",
-                                        span: Span {
-                                            line: 7,
-                                            column: 9,
-                                            offset: 65,
-                                        },
+                                Lit(
+                                    Literal {
+                                        value: Str(
+                                            "The winning number for %s is %s\n",
+                                        ),
+                                        span: ,
                                     },
                                 ),
                                 Ident(
                                     Ident {
                                         name: "s",
                                         args: [],
-                                        span: Span {
-                                            line: 7,
-                                            column: 46,
-                                            offset: 102,
-                                        },
+                                        span: ,
                                     },
                                 ),
                                 Ident(
                                     Ident {
                                         name: "n",
                                         args: [],
-                                        span: Span {
-                                            line: 7,
-                                            column: 49,
-                                            offset: 105,
-                                        },
+                                        span: ,
                                     },
                                 ),
                                 Ident(
                                     Ident {
                                         name: "ok",
                                         args: [],
-                                        span: Span {
-                                            line: 7,
-                                            column: 52,
-                                            offset: 108,
-                                        },
+                                        span: ,
                                     },
                                 ),
                             ],
-                            span: Span {
-                                line: 7,
-                                column: 2,
-                                offset: 58,
-                            },
+                            span: ,
                         },
                     ),
                 ],
-                span: Span {
-                    line: 6,
-                    column: 27,
-                    offset: 55,
-                },
+                span: ,
             },
             args: [],
-            span: Span {
-                line: 6,
-                column: 1,
-                offset: 29,
-            },
+            span: ,
         },
-        span: Span {
-            line: 6,
-            column: 1,
-            offset: 29,
-        },
+        span: ,
     },
     IdentDef {
         name: "bar",
         ident: Ident {
             name: "foo",
             args: [
-                String(
-                    StrLiteral {
-                        value: "42",
-                        span: Span {
-                            line: 9,
-                            column: 10,
-                            offset: 123,
-                        },
+                Lit(
+                    Literal {
+                        value: Str(
+                            "42",
+                        ),
+                        span: ,
                     },
                 ),
             ],
-            span: Span {
-                line: 9,
-                column: 6,
-                offset: 119,
-            },
+            span: ,
         },
-        span: Span {
-            line: 9,
-            column: 1,
-            offset: 114,
-        },
+        span: ,
     },
     IdentDef {
         name: "baz",
         ident: Ident {
             name: "foo",
             args: [
-                String(
-                    StrLiteral {
-                        value: "43",
-                        span: Span {
-                            line: 10,
-                            column: 10,
-                            offset: 138,
-                        },
+                Lit(
+                    Literal {
+                        value: Str(
+                            "43",
+                        ),
+                        span: ,
                     },
                 ),
-                String(
-                    StrLiteral {
-                        value: "Bob",
-                        span: Span {
-                            line: 10,
-                            column: 16,
-                            offset: 144,
-                        },
+                Lit(
+                    Literal {
+                        value: Str(
+                            "Bob",
+                        ),
+                        span: ,
                     },
                 ),
             ],
-            span: Span {
-                line: 10,
-                column: 6,
-                offset: 134,
-            },
+            span: ,
         },
-        span: Span {
-            line: 10,
-            column: 1,
-            offset: 129,
-        },
+        span: ,
     },
     Ident(
         Ident {
             name: "bar",
             args: [
-                String(
-                    StrLiteral {
-                        value: "Alice",
-                        span: Span {
-                            line: 11,
-                            column: 5,
-                            offset: 155,
-                        },
+                Lit(
+                    Literal {
+                        value: Str(
+                            "Alice",
+                        ),
+                        span: ,
                     },
                 ),
                 Lambda(
                     Lambda {
                         params: Signature {
                             items: [],
-                            span: Span {
-                                line: 11,
-                                column: 14,
-                                offset: 164,
-                            },
+                            span: ,
                             generics: [],
                         },
                         body: Block {
@@ -280,53 +182,31 @@
                                                 Ident {
                                                     name: "exit",
                                                     args: [
-                                                        Int(
-                                                            IntLiteral {
-                                                                value: 0,
-                                                                span: Span {
-                                                                    line: 12,
-                                                                    column: 11,
-                                                                    offset: 176,
-                                                                },
+                                                        Lit(
+                                                            Literal {
+                                                                value: Int(
+                                                                    0,
+                                                                ),
+                                                                span: ,
                                                             },
                                                         ),
                                                     ],
-                                                    span: Span {
-                                                        line: 12,
-                                                        column: 6,
-                                                        offset: 171,
-                                                    },
+                                                    span: ,
                                                 },
                                             ),
                                         ],
-                                        span: Span {
-                                            line: 12,
-                                            column: 2,
-                                            offset: 167,
-                                        },
+                                        span: ,
                                     },
                                 ),
                             ],
-                            span: Span {
-                                line: 11,
-                                column: 14,
-                                offset: 164,
-                            },
+                            span: ,
                         },
                         args: [],
-                        span: Span {
-                            line: 11,
-                            column: 14,
-                            offset: 164,
-                        },
+                        span: ,
                     },
                 ),
             ],
-            span: Span {
-                line: 11,
-                column: 1,
-                offset: 151,
-            },
+            span: ,
         },
     ),
 ]

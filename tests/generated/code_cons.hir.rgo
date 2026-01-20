@@ -1,6 +1,6 @@
-@/str
-@/int
-@/printf
+str: @/str
+int: @/int
+printf: @/printf
 list: ((int, list), ())
 nil: (cb:(int, ((int, list), ())), end:()){
     end()

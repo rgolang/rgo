@@ -1,0 +1,89 @@
+bar($ok: ()):
+    @write($_0: str = "bar,", $ok)
+
+
+bar_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(bar, $ok: ())
+
+
+bar_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(bar_release_skip_0, $__num_remaining, 0)
+    $bar_release_field_0 = @field($__env_end, -1)
+    @callptr($bar_release_field_0)
+bar_release_skip_0:
+    @release($__env_end)
+    @return()
+
+
+bar_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(bar_deepcopy_skip_0, $num_remaining, 0)
+    @deepcopy($bar_deepcopy_field_0, $__env_end, -1)
+bar_deepcopy_skip_0:
+    @return()
+
+
+baz($ok: ()):
+    @write($_1: str = "baz,", $ok)
+
+
+baz_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(baz, $ok: ())
+
+
+baz_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(baz_release_skip_0, $__num_remaining, 0)
+    $baz_release_field_0 = @field($__env_end, -1)
+    @callptr($baz_release_field_0)
+baz_release_skip_0:
+    @release($__env_end)
+    @return()
+
+
+baz_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(baz_deepcopy_skip_0, $num_remaining, 0)
+    @deepcopy($baz_deepcopy_field_0, $__env_end, -1)
+baz_deepcopy_skip_0:
+    @return()
+
+
+foo():
+    $foo = @newclosure<>(foo)
+    $_3_baz = @newclosure<()>(baz, $foo: ())
+    $_4_bar = @newclosure<()>(bar, $_3_baz: ())
+    @write($_2: str = "foo,", $_4_bar)
+
+
+foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(foo)
+
+
+foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    @jumpargs(foo)
+

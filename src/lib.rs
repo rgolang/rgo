@@ -90,12 +90,12 @@ mod tests {
     #[test]
     fn compile_simple_program() {
         let source = r#"
-@/int
-@/str
-@/add
-@/exit
-@/write
-@/sprintf
+int: @/int
+str: @/str
+add: @/add
+exit: @/exit
+write: @/write
+sprintf: @/sprintf
 
 print_int: (value: int) {
     sprintf("%d", value, (res: str){

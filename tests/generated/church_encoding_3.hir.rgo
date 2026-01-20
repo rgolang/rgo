@@ -1,8 +1,8 @@
-@/str
-@/int
-@/add
-@/printf
-@/exit
+str: @/str
+int: @/int
+add: @/add
+printf: @/printf
+exit: @/exit
 _7_three: (f:(int, (int)), ok:(int), z: int){
     f(z, ok)
 }

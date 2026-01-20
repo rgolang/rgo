@@ -1,5 +1,5 @@
-@/write
-@/exit
+write: @/write
+exit: @/exit
 _2_say_hi: (){
     _3: 0
     exit(_3)

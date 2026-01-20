@@ -1,7 +1,7 @@
-@/int
-@/str
-@/printf
-@/exit
+int: @/int
+str: @/str
+printf: @/printf
+exit: @/exit
 foo: (f:(str, ()), ok:()){
     _2: "42"
     f(_2, ok)

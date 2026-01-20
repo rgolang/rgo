@@ -1,6 +1,6 @@
 // Double curried continuation
-@/str
-@/printf
+str: @/str
+printf: @/printf
 
 foo: (ok:(str)){
     ok("charlie")

@@ -14,8 +14,12 @@ fn lexer_test() {
 
     let expected_tokens = vec![
         TokenKind::Newline,
+        ident("str"),
+        TokenKind::Colon,
         import("/str"),
         TokenKind::Newline,
+        ident("printf"),
+        TokenKind::Colon,
         import("/printf"),
         TokenKind::Newline,
         ident("foo"),

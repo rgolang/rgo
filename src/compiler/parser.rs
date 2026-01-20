@@ -3,8 +3,7 @@ use std::io::BufRead;
 
 use crate::compiler::ast;
 use crate::compiler::ast::{
-    Block, BlockItem, Ident, IntLiteral, Lambda, SigIdent, SigItem, SigKind, Signature, StrLiteral,
-    Term,
+    Block, BlockItem, Ident, Lambda, Literal, SigIdent, SigItem, SigKind, Signature, Term,
 };
 use crate::compiler::error::{Code, Error};
 use crate::compiler::lexer::Lexer;
@@ -50,25 +49,32 @@ impl<R: BufRead> Parser<R> {
         loop {
             self.skip_newlines()?;
             let token = self.peek_token()?.clone();
-            let span: Span = token.span;
             match token.kind {
                 TokenKind::Eof => return Ok(None),
-                TokenKind::Import(name) => {
-                    // TODO: Move this into HIR
-                    if !self.allow_top_imports {
-                        return Err(Error::new(
-                            Code::Parse,
-                            "@ imports must appear before any other items",
-                            token.span,
-                        )
-                        .into());
-                    }
-                    self.bump()?; // consume import token
-                    return Ok(Some(BlockItem::Import { name, span }));
+                TokenKind::Import(_) => {
+                    return Err(Error::new(
+                        Code::Parse,
+                        "imports must have a label (e.g. `printf: @/printf`)",
+                        token.span,
+                    )
+                    .into());
                 }
                 _ => {
-                    self.allow_top_imports = false;
                     let item = self.parse_block_item()?;
+                    let item_span = item.span();
+                    let is_import = matches!(&item, BlockItem::Import { .. });
+                    if is_import {
+                        if !self.allow_top_imports {
+                            return Err(Error::new(
+                                Code::Parse,
+                                "@ imports must appear before any other items",
+                                item_span,
+                            )
+                            .into());
+                        }
+                    } else {
+                        self.allow_top_imports = false;
+                    }
                     self.consume_block_item_separators()?;
                     return Ok(Some(item));
                 }
@@ -92,8 +98,17 @@ impl<R: BufRead> Parser<R> {
             TokenKind::Ident(name) => {
                 let ident = self.bump()?; // Might be the name
                 if matches!(self.peek_token()?.kind, TokenKind::Colon) {
-                    // name: ... → declaration
                     self.bump()?; // consume colon
+                    let next = self.peek_token()?.clone();
+                    if let TokenKind::Import(path) = next.kind {
+                        self.bump()?; // consume import token
+                        return Ok(BlockItem::Import {
+                            label: name.clone(),
+                            path,
+                            span,
+                        });
+                    }
+                    // name: ... → declaration
                     return self.parse_bind(name, span);
                 }
 
@@ -110,17 +125,10 @@ impl<R: BufRead> Parser<R> {
 
         let term = self.parse_term()?;
         match term {
-            Term::String(literal) => {
+            Term::Lit(literal) => {
                 return Err(Error::new(
                     Code::Parse,
-                    "string literals cannot be called yet",
-                    literal.span,
-                ));
-            }
-            Term::Int(literal) => {
-                return Err(Error::new(
-                    Code::Parse,
-                    "int literals cannot be called yet",
+                    "literals cannot be called yet",
                     literal.span,
                 ));
             }
@@ -194,12 +202,7 @@ impl<R: BufRead> Parser<R> {
         let term = self.parse_term()?;
         let term_span = term.span();
         return match term {
-            Term::String(literal) => Ok(BlockItem::StrDef {
-                name,
-                literal,
-                span: name_span,
-            }),
-            Term::Int(literal) => Ok(BlockItem::IntDef {
+            Term::Lit(literal) => Ok(BlockItem::LitDef {
                 name,
                 literal,
                 span: name_span,
@@ -295,12 +298,12 @@ impl<R: BufRead> Parser<R> {
         self.skip_newlines()?;
         let token = self.bump()?;
         match token.kind {
-            TokenKind::IntLiteral(value) => Ok(Term::Int(IntLiteral {
-                value,
+            TokenKind::IntLiteral(value) => Ok(Term::Lit(Literal {
+                value: ast::Lit::Int(value as isize),
                 span: token.span,
             })),
-            TokenKind::StringLiteral(value) => Ok(Term::String(StrLiteral {
-                value,
+            TokenKind::StringLiteral(value) => Ok(Term::Lit(Literal {
+                value: ast::Lit::Str(value),
                 span: token.span,
             })),
             TokenKind::Ident(name) => Ok(Term::Ident(Ident {

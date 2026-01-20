@@ -1,0 +1,92 @@
+_8_foo():
+    @exit($_9: int = 0)
+
+
+_8_foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_8_foo)
+
+
+_8_foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_8_foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_6_foo($s: str):
+    $_8_foo = @newclosure<>(_8_foo)
+    @write($s: str, $_8_foo)
+
+
+_6_foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $s = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_6_foo, $s: str)
+
+
+_6_foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_6_foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_3_foo($x: int):
+    $_6_foo = @newclosure<str>(_6_foo)
+    @sprintf($_4: str! = "result: %d", $x: int, $_6_foo)
+
+
+_3_foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $x = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_3_foo, $x: int)
+
+
+_3_foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_3_foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+foo():
+    $_3_foo = @newclosure<int>(_3_foo)
+    @add($_0: int = 1, $_1: int = 2, $_3_foo)
+
+
+foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(foo)
+
+
+foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    @jumpargs(foo)
+

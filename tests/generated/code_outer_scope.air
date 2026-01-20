@@ -1,0 +1,79 @@
+bar($v: str, $ok: ()):
+    @write($v: str, $ok)
+
+
+bar_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $v = @field($__env_end, -2)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(bar, $v: str, $ok: ())
+
+
+bar_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(bar_release_skip_1, $__num_remaining, 0)
+    $bar_release_field_1 = @field($__env_end, -1)
+    @callptr($bar_release_field_1)
+bar_release_skip_1:
+    @release($__env_end)
+    @return()
+
+
+bar_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(bar_deepcopy_skip_1, $num_remaining, 0)
+    @deepcopy($bar_deepcopy_field_1, $__env_end, -1)
+bar_deepcopy_skip_1:
+    @return()
+
+
+_1_foo():
+    @exit($_2: int = 0)
+
+
+_1_foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_1_foo)
+
+
+_1_foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_1_foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+foo($msg: str!):
+    $_1_foo = @newclosure<>(_1_foo)
+    @jumpargs(bar, $msg: str, $_1_foo: ())
+
+
+foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $msg = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(foo, $msg: str!)
+
+
+foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    @jumpargs(foo, $msg: str! = "hi")
+

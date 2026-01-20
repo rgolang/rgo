@@ -1,9 +1,9 @@
-@/str
-@/int
-@/exit
-@/printf
-@/add
-@/eqi
+str: @/str
+int: @/int
+exit: @/exit
+printf: @/printf
+add: @/add
+eqi: @/eqi
 foo: (x: int, y: int, ok:(int)){
     add(x, y, ok)
 }

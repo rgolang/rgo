@@ -1,7 +1,7 @@
-@/str
-@/int
-@/printf
-@/add
-@/exit
+str: @/str
+int: @/int
+printf: @/printf
+add: @/add
+exit: @/exit
 () = printf("hello world")
 exit(0)

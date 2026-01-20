@@ -1,0 +1,26 @@
+_2_lambda($s: str):
+    @exit($_3: int = 0)
+
+
+_2_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $s = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_2_lambda, $s: str)
+
+
+_2_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_2_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    $_2_lambda = @newclosure<str>(_2_lambda)
+    @jumpargs(@itoa, $_0: int = 1, $_2_lambda: ())
+

@@ -1,0 +1,46 @@
+_2_say_hi():
+    @exit($_3: int = 0)
+
+
+_2_say_hi_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_2_say_hi)
+
+
+_2_say_hi_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_2_say_hi_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+say_hi():
+    $_2_say_hi = @newclosure<>(_2_say_hi)
+    @write($_0: str = "hi", $_2_say_hi)
+
+
+say_hi_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(say_hi)
+
+
+say_hi_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+say_hi_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    @jumpargs(say_hi)
+

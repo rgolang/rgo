@@ -1,6 +1,6 @@
-@/printf
-@/exit
-@/str
+printf: @/printf
+exit: @/exit
+str: @/str
 
 int: str // This is the gotcha, int is not str! But this is valid in this language.
 w: (s: int, ok: ()){

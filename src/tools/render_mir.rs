@@ -3,8 +3,8 @@ use std::error::Error as StdError;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 
-use compiler::compiler::{format_mir, hir, lexer::Lexer, parser::Parser};
-use compiler::debug_tools::test_helpers::generate_mir_functions;
+use compiler::compiler::{format_air, hir, lexer::Lexer, parser::Parser};
+use compiler::debug_tools::test_helpers::generate_air_functions;
 
 fn main() -> Result<(), Box<dyn StdError>> {
     let mut args = env::args().skip(1);
@@ -43,7 +43,7 @@ fn render_mir<R: std::io::BufRead>(reader: R) -> Result<String, Box<dyn StdError
         }
     }
 
-    let mir_functions = generate_mir_functions(&hir_block_items)
+    let air_functions = generate_air_functions(&hir_block_items)
         .map_err(|err| Box::new(err) as Box<dyn StdError>)?;
-    Ok(format_mir::render_mir_functions(&mir_functions))
+    Ok(format_air::render_air_functions(&air_functions))
 }

@@ -1,0 +1,101 @@
+_2_foo($ok: ()):
+    @add($_3: int = 1, $_4: int = 2, $ok)
+
+
+_2_foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_2_foo, $ok: ())
+
+
+_2_foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_2_foo_release_skip_0, $__num_remaining, 0)
+    $_2_foo_release_field_0 = @field($__env_end, -1)
+    @callptr($_2_foo_release_field_0)
+_2_foo_release_skip_0:
+    @release($__env_end)
+    @return()
+
+
+_2_foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_2_foo_deepcopy_skip_0, $num_remaining, 0)
+    @deepcopy($_2_foo_deepcopy_field_0, $__env_end, -1)
+_2_foo_deepcopy_skip_0:
+    @return()
+
+
+_9_foo():
+    @exit($_10: int = 0)
+
+
+_9_foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_9_foo)
+
+
+_9_foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_9_foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_6_foo($x: int):
+    $_9_foo = @newclosure<>(_9_foo)
+    @printf($_7: str! = "result: %d", $x: int, $_9_foo)
+
+
+_6_foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $x = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_6_foo, $x: int)
+
+
+_6_foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_6_foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+foo():
+    $_6_foo = @newclosure<int>(_6_foo)
+    $_13_foo = @newclosure<($_1_foo: int)>(_2_foo, $_6_foo: ())
+    @jumpclosure($_13_foo)
+
+
+foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(foo)
+
+
+foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    @jumpargs(foo)
+

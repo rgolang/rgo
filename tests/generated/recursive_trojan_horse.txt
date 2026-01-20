@@ -9,27 +9,15 @@
                         kind: Sig(
                             Signature {
                                 items: [],
-                                span: Span {
-                                    line: 3,
-                                    column: 10,
-                                    offset: 91,
-                                },
+                                span: ,
                                 generics: [],
                             },
                         ),
                         has_bang: false,
-                        span: Span {
-                            line: 3,
-                            column: 7,
-                            offset: 88,
-                        },
+                        span: ,
                     },
                 ],
-                span: Span {
-                    line: 3,
-                    column: 6,
-                    offset: 87,
-                },
+                span: ,
                 generics: [],
             },
             body: Block {
@@ -38,43 +26,23 @@
                         Ident {
                             name: "ok",
                             args: [],
-                            span: Span {
-                                line: 4,
-                                column: 4,
-                                offset: 100,
-                            },
+                            span: ,
                         },
                     ),
                 ],
-                span: Span {
-                    line: 3,
-                    column: 14,
-                    offset: 95,
-                },
+                span: ,
             },
             args: [],
-            span: Span {
-                line: 3,
-                column: 1,
-                offset: 82,
-            },
+            span: ,
         },
-        span: Span {
-            line: 3,
-            column: 1,
-            offset: 82,
-        },
+        span: ,
     },
     FunctionDef {
         name: "bar",
         lambda: Lambda {
             params: Signature {
                 items: [],
-                span: Span {
-                    line: 9,
-                    column: 6,
-                    offset: 196,
-                },
+                span: ,
                 generics: [],
             },
             body: Block {
@@ -87,50 +55,26 @@
                                     Ident {
                                         name: "bar",
                                         args: [],
-                                        span: Span {
-                                            line: 10,
-                                            column: 8,
-                                            offset: 205,
-                                        },
+                                        span: ,
                                     },
                                 ),
                             ],
-                            span: Span {
-                                line: 10,
-                                column: 4,
-                                offset: 201,
-                            },
+                            span: ,
                         },
                     ),
                 ],
-                span: Span {
-                    line: 9,
-                    column: 6,
-                    offset: 196,
-                },
+                span: ,
             },
             args: [],
-            span: Span {
-                line: 9,
-                column: 1,
-                offset: 191,
-            },
+            span: ,
         },
-        span: Span {
-            line: 9,
-            column: 1,
-            offset: 191,
-        },
+        span: ,
     },
     Ident(
         Ident {
             name: "bar",
             args: [],
-            span: Span {
-                line: 14,
-                column: 1,
-                offset: 237,
-            },
+            span: ,
         },
     ),
 ]

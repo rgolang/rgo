@@ -1,7 +1,7 @@
-@/str
-@/int
-@/printf
-@/exit
+str: @/str
+int: @/int
+printf: @/printf
+exit: @/exit
 _1_not_const_msg: (){
     _2: 0
     exit(_2)
