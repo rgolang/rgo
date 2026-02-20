@@ -31,6 +31,27 @@ bar_deepcopy_skip_2:
     @return()
 
 
+_7_lambda():
+    @exit($_8: int = 0)
+
+
+_7_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_7_lambda)
+
+
+_7_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_7_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
 foo($cb: (), $ok: ()):
     @jumpclosure($cb, $_3: int = "bye", $ok: int)
 
@@ -67,27 +88,6 @@ foo_deepcopy_skip_0:
     @gt(foo_deepcopy_skip_1, $num_remaining, 0)
     @deepcopy($foo_deepcopy_field_1, $__env_end, -1)
 foo_deepcopy_skip_1:
-    @return()
-
-
-_7_lambda():
-    @exit($_8: int = 0)
-
-
-_7_lambda_unwrapper($env_end: int):
-    $__env_end = @pin($env_end)
-    @release($__env_end)
-    @jumpargs(_7_lambda)
-
-
-_7_lambda_deep_release($env_end: int):
-    $__env_end = @pin($env_end)
-    @release($__env_end)
-    @return()
-
-
-_7_lambda_deepcopy($env_end: int):
-    $__env_end = @pin($env_end)
     @return()
 
 

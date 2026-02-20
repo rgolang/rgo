@@ -18,6 +18,7 @@ pub enum TokenKind {
     Ident(String),
     Import(String),
     IntLiteral(i64),
+    FloatLiteral(f64),
     StringLiteral(String),
     Arrow,
     FatArrow,

@@ -302,6 +302,10 @@ impl<R: BufRead> Parser<R> {
                 value: ast::Lit::Int(value as isize),
                 span: token.span,
             })),
+            TokenKind::FloatLiteral(value) => Ok(Term::Lit(Literal {
+                value: ast::Lit::F64(value),
+                span: token.span,
+            })),
             TokenKind::StringLiteral(value) => Ok(Term::Lit(Literal {
                 value: ast::Lit::Str(value),
                 span: token.span,
@@ -349,14 +353,14 @@ impl<R: BufRead> Parser<R> {
         }
     }
 
-    fn parse_argument_list(&mut self) -> Result<Vec<Term>, Error> {
+    fn parse_argument_list(&mut self) -> Result<Vec<ast::Arg>, Error> {
         let mut args = Vec::new();
         if matches!(self.peek_token()?.kind, TokenKind::RParen) {
             self.bump()?;
             return Ok(args);
         }
         loop {
-            args.push(self.parse_term()?);
+            args.push(self.parse_call_arg()?);
             if self
                 .consume_if(|kind| matches!(kind, TokenKind::Comma))?
                 .is_some()
@@ -367,6 +371,30 @@ impl<R: BufRead> Parser<R> {
         }
         self.expect_token(")", |kind| matches!(kind, TokenKind::RParen))?;
         Ok(args)
+    }
+
+    fn parse_call_arg(&mut self) -> Result<ast::Arg, Error> {
+        let first = self.peek_token()?.clone();
+        if let TokenKind::Ident(name) = first.kind {
+            let second = self.peek_nth(1)?.clone();
+            if matches!(second.kind, TokenKind::Colon) {
+                let span = self.bump()?.span;
+                self.expect_token(":", |kind| matches!(kind, TokenKind::Colon))?;
+                let term = self.parse_term()?;
+                return Ok(ast::Arg {
+                    name: Some(name),
+                    term,
+                    span,
+                });
+            }
+        }
+        let term = self.parse_term()?;
+        let span = term.span();
+        Ok(ast::Arg {
+            name: None,
+            term,
+            span,
+        })
     }
     fn parse_sig_item(&mut self, context: ParamContext) -> Result<ast::SigItem, Error> {
         let item_span = self.peek_token()?.span;
@@ -649,6 +677,14 @@ impl<R: BufRead> Parser<R> {
             self.peeked.push_back(token);
         }
         Ok(self.peeked.front().expect("peeked token exists"))
+    }
+
+    fn peek_nth(&mut self, n: usize) -> Result<&Token, Error> {
+        while self.peeked.len() <= n {
+            let token = self.lexer.next_token().map_err(Error::from)?;
+            self.peeked.push_back(token);
+        }
+        Ok(self.peeked.get(n).expect("peeked token exists"))
     }
 
     fn parse_body(&mut self, start_span: Span) -> Result<Block, Error> {

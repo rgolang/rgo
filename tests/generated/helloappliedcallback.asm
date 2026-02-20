@@ -177,6 +177,46 @@ bar_deepcopy_skip_2:
     leave
     ret
 
+global _7_lambda
+_7_lambda:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    ; load exit code
+    mov rdi, 0 ; exit code
+    call exit ; call libc exit to flush buffers
+global _7_lambda_unwrapper
+_7_lambda_unwrapper:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov [rbp-8], rdi ; store env_end arg in frame
+    mov r12, [rbp-8] ; load operand
+    mov rdi, r12 ; use pinned __env_end env_end pointer
+    call release_heap_ptr ; release __env_end closure environment
+    leave ; unwind before named jump
+    jmp _7_lambda
+global _7_lambda_deep_release
+_7_lambda_deep_release:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov [rbp-8], rdi ; store env_end arg in frame
+    mov r12, [rbp-8] ; load operand
+    mov rdi, r12 ; use pinned __env_end env_end pointer
+    call release_heap_ptr ; release __env_end closure environment
+    leave
+    ret
+
+global _7_lambda_deepcopy
+_7_lambda_deepcopy:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov [rbp-8], rdi ; store env_end arg in frame
+    mov r12, [rbp-8] ; load operand
+    leave
+    ret
+
 global foo
 foo:
     push rbp ; save executor frame pointer
@@ -275,46 +315,6 @@ foo_deepcopy_skip_0:
     mov [r12-8], rax ; store duplicated pointer
     mov [rbp-32], rax ; store value
 foo_deepcopy_skip_1:
-    leave
-    ret
-
-global _7_lambda
-_7_lambda:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    ; load exit code
-    mov rdi, 0 ; exit code
-    call exit ; call libc exit to flush buffers
-global _7_lambda_unwrapper
-_7_lambda_unwrapper:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rdi, r12 ; use pinned __env_end env_end pointer
-    call release_heap_ptr ; release __env_end closure environment
-    leave ; unwind before named jump
-    jmp _7_lambda
-global _7_lambda_deep_release
-_7_lambda_deep_release:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rdi, r12 ; use pinned __env_end env_end pointer
-    call release_heap_ptr ; release __env_end closure environment
-    leave
-    ret
-
-global _7_lambda_deepcopy
-_7_lambda_deepcopy:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
     leave
     ret
 

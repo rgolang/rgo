@@ -56,14 +56,18 @@
                                 Ident {
                                     name: "exit",
                                     args: [
-                                        Lit(
-                                            Literal {
-                                                value: Int(
-                                                    0,
-                                                ),
-                                                span: ,
-                                            },
-                                        ),
+                                        Arg {
+                                            name: None,
+                                            term: Lit(
+                                                Literal {
+                                                    value: Int(
+                                                        0,
+                                                    ),
+                                                    span: ,
+                                                },
+                                            ),
+                                            span: ,
+                                        },
                                     ],
                                     span: ,
                                 },
@@ -75,21 +79,29 @@
                         Ident {
                             name: "printf",
                             args: [
-                                Lit(
-                                    Literal {
-                                        value: Str(
-                                            "result: %d",
-                                        ),
-                                        span: ,
-                                    },
-                                ),
-                                Ident(
-                                    Ident {
-                                        name: "x",
-                                        args: [],
-                                        span: ,
-                                    },
-                                ),
+                                Arg {
+                                    name: None,
+                                    term: Lit(
+                                        Literal {
+                                            value: Str(
+                                                "result: %d",
+                                            ),
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "x",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
                             ],
                             span: ,
                         },
@@ -103,22 +115,30 @@
             Ident {
                 name: "add",
                 args: [
-                    Lit(
-                        Literal {
-                            value: Int(
-                                1,
-                            ),
-                            span: ,
-                        },
-                    ),
-                    Lit(
-                        Literal {
-                            value: Int(
-                                2,
-                            ),
-                            span: ,
-                        },
-                    ),
+                    Arg {
+                        name: None,
+                        term: Lit(
+                            Literal {
+                                value: Int(
+                                    1,
+                                ),
+                                span: ,
+                            },
+                        ),
+                        span: ,
+                    },
+                    Arg {
+                        name: None,
+                        term: Lit(
+                            Literal {
+                                value: Int(
+                                    2,
+                                ),
+                                span: ,
+                            },
+                        ),
+                        span: ,
+                    },
                 ],
                 span: ,
             },

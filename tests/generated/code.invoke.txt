@@ -32,30 +32,42 @@
                                         Ident {
                                             name: "write",
                                             args: [
-                                                Lit(
-                                                    Literal {
-                                                        value: Str(
-                                                            "foo,",
-                                                        ),
-                                                        span: ,
-                                                    },
-                                                ),
-                                                Ident(
-                                                    Ident {
-                                                        name: "exit",
-                                                        args: [
-                                                            Lit(
-                                                                Literal {
-                                                                    value: Int(
-                                                                        0,
+                                                Arg {
+                                                    name: None,
+                                                    term: Lit(
+                                                        Literal {
+                                                            value: Str(
+                                                                "foo,",
+                                                            ),
+                                                            span: ,
+                                                        },
+                                                    ),
+                                                    span: ,
+                                                },
+                                                Arg {
+                                                    name: None,
+                                                    term: Ident(
+                                                        Ident {
+                                                            name: "exit",
+                                                            args: [
+                                                                Arg {
+                                                                    name: None,
+                                                                    term: Lit(
+                                                                        Literal {
+                                                                            value: Int(
+                                                                                0,
+                                                                            ),
+                                                                            span: ,
+                                                                        },
                                                                     ),
                                                                     span: ,
                                                                 },
-                                                            ),
-                                                        ],
-                                                        span: ,
-                                                    },
-                                                ),
+                                                            ],
+                                                            span: ,
+                                                        },
+                                                    ),
+                                                    span: ,
+                                                },
                                             ],
                                             span: ,
                                         },

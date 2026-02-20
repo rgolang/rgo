@@ -54,7 +54,7 @@ impl BlockItem {
 #[derive(Debug, Clone)]
 pub struct Exec {
     pub of: String,
-    pub args: Vec<ast::Arg>,
+    pub args: Vec<String>,
     pub span: Span,
 }
 
@@ -62,6 +62,6 @@ pub struct Exec {
 pub struct Closure {
     pub name: String,
     pub of: String,
-    pub args: Vec<ast::Arg>,
+    pub args: Vec<String>,
     pub span: Span,
 }

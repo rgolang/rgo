@@ -1,6 +1,7 @@
 use crate::compiler::ast::{self, SigItem, SigKind, Signature};
 use crate::compiler::span::Span;
 
+#[derive(Debug)]
 pub enum BuiltinSpec {
     Function(ast::Signature),
     Type(ast::SigKind),
@@ -12,6 +13,9 @@ pub enum Builtin {
     Sub,
     Mul,
     Div,
+    AddF64,
+    MulF64,
+    DivF64,
     Eq,
     Eqi,
     Eqs,
@@ -32,6 +36,9 @@ impl Builtin {
             "sub" => Some(Builtin::Sub),
             "mul" => Some(Builtin::Mul),
             "div" => Some(Builtin::Div),
+            "addf64" => Some(Builtin::AddF64),
+            "mulf64" => Some(Builtin::MulF64),
+            "divf64" => Some(Builtin::DivF64),
             "eq" => Some(Builtin::Eq),
             "eqi" => Some(Builtin::Eqi),
             "eqs" => Some(Builtin::Eqs),
@@ -53,6 +60,9 @@ impl Builtin {
             Builtin::Sub => "sub",
             Builtin::Mul => "mul",
             Builtin::Div => "div",
+            Builtin::AddF64 => "addf64",
+            Builtin::MulF64 => "mulf64",
+            Builtin::DivF64 => "divf64",
             Builtin::Eq => "eq",
             Builtin::Eqi => "eqi",
             Builtin::Eqs => "eqs",
@@ -69,7 +79,12 @@ impl Builtin {
 
     pub fn signature(self, span: Span) -> Signature {
         match self {
-            Builtin::Add | Builtin::Sub | Builtin::Mul | Builtin::Div => math_binary_sig(span),
+            Builtin::Add | Builtin::Sub | Builtin::Mul | Builtin::Div => {
+                math_binary_sig(SigKind::Int, span)
+            }
+            Builtin::AddF64 | Builtin::MulF64 | Builtin::DivF64 => {
+                math_binary_sig(SigKind::F64, span)
+            }
             Builtin::Eq | Builtin::Eqi | Builtin::Lt | Builtin::Gt => {
                 comparison_sig(SigKind::Int, span)
             }
@@ -126,6 +141,9 @@ impl Builtin {
                 | Builtin::Sub
                 | Builtin::Mul
                 | Builtin::Div
+                | Builtin::AddF64
+                | Builtin::MulF64
+                | Builtin::DivF64
                 | Builtin::Lt
                 | Builtin::Gt
         );
@@ -146,6 +164,7 @@ pub fn get_spec(name: &str, span: Span) -> Option<BuiltinSpec> {
     match name {
         "int" => Some(BuiltinSpec::Type(ast::SigKind::Int)),
         "str" => Some(BuiltinSpec::Type(ast::SigKind::Str)),
+        "f64" => Some(BuiltinSpec::Type(ast::SigKind::F64)),
         _ => None,
     }
 }
@@ -187,16 +206,51 @@ fn comparison_sig(arg_kind: SigKind, span: Span) -> Signature {
     )
 }
 
-fn math_binary_sig(span: Span) -> Signature {
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::compiler::span::Span;
+
+    #[test]
+    fn f64_type_registration() {
+        let span = Span::unknown();
+        match get_spec("f64", span) {
+            Some(BuiltinSpec::Type(kind)) => assert_eq!(kind, ast::SigKind::F64),
+            other => panic!("expected builtin f64 type, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn f64_math_signature_contains_f64() {
+        let span = Span::unknown();
+        let builtin = Builtin::from_name("addf64").expect("addf64 builtin should exist");
+        let sig = builtin.signature(span);
+        assert_eq!(sig.items.len(), 3);
+        assert_eq!(sig.items[0].kind, SigKind::F64);
+        assert_eq!(sig.items[1].kind, SigKind::F64);
+
+        let tuple = match &sig.items[2].kind {
+            SigKind::Sig(inner) => inner,
+            other => panic!("expected tuple for ok, got {:?}", other),
+        };
+        assert_eq!(tuple.items.len(), 1);
+        assert_eq!(tuple.items[0].kind, SigKind::F64);
+    }
+
+    #[test]
+    fn builtin_variants_exist_for_float_ops() {
+        assert!(Builtin::from_name("mulf64").is_some());
+        assert!(Builtin::from_name("divf64").is_some());
+    }
+}
+
+fn math_binary_sig(arg_kind: SigKind, span: Span) -> Signature {
+    let result_sig = tuple_sig(vec![sig_item("res", arg_kind.clone(), span)], span);
     sig_from_items(
         vec![
-            sig_item("x", SigKind::Int, span),
-            sig_item("y", SigKind::Int, span),
-            sig_item(
-                "ok",
-                tuple_sig(vec![sig_item("res", SigKind::Int, span)], span),
-                span,
-            ),
+            sig_item("x", arg_kind.clone(), span),
+            sig_item("y", arg_kind.clone(), span),
+            sig_item("ok", result_sig, span),
         ],
         span,
     )

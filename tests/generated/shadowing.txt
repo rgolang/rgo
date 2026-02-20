@@ -38,30 +38,42 @@
                         Ident {
                             name: "printf",
                             args: [
-                                Lit(
-                                    Literal {
-                                        value: Str(
-                                            "outer bar",
-                                        ),
-                                        span: ,
-                                    },
-                                ),
-                                Ident(
-                                    Ident {
-                                        name: "exit",
-                                        args: [
-                                            Lit(
-                                                Literal {
-                                                    value: Int(
-                                                        0,
+                                Arg {
+                                    name: None,
+                                    term: Lit(
+                                        Literal {
+                                            value: Str(
+                                                "outer bar",
+                                            ),
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "exit",
+                                            args: [
+                                                Arg {
+                                                    name: None,
+                                                    term: Lit(
+                                                        Literal {
+                                                            value: Int(
+                                                                0,
+                                                            ),
+                                                            span: ,
+                                                        },
                                                     ),
                                                     span: ,
                                                 },
-                                            ),
-                                        ],
-                                        span: ,
-                                    },
-                                ),
+                                            ],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
                             ],
                             span: ,
                         },
@@ -111,21 +123,29 @@
                                         Ident {
                                             name: "printf",
                                             args: [
-                                                Lit(
-                                                    Literal {
-                                                        value: Str(
-                                                            "inner bar\n",
-                                                        ),
-                                                        span: ,
-                                                    },
-                                                ),
-                                                Ident(
-                                                    Ident {
-                                                        name: "ok",
-                                                        args: [],
-                                                        span: ,
-                                                    },
-                                                ),
+                                                Arg {
+                                                    name: None,
+                                                    term: Lit(
+                                                        Literal {
+                                                            value: Str(
+                                                                "inner bar\n",
+                                                            ),
+                                                            span: ,
+                                                        },
+                                                    ),
+                                                    span: ,
+                                                },
+                                                Arg {
+                                                    name: None,
+                                                    term: Ident(
+                                                        Ident {
+                                                            name: "ok",
+                                                            args: [],
+                                                            span: ,
+                                                        },
+                                                    ),
+                                                    span: ,
+                                                },
                                             ],
                                             span: ,
                                         },
@@ -157,13 +177,17 @@
         Ident {
             name: "foo",
             args: [
-                Ident(
-                    Ident {
-                        name: "bar",
-                        args: [],
-                        span: ,
-                    },
-                ),
+                Arg {
+                    name: None,
+                    term: Ident(
+                        Ident {
+                            name: "bar",
+                            args: [],
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
             ],
             span: ,
         },

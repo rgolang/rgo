@@ -89,6 +89,17 @@ impl<R: BufRead> Lexer<R> {
             '0'..='9' => {
                 let mut literal = ch.to_string();
                 literal.push_str(&self.collect_digits()?);
+                if let Some((next, _)) = self.peek_char().map_err(|err| self.io_error(err))? {
+                    if next == '.' {
+                        self.next_char().map_err(|err| self.io_error(err))?; // consume '.'
+                        literal.push('.');
+                        literal.push_str(&self.collect_digits()?);
+                        let value = literal
+                            .parse::<f64>()
+                            .map_err(|_| Error::new(Code::Lex, "invalid float literal", span))?;
+                        return Ok(Token::new(TokenKind::FloatLiteral(value), span));
+                    }
+                }
                 let value = literal
                     .parse::<i64>()
                     .map_err(|_| Error::new(Code::Lex, "invalid integer literal", span))?;

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::compiler::{
     air, ast,
     error::Error,
@@ -9,6 +11,8 @@ pub fn generate_air_functions(items: &[hir::BlockItem]) -> Result<Vec<air::AirFu
     let mut symbols = SymbolRegistry::new();
     let mut functions = Vec::new();
     let mut entry_items = Vec::new();
+    let mut hir_functions = HashMap::new();
+
     for item in items {
         match item {
             hir::BlockItem::Import { label, path, span } => {
@@ -24,16 +28,18 @@ pub fn generate_air_functions(items: &[hir::BlockItem]) -> Result<Vec<air::AirFu
                     span: function.span,
                     builtin: None,
                 })?;
-                let lowered_functions = air::lower_function(&function, &mut symbols)?;
-                functions.extend(lowered_functions);
+                hir_functions.insert(function.name.clone(), function.clone());
             }
             _ => entry_items.push(item.clone()),
         }
     }
 
     if !entry_items.is_empty() {
-        let air_funcs = air::entry_function(entry_items, &mut symbols)?;
-        functions.extend(air_funcs);
+        let mut function_lowerer = air::FunctionLowerer::new(hir_functions);
+        let entry_funcs = air::entry_function(entry_items, &mut symbols, &mut function_lowerer)?;
+        let mut generated = function_lowerer.take_generated_functions();
+        generated.extend(entry_funcs);
+        functions.extend(generated);
     }
 
     Ok(functions)

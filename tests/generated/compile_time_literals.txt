@@ -56,36 +56,52 @@
                         Ident {
                             name: "printf",
                             args: [
-                                Ident(
-                                    Ident {
-                                        name: "fmt",
-                                        args: [],
-                                        span: ,
-                                    },
-                                ),
-                                Ident(
-                                    Ident {
-                                        name: "value",
-                                        args: [],
-                                        span: ,
-                                    },
-                                ),
-                                Ident(
-                                    Ident {
-                                        name: "exit",
-                                        args: [
-                                            Lit(
-                                                Literal {
-                                                    value: Int(
-                                                        0,
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "fmt",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "value",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "exit",
+                                            args: [
+                                                Arg {
+                                                    name: None,
+                                                    term: Lit(
+                                                        Literal {
+                                                            value: Int(
+                                                                0,
+                                                            ),
+                                                            span: ,
+                                                        },
                                                     ),
                                                     span: ,
                                                 },
-                                            ),
-                                        ],
-                                        span: ,
-                                    },
-                                ),
+                                            ],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
                             ],
                             span: ,
                         },
@@ -135,20 +151,28 @@
                         Ident {
                             name: "not_const_msg",
                             args: [
-                                Ident(
-                                    Ident {
-                                        name: "fmt",
-                                        args: [],
-                                        span: ,
-                                    },
-                                ),
-                                Ident(
-                                    Ident {
-                                        name: "value",
-                                        args: [],
-                                        span: ,
-                                    },
-                                ),
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "fmt",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "value",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
                             ],
                             span: ,
                         },
@@ -165,22 +189,30 @@
         Ident {
             name: "const_msg",
             args: [
-                Lit(
-                    Literal {
-                        value: Str(
-                            "compile-time value %d\n",
-                        ),
-                        span: ,
-                    },
-                ),
-                Lit(
-                    Literal {
-                        value: Int(
-                            7,
-                        ),
-                        span: ,
-                    },
-                ),
+                Arg {
+                    name: None,
+                    term: Lit(
+                        Literal {
+                            value: Str(
+                                "compile-time value %d\n",
+                            ),
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
+                Arg {
+                    name: None,
+                    term: Lit(
+                        Literal {
+                            value: Int(
+                                7,
+                            ),
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
             ],
             span: ,
         },

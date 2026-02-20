@@ -37,38 +37,6 @@ foo_deepcopy_skip_1:
     @return()
 
 
-print1($n: str, $ok: ()):
-    @printf($_1: str! = "The losing number is %s\n", $n: int, $ok)
-
-
-print1_unwrapper($env_end: int):
-    $__env_end = @pin($env_end)
-    $n = @field($__env_end, -2)
-    $ok = @field($__env_end, -1)
-    @release($__env_end)
-    @jumpargs(print1, $n: str, $ok: ())
-
-
-print1_deep_release($env_end: int):
-    $__env_end = @pin($env_end)
-    $__num_remaining = @field($__env_end, 5)
-    @gt(print1_release_skip_1, $__num_remaining, 0)
-    $print1_release_field_1 = @field($__env_end, -1)
-    @callptr($print1_release_field_1)
-print1_release_skip_1:
-    @release($__env_end)
-    @return()
-
-
-print1_deepcopy($env_end: int):
-    $__env_end = @pin($env_end)
-    $num_remaining = @field($__env_end, 5)
-    @gt(print1_deepcopy_skip_1, $num_remaining, 0)
-    @deepcopy($print1_deepcopy_field_1, $__env_end, -1)
-print1_deepcopy_skip_1:
-    @return()
-
-
 print2($n: str, $ok: ()):
     @printf($_2: str! = "The winning number is %s\n", $n: int, $ok)
 
@@ -98,37 +66,6 @@ print2_deepcopy($env_end: int):
     @gt(print2_deepcopy_skip_1, $num_remaining, 0)
     @deepcopy($print2_deepcopy_field_1, $__env_end, -1)
 print2_deepcopy_skip_1:
-    @return()
-
-
-p1($ok: ()):
-    @jumpargs(print1, $_3: str = "41", $ok: ())
-
-
-p1_unwrapper($env_end: int):
-    $__env_end = @pin($env_end)
-    $ok = @field($__env_end, -1)
-    @release($__env_end)
-    @jumpargs(p1, $ok: ())
-
-
-p1_deep_release($env_end: int):
-    $__env_end = @pin($env_end)
-    $__num_remaining = @field($__env_end, 5)
-    @gt(p1_release_skip_0, $__num_remaining, 0)
-    $p1_release_field_0 = @field($__env_end, -1)
-    @callptr($p1_release_field_0)
-p1_release_skip_0:
-    @release($__env_end)
-    @return()
-
-
-p1_deepcopy($env_end: int):
-    $__env_end = @pin($env_end)
-    $num_remaining = @field($__env_end, 5)
-    @gt(p1_deepcopy_skip_0, $num_remaining, 0)
-    @deepcopy($p1_deepcopy_field_0, $__env_end, -1)
-p1_deepcopy_skip_0:
     @return()
 
 
@@ -221,6 +158,69 @@ _6_lambda_deepcopy_skip_0:
     @gt(_6_lambda_deepcopy_skip_1, $num_remaining, 0)
     @deepcopy($_6_lambda_deepcopy_field_1, $__env_end, -1)
 _6_lambda_deepcopy_skip_1:
+    @return()
+
+
+print1($n: str, $ok: ()):
+    @printf($_1: str! = "The losing number is %s\n", $n: int, $ok)
+
+
+print1_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $n = @field($__env_end, -2)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(print1, $n: str, $ok: ())
+
+
+print1_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(print1_release_skip_1, $__num_remaining, 0)
+    $print1_release_field_1 = @field($__env_end, -1)
+    @callptr($print1_release_field_1)
+print1_release_skip_1:
+    @release($__env_end)
+    @return()
+
+
+print1_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(print1_deepcopy_skip_1, $num_remaining, 0)
+    @deepcopy($print1_deepcopy_field_1, $__env_end, -1)
+print1_deepcopy_skip_1:
+    @return()
+
+
+p1($ok: ()):
+    @jumpargs(print1, $_3: str = "41", $ok: ())
+
+
+p1_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(p1, $ok: ())
+
+
+p1_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(p1_release_skip_0, $__num_remaining, 0)
+    $p1_release_field_0 = @field($__env_end, -1)
+    @callptr($p1_release_field_0)
+p1_release_skip_0:
+    @release($__env_end)
+    @return()
+
+
+p1_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(p1_deepcopy_skip_0, $num_remaining, 0)
+    @deepcopy($p1_deepcopy_field_0, $__env_end, -1)
+p1_deepcopy_skip_0:
     @return()
 
 

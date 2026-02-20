@@ -51,13 +51,17 @@
                         Ident {
                             name: "foo",
                             args: [
-                                Ident(
-                                    Ident {
-                                        name: "bar",
-                                        args: [],
-                                        span: ,
-                                    },
-                                ),
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "bar",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
                             ],
                             span: ,
                         },

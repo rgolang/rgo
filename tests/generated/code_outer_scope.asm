@@ -1,6 +1,62 @@
 bits 64
 default rel
 section .text
+global _1_foo
+_1_foo:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    ; load exit code
+    mov rdi, 0 ; exit code
+    call exit ; call libc exit to flush buffers
+global release_heap_ptr
+release_heap_ptr:
+    push rbp ; save caller frame
+    mov rbp, rsp ; establish frame
+    push rbx ; preserve rbx
+    mov rbx, rdi ; keep env_end pointer
+    mov rcx, [rbx+24] ; load env size metadata
+    mov rdx, [rbx+32] ; load heap size metadata
+    mov rdi, rbx
+    sub rdi, rcx ; compute env base pointer
+    mov rsi, rdx ; heap size for munmap
+    mov rax, 11 ; munmap syscall
+    syscall
+    pop rbx
+    pop rbp
+    ret
+global _1_foo_unwrapper
+_1_foo_unwrapper:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov [rbp-8], rdi ; store env_end arg in frame
+    mov r12, [rbp-8] ; load operand
+    mov rdi, r12 ; use pinned __env_end env_end pointer
+    call release_heap_ptr ; release __env_end closure environment
+    leave ; unwind before named jump
+    jmp _1_foo
+global _1_foo_deep_release
+_1_foo_deep_release:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov [rbp-8], rdi ; store env_end arg in frame
+    mov r12, [rbp-8] ; load operand
+    mov rdi, r12 ; use pinned __env_end env_end pointer
+    call release_heap_ptr ; release __env_end closure environment
+    leave
+    ret
+
+global _1_foo_deepcopy
+_1_foo_deepcopy:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov [rbp-8], rdi ; store env_end arg in frame
+    mov r12, [rbp-8] ; load operand
+    leave
+    ret
+
 global bar
 bar:
     push rbp ; save executor frame pointer
@@ -29,22 +85,6 @@ bar_write_strlen_done_0:
     mov rdi, r12 ; pass env_end pointer to continuation
     leave ; unwind before jumping
     jmp rax
-global release_heap_ptr
-release_heap_ptr:
-    push rbp ; save caller frame
-    mov rbp, rsp ; establish frame
-    push rbx ; preserve rbx
-    mov rbx, rdi ; keep env_end pointer
-    mov rcx, [rbx+24] ; load env size metadata
-    mov rdx, [rbx+32] ; load heap size metadata
-    mov rdi, rbx
-    sub rdi, rcx ; compute env base pointer
-    mov rsi, rdx ; heap size for munmap
-    mov rax, 11 ; munmap syscall
-    syscall
-    pop rbx
-    pop rbp
-    ret
 global bar_unwrapper
 bar_unwrapper:
     push rbp ; save executor frame pointer
@@ -164,46 +204,6 @@ bar_deepcopy:
     mov [r12-8], rax ; store duplicated pointer
     mov [rbp-24], rax ; store value
 bar_deepcopy_skip_1:
-    leave
-    ret
-
-global _1_foo
-_1_foo:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    ; load exit code
-    mov rdi, 0 ; exit code
-    call exit ; call libc exit to flush buffers
-global _1_foo_unwrapper
-_1_foo_unwrapper:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rdi, r12 ; use pinned __env_end env_end pointer
-    call release_heap_ptr ; release __env_end closure environment
-    leave ; unwind before named jump
-    jmp _1_foo
-global _1_foo_deep_release
-_1_foo_deep_release:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rdi, r12 ; use pinned __env_end env_end pointer
-    call release_heap_ptr ; release __env_end closure environment
-    leave
-    ret
-
-global _1_foo_deepcopy
-_1_foo_deepcopy:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
     leave
     ret
 

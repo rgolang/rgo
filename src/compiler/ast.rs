@@ -1,4 +1,5 @@
 use crate::compiler::span::Span;
+use std::hash::{Hash, Hasher};
 
 // An Item is a block-level construct: function definitions, type definitions, imports (for root level) and execs.
 #[derive(Debug, Clone)]
@@ -57,6 +58,7 @@ impl BlockItem {
 pub enum SigKind {
     Int,
     Str,
+    F64,
     Variadic, // TODO: This is before we have staged DSL
     CompileTimeInt,
     CompileTimeStr,
@@ -189,35 +191,69 @@ pub struct Literal {
     pub span: Span,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug)]
 pub enum Lit {
     Str(String),
     Int(isize),
+    F64(f64),
+}
+
+impl PartialEq for Lit {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Lit::Str(left), Lit::Str(right)) => left == right,
+            (Lit::Int(left), Lit::Int(right)) => left == right,
+            (Lit::F64(left), Lit::F64(right)) => left.to_bits() == right.to_bits(),
+            _ => false,
+        }
+    }
+}
+
+impl Eq for Lit {}
+
+impl Hash for Lit {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            Lit::Str(value) => {
+                state.write_u8(0);
+                value.hash(state);
+            }
+            Lit::Int(value) => {
+                state.write_u8(1);
+                value.hash(state);
+            }
+            Lit::F64(value) => {
+                state.write_u8(2);
+                state.write_u64(value.to_bits());
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Lambda {
     pub params: Signature,
     pub body: Block,
-    pub args: Vec<Term>,
+    pub args: Vec<Arg>,
     pub span: Span,
 }
 
 #[derive(Debug, Clone)]
 pub struct Ident {
     pub name: String,
-    pub args: Vec<Term>,
-    pub span: Span,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SigIdent {
-    pub name: String,
+    pub args: Vec<Arg>,
     pub span: Span,
 }
 
 #[derive(Debug, Clone)]
 pub struct Arg {
+    pub name: Option<String>,
+    pub term: Term,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SigIdent {
     pub name: String,
     pub span: Span,
 }

@@ -18,58 +18,70 @@
         Ident {
             name: "itoa",
             args: [
-                Lit(
-                    Literal {
-                        value: Int(
-                            1,
-                        ),
-                        span: ,
-                    },
-                ),
-                Lambda(
-                    Lambda {
-                        params: Signature {
-                            items: [
-                                SigItem {
-                                    name: "s",
-                                    kind: Ident(
-                                        SigIdent {
-                                            name: "str",
-                                            span: ,
-                                        },
-                                    ),
-                                    has_bang: false,
-                                    span: ,
-                                },
-                            ],
+                Arg {
+                    name: None,
+                    term: Lit(
+                        Literal {
+                            value: Int(
+                                1,
+                            ),
                             span: ,
-                            generics: [],
                         },
-                        body: Block {
-                            items: [
-                                Ident(
-                                    Ident {
-                                        name: "exit",
-                                        args: [
-                                            Lit(
-                                                Literal {
-                                                    value: Int(
-                                                        0,
+                    ),
+                    span: ,
+                },
+                Arg {
+                    name: None,
+                    term: Lambda(
+                        Lambda {
+                            params: Signature {
+                                items: [
+                                    SigItem {
+                                        name: "s",
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "str",
+                                                span: ,
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                ],
+                                span: ,
+                                generics: [],
+                            },
+                            body: Block {
+                                items: [
+                                    Ident(
+                                        Ident {
+                                            name: "exit",
+                                            args: [
+                                                Arg {
+                                                    name: None,
+                                                    term: Lit(
+                                                        Literal {
+                                                            value: Int(
+                                                                0,
+                                                            ),
+                                                            span: ,
+                                                        },
                                                     ),
                                                     span: ,
                                                 },
-                                            ),
-                                        ],
-                                        span: ,
-                                    },
-                                ),
-                            ],
+                                            ],
+                                            span: ,
+                                        },
+                                    ),
+                                ],
+                                span: ,
+                            },
+                            args: [],
                             span: ,
                         },
-                        args: [],
-                        span: ,
-                    },
-                ),
+                    ),
+                    span: ,
+                },
             ],
             span: ,
         },

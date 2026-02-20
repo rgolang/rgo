@@ -18,38 +18,54 @@
         Ident {
             name: "printf",
             args: [
-                Lit(
-                    Literal {
-                        value: Str(
-                            "hello %s\n",
-                        ),
-                        span: ,
-                    },
-                ),
-                Lit(
-                    Literal {
-                        value: Str(
-                            "world",
-                        ),
-                        span: ,
-                    },
-                ),
-                Ident(
-                    Ident {
-                        name: "exit",
-                        args: [
-                            Lit(
-                                Literal {
-                                    value: Int(
-                                        0,
+                Arg {
+                    name: None,
+                    term: Lit(
+                        Literal {
+                            value: Str(
+                                "hello %s\n",
+                            ),
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
+                Arg {
+                    name: None,
+                    term: Lit(
+                        Literal {
+                            value: Str(
+                                "world",
+                            ),
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
+                Arg {
+                    name: None,
+                    term: Ident(
+                        Ident {
+                            name: "exit",
+                            args: [
+                                Arg {
+                                    name: None,
+                                    term: Lit(
+                                        Literal {
+                                            value: Int(
+                                                0,
+                                            ),
+                                            span: ,
+                                        },
                                     ),
                                     span: ,
                                 },
-                            ),
-                        ],
-                        span: ,
-                    },
-                ),
+                            ],
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
             ],
             span: ,
         },

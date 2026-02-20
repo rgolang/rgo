@@ -64,22 +64,30 @@
                         Ident {
                             name: "ok",
                             args: [
-                                Ident(
-                                    Ident {
-                                        name: "exit",
-                                        args: [
-                                            Lit(
-                                                Literal {
-                                                    value: Int(
-                                                        0,
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "exit",
+                                            args: [
+                                                Arg {
+                                                    name: None,
+                                                    term: Lit(
+                                                        Literal {
+                                                            value: Int(
+                                                                0,
+                                                            ),
+                                                            span: ,
+                                                        },
                                                     ),
                                                     span: ,
                                                 },
-                                            ),
-                                        ],
-                                        span: ,
-                                    },
-                                ),
+                                            ],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
                             ],
                             span: ,
                         },
@@ -96,30 +104,42 @@
         Ident {
             name: "foo",
             args: [
-                Ident(
-                    Ident {
-                        name: "printf",
-                        args: [
-                            Lit(
-                                Literal {
-                                    value: Str(
-                                        "result: %d",
+                Arg {
+                    name: None,
+                    term: Ident(
+                        Ident {
+                            name: "printf",
+                            args: [
+                                Arg {
+                                    name: None,
+                                    term: Lit(
+                                        Literal {
+                                            value: Str(
+                                                "result: %d",
+                                            ),
+                                            span: ,
+                                        },
                                     ),
                                     span: ,
                                 },
-                            ),
-                            Lit(
-                                Literal {
-                                    value: Int(
-                                        1,
+                                Arg {
+                                    name: None,
+                                    term: Lit(
+                                        Literal {
+                                            value: Int(
+                                                1,
+                                            ),
+                                            span: ,
+                                        },
                                     ),
                                     span: ,
                                 },
-                            ),
-                        ],
-                        span: ,
-                    },
-                ),
+                            ],
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
             ],
             span: ,
         },

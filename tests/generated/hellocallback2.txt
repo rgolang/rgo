@@ -82,21 +82,29 @@
                         Ident {
                             name: "f",
                             args: [
-                                Lit(
-                                    Literal {
-                                        value: Str(
-                                            "42",
-                                        ),
-                                        span: ,
-                                    },
-                                ),
-                                Ident(
-                                    Ident {
-                                        name: "ok",
-                                        args: [],
-                                        span: ,
-                                    },
-                                ),
+                                Arg {
+                                    name: None,
+                                    term: Lit(
+                                        Literal {
+                                            value: Str(
+                                                "42",
+                                            ),
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "ok",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
                             ],
                             span: ,
                         },
@@ -147,28 +155,40 @@
                         Ident {
                             name: "printf",
                             args: [
-                                Lit(
-                                    Literal {
-                                        value: Str(
-                                            "The winning number is %s\n",
-                                        ),
-                                        span: ,
-                                    },
-                                ),
-                                Ident(
-                                    Ident {
-                                        name: "n",
-                                        args: [],
-                                        span: ,
-                                    },
-                                ),
-                                Ident(
-                                    Ident {
-                                        name: "ok",
-                                        args: [],
-                                        span: ,
-                                    },
-                                ),
+                                Arg {
+                                    name: None,
+                                    term: Lit(
+                                        Literal {
+                                            value: Str(
+                                                "The winning number is %s\n",
+                                            ),
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "n",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "ok",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
                             ],
                             span: ,
                         },
@@ -185,29 +205,41 @@
         Ident {
             name: "foo",
             args: [
-                Ident(
-                    Ident {
-                        name: "print",
-                        args: [],
-                        span: ,
-                    },
-                ),
-                Ident(
-                    Ident {
-                        name: "exit",
-                        args: [
-                            Lit(
-                                Literal {
-                                    value: Int(
-                                        0,
+                Arg {
+                    name: None,
+                    term: Ident(
+                        Ident {
+                            name: "print",
+                            args: [],
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
+                Arg {
+                    name: None,
+                    term: Ident(
+                        Ident {
+                            name: "exit",
+                            args: [
+                                Arg {
+                                    name: None,
+                                    term: Lit(
+                                        Literal {
+                                            value: Int(
+                                                0,
+                                            ),
+                                            span: ,
+                                        },
                                     ),
                                     span: ,
                                 },
-                            ),
-                        ],
-                        span: ,
-                    },
-                ),
+                            ],
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
             ],
             span: ,
         },

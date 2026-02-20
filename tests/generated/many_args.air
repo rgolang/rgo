@@ -1,3 +1,24 @@
+_24_lambda():
+    @exit($_25: int = 0)
+
+
+_24_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_24_lambda)
+
+
+_24_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_24_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
 foo($a1: int, $a2: int, $a3: int, $a4: int, $a5: int, $a6: int, $a7: int, $a8: int, $a9: int, $a10: int, $a11: int, $a12: int, $a13: int, $a14: int, $a15: int, $a16: int, $a17: int, $a18: int, $a19: int, $a20: int, $a21: int, $a22: int, $ok: ()):
     @printf($_0: str! = "a1: %d, a11: %d, a21: %d\n", $a1: int, $a11: int, $a21: int, $ok)
 
@@ -48,27 +69,6 @@ foo_deepcopy($env_end: int):
     @gt(foo_deepcopy_skip_22, $num_remaining, 0)
     @deepcopy($foo_deepcopy_field_22, $__env_end, -1)
 foo_deepcopy_skip_22:
-    @return()
-
-
-_24_lambda():
-    @exit($_25: int = 0)
-
-
-_24_lambda_unwrapper($env_end: int):
-    $__env_end = @pin($env_end)
-    @release($__env_end)
-    @jumpargs(_24_lambda)
-
-
-_24_lambda_deep_release($env_end: int):
-    $__env_end = @pin($env_end)
-    @release($__env_end)
-    @return()
-
-
-_24_lambda_deepcopy($env_end: int):
-    $__env_end = @pin($env_end)
     @return()
 
 

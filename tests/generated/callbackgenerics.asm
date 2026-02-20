@@ -172,101 +172,6 @@ foo_deepcopy_skip_1:
     leave
     ret
 
-global print1
-print1:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store n arg in frame
-    mov [rbp-16], rsi ; store ok arg in frame
-    mov rax, [rbp-8] ; load operand
-    push rax ; stack arg
-    lea rax, [rel _1] ; point to string literal
-    push rax ; stack arg
-    pop rdi ; restore arg into register
-    pop rsi ; restore arg into register
-    push rbp ; helper prologue
-    mov rbp, rsp
-    push r12
-    mov rax, rsp ; align stack for variadic printf call
-    and rax, 15
-    mov r12, rax
-    sub rsp, r12
-    call printf ; invoke libc printf
-    add rsp, r12
-    pop r12
-    pop rbp
-    mov r12, [rbp-16] ; load continuation env_end pointer
-    mov rax, [r12+0] ; load continuation entry point
-    mov rdi, r12 ; pass env_end pointer to continuation
-    leave ; unwind before jumping
-    jmp rax
-global print1_unwrapper
-print1_unwrapper:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rax, [r12-16] ; load n env field
-    mov [rbp-16], rax ; store value
-    mov rax, [r12-8] ; load ok env field
-    mov [rbp-24], rax ; store value
-    mov rdi, r12 ; use pinned __env_end env_end pointer
-    call release_heap_ptr ; release __env_end closure environment
-    mov rax, [rbp-24] ; load operand
-    push rax ; stack arg
-    mov rax, [rbp-16] ; load operand
-    push rax ; stack arg
-    pop rdi ; restore arg into register
-    pop rsi ; restore arg into register
-    leave ; unwind before named jump
-    jmp print1
-global print1_deep_release
-print1_deep_release:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rax, [r12+40] ; load __num_remaining env field
-    mov [rbp-16], rax ; store value
-    mov rax, [rbp-16] ; load operand
-    mov rbx, 0 ; operand literal
-    cmp rax, rbx
-    jg print1_release_skip_1
-    mov rax, [r12-8] ; load print1_release_field_1 env field
-    mov [rbp-24], rax ; store value
-    mov rdi, [rbp-24] ; load operand
-    call release_heap_ptr ; release heap pointer
-print1_release_skip_1:
-    mov rdi, r12 ; use pinned __env_end env_end pointer
-    call release_heap_ptr ; release __env_end closure environment
-    leave
-    ret
-
-global print1_deepcopy
-print1_deepcopy:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rax, [r12+40] ; load num_remaining env field
-    mov [rbp-16], rax ; store value
-    mov rax, [rbp-16] ; load operand
-    mov rbx, 0 ; operand literal
-    cmp rax, rbx
-    jg print1_deepcopy_skip_1
-    mov rcx, [r12-8] ; load field pointer
-    mov rdi, rcx ; copy pointer argument for deepcopy
-    call deepcopy_heap_ptr ; duplicate heap pointer
-    mov [r12-8], rax ; store duplicated pointer
-    mov [rbp-24], rax ; store value
-print1_deepcopy_skip_1:
-    leave
-    ret
-
 global print2
 print2:
     push rbp ; save executor frame pointer
@@ -359,81 +264,6 @@ print2_deepcopy:
     mov [r12-8], rax ; store duplicated pointer
     mov [rbp-24], rax ; store value
 print2_deepcopy_skip_1:
-    leave
-    ret
-
-global p1
-p1:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store ok arg in frame
-    mov rax, [rbp-8] ; load operand
-    push rax ; stack arg
-    lea rax, [rel _3] ; point to string literal
-    push rax ; stack arg
-    pop rdi ; restore arg into register
-    pop rsi ; restore arg into register
-    leave ; unwind before named jump
-    jmp print1
-global p1_unwrapper
-p1_unwrapper:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rax, [r12-8] ; load ok env field
-    mov [rbp-16], rax ; store value
-    mov rdi, r12 ; use pinned __env_end env_end pointer
-    call release_heap_ptr ; release __env_end closure environment
-    mov rax, [rbp-16] ; load operand
-    push rax ; stack arg
-    pop rdi ; restore arg into register
-    leave ; unwind before named jump
-    jmp p1
-global p1_deep_release
-p1_deep_release:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rax, [r12+40] ; load __num_remaining env field
-    mov [rbp-16], rax ; store value
-    mov rax, [rbp-16] ; load operand
-    mov rbx, 0 ; operand literal
-    cmp rax, rbx
-    jg p1_release_skip_0
-    mov rax, [r12-8] ; load p1_release_field_0 env field
-    mov [rbp-24], rax ; store value
-    mov rdi, [rbp-24] ; load operand
-    call release_heap_ptr ; release heap pointer
-p1_release_skip_0:
-    mov rdi, r12 ; use pinned __env_end env_end pointer
-    call release_heap_ptr ; release __env_end closure environment
-    leave
-    ret
-
-global p1_deepcopy
-p1_deepcopy:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rax, [r12+40] ; load num_remaining env field
-    mov [rbp-16], rax ; store value
-    mov rax, [rbp-16] ; load operand
-    mov rbx, 0 ; operand literal
-    cmp rax, rbx
-    jg p1_deepcopy_skip_0
-    mov rcx, [r12-8] ; load field pointer
-    mov rdi, rcx ; copy pointer argument for deepcopy
-    call deepcopy_heap_ptr ; duplicate heap pointer
-    mov [r12-8], rax ; store duplicated pointer
-    mov [rbp-24], rax ; store value
-p1_deepcopy_skip_0:
     leave
     ret
 
@@ -676,6 +506,176 @@ _6_lambda_deepcopy_skip_1:
     leave
     ret
 
+global print1
+print1:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov [rbp-8], rdi ; store n arg in frame
+    mov [rbp-16], rsi ; store ok arg in frame
+    mov rax, [rbp-8] ; load operand
+    push rax ; stack arg
+    lea rax, [rel _1] ; point to string literal
+    push rax ; stack arg
+    pop rdi ; restore arg into register
+    pop rsi ; restore arg into register
+    push rbp ; helper prologue
+    mov rbp, rsp
+    push r12
+    mov rax, rsp ; align stack for variadic printf call
+    and rax, 15
+    mov r12, rax
+    sub rsp, r12
+    call printf ; invoke libc printf
+    add rsp, r12
+    pop r12
+    pop rbp
+    mov r12, [rbp-16] ; load continuation env_end pointer
+    mov rax, [r12+0] ; load continuation entry point
+    mov rdi, r12 ; pass env_end pointer to continuation
+    leave ; unwind before jumping
+    jmp rax
+global print1_unwrapper
+print1_unwrapper:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 32 ; reserve stack space for locals
+    mov [rbp-8], rdi ; store env_end arg in frame
+    mov r12, [rbp-8] ; load operand
+    mov rax, [r12-16] ; load n env field
+    mov [rbp-16], rax ; store value
+    mov rax, [r12-8] ; load ok env field
+    mov [rbp-24], rax ; store value
+    mov rdi, r12 ; use pinned __env_end env_end pointer
+    call release_heap_ptr ; release __env_end closure environment
+    mov rax, [rbp-24] ; load operand
+    push rax ; stack arg
+    mov rax, [rbp-16] ; load operand
+    push rax ; stack arg
+    pop rdi ; restore arg into register
+    pop rsi ; restore arg into register
+    leave ; unwind before named jump
+    jmp print1
+global print1_deep_release
+print1_deep_release:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 32 ; reserve stack space for locals
+    mov [rbp-8], rdi ; store env_end arg in frame
+    mov r12, [rbp-8] ; load operand
+    mov rax, [r12+40] ; load __num_remaining env field
+    mov [rbp-16], rax ; store value
+    mov rax, [rbp-16] ; load operand
+    mov rbx, 0 ; operand literal
+    cmp rax, rbx
+    jg print1_release_skip_1
+    mov rax, [r12-8] ; load print1_release_field_1 env field
+    mov [rbp-24], rax ; store value
+    mov rdi, [rbp-24] ; load operand
+    call release_heap_ptr ; release heap pointer
+print1_release_skip_1:
+    mov rdi, r12 ; use pinned __env_end env_end pointer
+    call release_heap_ptr ; release __env_end closure environment
+    leave
+    ret
+
+global print1_deepcopy
+print1_deepcopy:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 32 ; reserve stack space for locals
+    mov [rbp-8], rdi ; store env_end arg in frame
+    mov r12, [rbp-8] ; load operand
+    mov rax, [r12+40] ; load num_remaining env field
+    mov [rbp-16], rax ; store value
+    mov rax, [rbp-16] ; load operand
+    mov rbx, 0 ; operand literal
+    cmp rax, rbx
+    jg print1_deepcopy_skip_1
+    mov rcx, [r12-8] ; load field pointer
+    mov rdi, rcx ; copy pointer argument for deepcopy
+    call deepcopy_heap_ptr ; duplicate heap pointer
+    mov [r12-8], rax ; store duplicated pointer
+    mov [rbp-24], rax ; store value
+print1_deepcopy_skip_1:
+    leave
+    ret
+
+global p1
+p1:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov [rbp-8], rdi ; store ok arg in frame
+    mov rax, [rbp-8] ; load operand
+    push rax ; stack arg
+    lea rax, [rel _3] ; point to string literal
+    push rax ; stack arg
+    pop rdi ; restore arg into register
+    pop rsi ; restore arg into register
+    leave ; unwind before named jump
+    jmp print1
+global p1_unwrapper
+p1_unwrapper:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov [rbp-8], rdi ; store env_end arg in frame
+    mov r12, [rbp-8] ; load operand
+    mov rax, [r12-8] ; load ok env field
+    mov [rbp-16], rax ; store value
+    mov rdi, r12 ; use pinned __env_end env_end pointer
+    call release_heap_ptr ; release __env_end closure environment
+    mov rax, [rbp-16] ; load operand
+    push rax ; stack arg
+    pop rdi ; restore arg into register
+    leave ; unwind before named jump
+    jmp p1
+global p1_deep_release
+p1_deep_release:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 32 ; reserve stack space for locals
+    mov [rbp-8], rdi ; store env_end arg in frame
+    mov r12, [rbp-8] ; load operand
+    mov rax, [r12+40] ; load __num_remaining env field
+    mov [rbp-16], rax ; store value
+    mov rax, [rbp-16] ; load operand
+    mov rbx, 0 ; operand literal
+    cmp rax, rbx
+    jg p1_release_skip_0
+    mov rax, [r12-8] ; load p1_release_field_0 env field
+    mov [rbp-24], rax ; store value
+    mov rdi, [rbp-24] ; load operand
+    call release_heap_ptr ; release heap pointer
+p1_release_skip_0:
+    mov rdi, r12 ; use pinned __env_end env_end pointer
+    call release_heap_ptr ; release __env_end closure environment
+    leave
+    ret
+
+global p1_deepcopy
+p1_deepcopy:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 32 ; reserve stack space for locals
+    mov [rbp-8], rdi ; store env_end arg in frame
+    mov r12, [rbp-8] ; load operand
+    mov rax, [r12+40] ; load num_remaining env field
+    mov [rbp-16], rax ; store value
+    mov rax, [rbp-16] ; load operand
+    mov rbx, 0 ; operand literal
+    cmp rax, rbx
+    jg p1_deepcopy_skip_0
+    mov rcx, [r12-8] ; load field pointer
+    mov rdi, rcx ; copy pointer argument for deepcopy
+    call deepcopy_heap_ptr ; duplicate heap pointer
+    mov [r12-8], rax ; store duplicated pointer
+    mov [rbp-24], rax ; store value
+p1_deepcopy_skip_0:
+    leave
+    ret
+
 global _start
 _start:
     push rbp ; save executor frame pointer
@@ -855,11 +855,11 @@ _start:
 extern exit
 extern printf
 section .rodata
-_1:
-    db "The losing number is %s", 10, 0
 _2:
     db "The winning number is %s", 10, 0
-_3:
-    db "41", 0
 _4:
     db "42", 0
+_1:
+    db "The losing number is %s", 10, 0
+_3:
+    db "41", 0

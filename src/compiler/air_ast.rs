@@ -1,5 +1,4 @@
 pub use crate::compiler::ast;
-pub use crate::compiler::ast::Arg;
 pub use crate::compiler::ast::{SigItem, SigKind};
 use crate::compiler::builtins;
 use crate::compiler::span::Span;
@@ -148,6 +147,9 @@ pub enum AirOp {
     Sub(AirSub),
     Mul(AirMul),
     Div(AirDiv),
+    AddF64(AirAddF64),
+    MulF64(AirMulF64),
+    DivF64(AirDivF64),
 
     SysExit(AirSysExit),
 
@@ -206,6 +208,27 @@ pub struct AirMul {
 
 #[derive(Clone, Debug)]
 pub struct AirDiv {
+    pub inputs: Vec<AirArg>,
+    pub target: String,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct AirAddF64 {
+    pub inputs: Vec<AirArg>,
+    pub target: String,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct AirMulF64 {
+    pub inputs: Vec<AirArg>,
+    pub target: String,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct AirDivF64 {
     pub inputs: Vec<AirArg>,
     pub target: String,
     pub span: Span,

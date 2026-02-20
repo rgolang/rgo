@@ -28,81 +28,105 @@
         Ident {
             name: "sprintf",
             args: [
-                Lit(
-                    Literal {
-                        value: Str(
-                            "result: %d",
-                        ),
-                        span: ,
-                    },
-                ),
-                Lit(
-                    Literal {
-                        value: Int(
-                            3,
-                        ),
-                        span: ,
-                    },
-                ),
-                Lambda(
-                    Lambda {
-                        params: Signature {
-                            items: [
-                                SigItem {
-                                    name: "s",
-                                    kind: Ident(
-                                        SigIdent {
-                                            name: "str",
+                Arg {
+                    name: None,
+                    term: Lit(
+                        Literal {
+                            value: Str(
+                                "result: %d",
+                            ),
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
+                Arg {
+                    name: None,
+                    term: Lit(
+                        Literal {
+                            value: Int(
+                                3,
+                            ),
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
+                Arg {
+                    name: None,
+                    term: Lambda(
+                        Lambda {
+                            params: Signature {
+                                items: [
+                                    SigItem {
+                                        name: "s",
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "str",
+                                                span: ,
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                ],
+                                span: ,
+                                generics: [],
+                            },
+                            body: Block {
+                                items: [
+                                    Ident(
+                                        Ident {
+                                            name: "write",
+                                            args: [
+                                                Arg {
+                                                    name: None,
+                                                    term: Ident(
+                                                        Ident {
+                                                            name: "s",
+                                                            args: [],
+                                                            span: ,
+                                                        },
+                                                    ),
+                                                    span: ,
+                                                },
+                                                Arg {
+                                                    name: None,
+                                                    term: Ident(
+                                                        Ident {
+                                                            name: "exit",
+                                                            args: [
+                                                                Arg {
+                                                                    name: None,
+                                                                    term: Lit(
+                                                                        Literal {
+                                                                            value: Int(
+                                                                                0,
+                                                                            ),
+                                                                            span: ,
+                                                                        },
+                                                                    ),
+                                                                    span: ,
+                                                                },
+                                                            ],
+                                                            span: ,
+                                                        },
+                                                    ),
+                                                    span: ,
+                                                },
+                                            ],
                                             span: ,
                                         },
                                     ),
-                                    has_bang: false,
-                                    span: ,
-                                },
-                            ],
-                            span: ,
-                            generics: [],
-                        },
-                        body: Block {
-                            items: [
-                                Ident(
-                                    Ident {
-                                        name: "write",
-                                        args: [
-                                            Ident(
-                                                Ident {
-                                                    name: "s",
-                                                    args: [],
-                                                    span: ,
-                                                },
-                                            ),
-                                            Ident(
-                                                Ident {
-                                                    name: "exit",
-                                                    args: [
-                                                        Lit(
-                                                            Literal {
-                                                                value: Int(
-                                                                    0,
-                                                                ),
-                                                                span: ,
-                                                            },
-                                                        ),
-                                                    ],
-                                                    span: ,
-                                                },
-                                            ),
-                                        ],
-                                        span: ,
-                                    },
-                                ),
-                            ],
+                                ],
+                                span: ,
+                            },
+                            args: [],
                             span: ,
                         },
-                        args: [],
-                        span: ,
-                    },
-                ),
+                    ),
+                    span: ,
+                },
             ],
             span: ,
         },

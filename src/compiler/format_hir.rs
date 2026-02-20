@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use crate::compiler::ast::{self, Arg};
+use crate::compiler::ast;
 use crate::compiler::hir::{Block, BlockItem, Closure, Function};
 pub fn render_normalized_rgo(items: &[BlockItem]) -> String {
     let mut out = String::new();
@@ -57,6 +57,9 @@ fn write_block_item(item: &BlockItem, out: &mut String, indent: usize) {
             ast::Lit::Int(i) => {
                 write!(out, "{}: {}", name, i).unwrap();
             }
+            ast::Lit::F64(f) => {
+                write!(out, "{}: {}", name, f).unwrap();
+            }
         },
         BlockItem::ClosureDef(Closure { name, of, args, .. }) => {
             write!(out, "{}: {}(", name, of).unwrap();
@@ -81,14 +84,14 @@ fn write_block_item(item: &BlockItem, out: &mut String, indent: usize) {
     out.push('\n');
 }
 
-fn write_args(args: &[Arg], out: &mut String) {
+fn write_args(args: &[String], out: &mut String) {
     let mut first = true;
     for arg in args {
         if !first {
             out.push_str(", ");
         }
         first = false;
-        write!(out, "{}", arg.name).unwrap();
+        write!(out, "{}", arg).unwrap();
     }
 }
 
@@ -123,6 +126,7 @@ pub fn format_sig_kind(kind: &ast::SigKind) -> String {
     match kind {
         ast::SigKind::Int => "int".to_string(),
         ast::SigKind::Str => "str".to_string(),
+        ast::SigKind::F64 => "f64".to_string(),
         ast::SigKind::CompileTimeInt => "int!".to_string(),
         ast::SigKind::CompileTimeStr => "str!".to_string(),
         ast::SigKind::Sig(inner) => {

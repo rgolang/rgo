@@ -28,38 +28,54 @@
         Ident {
             name: "printf",
             args: [
-                Lit(
-                    Literal {
-                        value: Str(
-                            "Hello %d!",
-                        ),
-                        span: ,
-                    },
-                ),
-                Lit(
-                    Literal {
-                        value: Int(
-                            42,
-                        ),
-                        span: ,
-                    },
-                ),
-                Ident(
-                    Ident {
-                        name: "exit",
-                        args: [
-                            Lit(
-                                Literal {
-                                    value: Int(
-                                        0,
+                Arg {
+                    name: None,
+                    term: Lit(
+                        Literal {
+                            value: Str(
+                                "Hello %d!",
+                            ),
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
+                Arg {
+                    name: None,
+                    term: Lit(
+                        Literal {
+                            value: Int(
+                                42,
+                            ),
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
+                Arg {
+                    name: None,
+                    term: Ident(
+                        Ident {
+                            name: "exit",
+                            args: [
+                                Arg {
+                                    name: None,
+                                    term: Lit(
+                                        Literal {
+                                            value: Int(
+                                                0,
+                                            ),
+                                            span: ,
+                                        },
                                     ),
                                     span: ,
                                 },
-                            ),
-                        ],
-                        span: ,
-                    },
-                ),
+                            ],
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
             ],
             span: ,
         },

@@ -1,8 +1,9 @@
 use crate::compiler::air;
 use crate::compiler::air::{
-    AirAdd, AirArg, AirCallPtr, AirCallPtrTarget, AirDiv, AirField, AirFunction, AirJump,
-    AirJumpArgs, AirJumpClosure, AirJumpEq, AirJumpGt, AirJumpLt, AirLabel, AirMul, AirNewClosure,
-    AirOp, AirPin, AirReturn, AirStmt, AirSub, AirSysExit, AirValue, SigKind,
+    AirAdd, AirAddF64, AirArg, AirCallPtr, AirCallPtrTarget, AirDiv, AirDivF64, AirField,
+    AirFunction, AirJump, AirJumpArgs, AirJumpClosure, AirJumpEq, AirJumpGt, AirJumpLt, AirLabel,
+    AirMul, AirMulF64, AirNewClosure, AirOp, AirPin, AirReturn, AirStmt, AirSub, AirSysExit,
+    AirValue, SigKind,
 };
 use crate::compiler::ast::Lit;
 use crate::compiler::builtins;
@@ -442,6 +443,9 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             AirOp::Sub(op) => self.emit_sub(op),
             AirOp::Mul(op) => self.emit_mul(op),
             AirOp::Div(op) => self.emit_div(op),
+            AirOp::AddF64(op) => self.emit_add_f64(op),
+            AirOp::MulF64(op) => self.emit_mul_f64(op),
+            AirOp::DivF64(op) => self.emit_div_f64(op),
             AirOp::JumpGt(jump) => self.emit_gt_jump(jump),
             AirOp::Printf(op) => self.emit_libc_op(
                 builtins::Builtin::Printf,
@@ -602,6 +606,39 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         )
     }
 
+    fn emit_add_f64(&mut self, op: &AirAddF64) -> Result<(), Error> {
+        self.emit_float_binary_op(
+            &op.inputs,
+            &op.target,
+            op.span,
+            "addsd",
+            "addf64",
+            "add second float",
+        )
+    }
+
+    fn emit_mul_f64(&mut self, op: &AirMulF64) -> Result<(), Error> {
+        self.emit_float_binary_op(
+            &op.inputs,
+            &op.target,
+            op.span,
+            "mulsd",
+            "mulf64",
+            "multiply by multiplier float",
+        )
+    }
+
+    fn emit_div_f64(&mut self, op: &AirDivF64) -> Result<(), Error> {
+        self.emit_float_binary_op(
+            &op.inputs,
+            &op.target,
+            op.span,
+            "divsd",
+            "divf64",
+            "divide by divisor float",
+        )
+    }
+
     fn emit_binary_op(
         &mut self,
         inputs: &[AirArg],
@@ -630,6 +667,35 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
+    fn emit_float_binary_op(
+        &mut self,
+        inputs: &[AirArg],
+        target: &str,
+        span: Span,
+        opcode: &str,
+        op_name: &str,
+        comment: &str,
+    ) -> Result<(), Error> {
+        if inputs.len() != 2 {
+            return Err(Error::new(
+                Code::Codegen,
+                format!("{op_name} requires two arguments"),
+                span,
+            ));
+        }
+        self.load_arg_into_xmm(&inputs[0], "xmm0")?;
+        self.load_arg_into_xmm(&inputs[1], "xmm1")?;
+        writeln!(
+            self.out,
+            "    {opcode} xmm0, xmm1 ; {comment}",
+            opcode = opcode,
+            comment = comment
+        )?;
+        writeln!(self.out, "    movq rax, xmm0 ; move float result to rax")?;
+        self.emit_value_jump(target, span, true)?;
+        Ok(())
+    }
+
     fn emit_libc_op(
         &mut self,
         builtin: builtins::Builtin,
@@ -638,10 +704,10 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         target: &str,
         span: Span,
     ) -> Result<(), Error> {
-            let has_result = self.emit_libc_call(builtin, args, arg_kinds, span)?;
-            self.emit_value_jump(target, span, has_result)?;
-            Ok(())
-        }
+        let has_result = self.emit_libc_call(builtin, args, arg_kinds, span)?;
+        self.emit_value_jump(target, span, has_result)?;
+        Ok(())
+    }
 
     fn emit_value_jump(&mut self, target: &str, span: Span, has_result: bool) -> Result<(), Error> {
         let binding = self.frame.binding(target).cloned().ok_or_else(|| {
@@ -888,13 +954,53 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
     fn load_arg_into_reg(&mut self, arg: &AirArg, reg: &str) -> Result<(), Error> {
         if let Some(literal) = &arg.literal {
             return match literal {
-                Lit::Int(value) => {
-                    self.load_value_into_reg(&AirValue::Literal(*value as i64), reg)
-                }
+                Lit::Int(value) => self.load_value_into_reg(&AirValue::Literal(*value as i64), reg),
                 Lit::Str(_) => self.load_literal_into_reg(literal, &arg.name, reg),
+                Lit::F64(value) => {
+                    let bits = value.to_bits();
+                    writeln!(
+                        self.out,
+                        "    mov {reg}, {bits:#x} ; load literal float bits",
+                        reg = reg,
+                        bits = bits
+                    )?;
+                    Ok(())
+                }
             };
         }
+        if matches!(arg.kind, SigKind::F64) {
+            return self.load_float_into_reg(arg, reg);
+        }
         self.load_value_into_reg(&AirValue::Binding(arg.name.clone()), reg)
+    }
+
+    fn load_float_into_reg(&mut self, arg: &AirArg, reg: &str) -> Result<(), Error> {
+        if let Some(literal) = &arg.literal {
+            if let Lit::F64(value) = literal {
+                let bits = value.to_bits();
+                writeln!(
+                    self.out,
+                    "    mov {reg}, {bits:#x} ; load literal float bits",
+                    reg = reg,
+                    bits = bits
+                )?;
+                return Ok(());
+            }
+        }
+        let binding = self.frame.binding(&arg.name).cloned().ok_or_else(|| {
+            Error::new(
+                Code::Codegen,
+                format!("unknown binding '{}'", arg.name),
+                Span::unknown(),
+            )
+        })?;
+        writeln!(
+            self.out,
+            "    movsd xmm0, [rbp-{}] ; load float operand",
+            binding.slot_addr(0)
+        )?;
+        writeln!(self.out, "    movq {reg}, xmm0", reg = reg)?;
+        Ok(())
     }
 
     fn load_literal_into_reg(
@@ -918,7 +1024,71 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                     reg, label
                 )?;
             }
+            Lit::F64(_) => {
+                return Err(Error::new(
+                    Code::Codegen,
+                    format!("unexpected float literal for register {}", reg),
+                    Span::unknown(),
+                ));
+            }
         }
+        Ok(())
+    }
+
+    fn load_arg_into_xmm(&mut self, arg: &AirArg, xmm: &str) -> Result<(), Error> {
+        if let Some(literal) = &arg.literal {
+            return match literal {
+                Lit::Int(value) => {
+                    writeln!(
+                        self.out,
+                        "    mov rax, {} ; load literal integer for float",
+                        value
+                    )?;
+                    writeln!(
+                        self.out,
+                        "    cvtsi2sd {xmm}, rax ; convert literal to float",
+                        xmm = xmm,
+                    )?;
+                    Ok(())
+                }
+                Lit::Str(_) => Err(Error::new(
+                    Code::Codegen,
+                    format!(
+                        "cannot use string literal '{}' in float operation",
+                        arg.name
+                    ),
+                    Span::unknown(),
+                )),
+                Lit::F64(value) => {
+                    let bits = value.to_bits();
+                    writeln!(
+                        self.out,
+                        "    mov rax, {bits:#x} ; load literal float bits",
+                        bits = bits
+                    )?;
+                    writeln!(
+                        self.out,
+                        "    movq {xmm}, rax ; load float literal",
+                        xmm = xmm
+                    )?;
+                    Ok(())
+                }
+            };
+        }
+
+        let binding = self.frame.binding(&arg.name).cloned().ok_or_else(|| {
+            Error::new(
+                Code::Codegen,
+                format!("unknown binding '{}'", arg.name),
+                Span::unknown(),
+            )
+        })?;
+        writeln!(
+            self.out,
+            "    movsd {xmm}, [rbp-{}] ; load float operand",
+            binding.slot_addr(0),
+            xmm = xmm,
+        )?;
         Ok(())
     }
 
@@ -1109,8 +1279,8 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         args: &[AirArg],
         arg_kinds: &[SigKind],
         span: Span,
-        ) -> Result<bool, Error> {
-            match builtin {
+    ) -> Result<bool, Error> {
+        match builtin {
             builtins::Builtin::Printf => {
                 if args.is_empty() {
                     return Err(Error::new(
@@ -1336,8 +1506,14 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             "    mov r14, [rbx+{}] ; load heap size metadata for clone",
             ENV_METADATA_HEAP_SIZE_OFFSET
         )?;
-        writeln!(self.out, "    mov r12, rbx ; compute env base pointer for clone")?;
-        writeln!(self.out, "    sub r12, r13 ; env base pointer for clone source")?;
+        writeln!(
+            self.out,
+            "    mov r12, rbx ; compute env base pointer for clone"
+        )?;
+        writeln!(
+            self.out,
+            "    sub r12, r13 ; env base pointer for clone source"
+        )?;
         writeln!(self.out, "    mov rax, {} ; mmap syscall", SYSCALL_MMAP)?;
         writeln!(
             self.out,

@@ -1,0 +1,17 @@
+float: @/f64
+div: @/divf64
+printf: @/printf
+exit: @/exit
+x: 1.5
+_5_lambda: (){
+    _6: 0
+    exit(_6)
+}
+
+_2_lambda: (x: str!, y: f64){
+    _3: "result: %f"
+    printf(_3, x, _5_lambda)
+}
+_0: 2
+_8_: _2_lambda(x)
+div(x, _0, _8_)

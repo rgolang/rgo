@@ -38,43 +38,46 @@ true_deepcopy_skip_1:
     @return()
 
 
-false($x: (), $y: ()):
-    @release($x)
-    @jumpclosure($y)
+_14_lambda():
+    @exit($_15: int = 0)
 
 
-false_unwrapper($env_end: int):
+_14_lambda_unwrapper($env_end: int):
     $__env_end = @pin($env_end)
-    $x = @field($__env_end, -2)
-    $y = @field($__env_end, -1)
     @release($__env_end)
-    @jumpargs(false, $x: (), $y: ())
+    @jumpargs(_14_lambda)
 
 
-false_deep_release($env_end: int):
+_14_lambda_deep_release($env_end: int):
     $__env_end = @pin($env_end)
-    $__num_remaining = @field($__env_end, 5)
-    @gt(false_release_skip_0, $__num_remaining, 1)
-    $false_release_field_0 = @field($__env_end, -2)
-    @callptr($false_release_field_0)
-false_release_skip_0:
-    @gt(false_release_skip_1, $__num_remaining, 0)
-    $false_release_field_1 = @field($__env_end, -1)
-    @callptr($false_release_field_1)
-false_release_skip_1:
     @release($__env_end)
     @return()
 
 
-false_deepcopy($env_end: int):
+_14_lambda_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
-    $num_remaining = @field($__env_end, 5)
-    @gt(false_deepcopy_skip_0, $num_remaining, 1)
-    @deepcopy($false_deepcopy_field_0, $__env_end, -2)
-false_deepcopy_skip_0:
-    @gt(false_deepcopy_skip_1, $num_remaining, 0)
-    @deepcopy($false_deepcopy_field_1, $__env_end, -1)
-false_deepcopy_skip_1:
+    @return()
+
+
+_11_lambda():
+    $_14_lambda = @newclosure<>(_14_lambda)
+    @printf($_12: str! = "works\n", $_14_lambda)
+
+
+_11_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_11_lambda)
+
+
+_11_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_11_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
     @return()
 
 
@@ -158,49 +161,6 @@ if_deepcopy_skip_0:
     @gt(if_deepcopy_skip_1, $num_remaining, 0)
     @deepcopy($if_deepcopy_field_1, $__env_end, -1)
 if_deepcopy_skip_1:
-    @return()
-
-
-_14_lambda():
-    @exit($_15: int = 0)
-
-
-_14_lambda_unwrapper($env_end: int):
-    $__env_end = @pin($env_end)
-    @release($__env_end)
-    @jumpargs(_14_lambda)
-
-
-_14_lambda_deep_release($env_end: int):
-    $__env_end = @pin($env_end)
-    @release($__env_end)
-    @return()
-
-
-_14_lambda_deepcopy($env_end: int):
-    $__env_end = @pin($env_end)
-    @return()
-
-
-_11_lambda():
-    $_14_lambda = @newclosure<>(_14_lambda)
-    @printf($_12: str! = "works\n", $_14_lambda)
-
-
-_11_lambda_unwrapper($env_end: int):
-    $__env_end = @pin($env_end)
-    @release($__env_end)
-    @jumpargs(_11_lambda)
-
-
-_11_lambda_deep_release($env_end: int):
-    $__env_end = @pin($env_end)
-    @release($__env_end)
-    @return()
-
-
-_11_lambda_deepcopy($env_end: int):
-    $__env_end = @pin($env_end)
     @return()
 
 

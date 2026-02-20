@@ -1,34 +1,3 @@
-_2_foo($ok: ()):
-    @add($_3: int = 1, $_4: int = 2, $ok)
-
-
-_2_foo_unwrapper($env_end: int):
-    $__env_end = @pin($env_end)
-    $ok = @field($__env_end, -1)
-    @release($__env_end)
-    @jumpargs(_2_foo, $ok: ())
-
-
-_2_foo_deep_release($env_end: int):
-    $__env_end = @pin($env_end)
-    $__num_remaining = @field($__env_end, 5)
-    @gt(_2_foo_release_skip_0, $__num_remaining, 0)
-    $_2_foo_release_field_0 = @field($__env_end, -1)
-    @callptr($_2_foo_release_field_0)
-_2_foo_release_skip_0:
-    @release($__env_end)
-    @return()
-
-
-_2_foo_deepcopy($env_end: int):
-    $__env_end = @pin($env_end)
-    $num_remaining = @field($__env_end, 5)
-    @gt(_2_foo_deepcopy_skip_0, $num_remaining, 0)
-    @deepcopy($_2_foo_deepcopy_field_0, $__env_end, -1)
-_2_foo_deepcopy_skip_0:
-    @return()
-
-
 _9_foo():
     @exit($_10: int = 0)
 
@@ -70,6 +39,37 @@ _6_foo_deep_release($env_end: int):
 
 _6_foo_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
+    @return()
+
+
+_2_foo($ok: ()):
+    @add($_3: int = 1, $_4: int = 2, $ok)
+
+
+_2_foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_2_foo, $ok: ())
+
+
+_2_foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_2_foo_release_skip_0, $__num_remaining, 0)
+    $_2_foo_release_field_0 = @field($__env_end, -1)
+    @callptr($_2_foo_release_field_0)
+_2_foo_release_skip_0:
+    @release($__env_end)
+    @return()
+
+
+_2_foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_2_foo_deepcopy_skip_0, $num_remaining, 0)
+    @deepcopy($_2_foo_deepcopy_field_0, $__env_end, -1)
+_2_foo_deepcopy_skip_0:
     @return()
 
 

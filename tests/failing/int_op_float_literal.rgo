@@ -1,0 +1,7 @@
+int: @/int
+add: @/add
+exit: @/exit
+
+add(1.5, 2, (res: int){
+    exit(0)
+})

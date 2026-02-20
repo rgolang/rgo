@@ -1,6 +1,22 @@
 bits 64
 default rel
 section .text
+global _28_lambda
+_28_lambda:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov [rbp-8], rdi ; store x arg in frame
+    mov [rbp-16], rsi ; store ok arg in frame
+    mov rax, [rbp-8] ; load operand
+    mov rbx, 10 ; operand literal
+    add rax, rbx ; add second integer
+    mov r12, [rbp-16] ; load continuation env_end pointer
+    mov [r12-8], rax ; store env field
+    mov rax, [r12+0] ; load continuation entry point
+    mov rdi, r12 ; pass env_end pointer to continuation
+    leave ; unwind before jumping
+    jmp rax
 global release_heap_ptr
 release_heap_ptr:
     push rbp ; save caller frame
@@ -17,51 +33,29 @@ release_heap_ptr:
     pop rbx
     pop rbp
     ret
-global zero
-zero:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store f arg in frame
-    mov [rbp-16], rsi ; store x arg in frame
-    mov [rbp-24], rdx ; store ok arg in frame
-    mov rdi, [rbp-8] ; load f closure env_end pointer
-    call release_heap_ptr ; release f closure environment
-    mov rbx, [rbp-24] ; load ok closure env_end pointer
-    mov rax, [rbp-16] ; load operand
-    mov [rbx-8], rax ; store env field
-    mov rdi, rbx ; pass env_end pointer to closure
-    mov rax, [rdi+0] ; load closure unwrapper entry point
-    leave ; unwind before jumping
-    jmp rax ; tail call into closure
-global zero_unwrapper
-zero_unwrapper:
+global _28_lambda_unwrapper
+_28_lambda_unwrapper:
     push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
     sub rsp, 32 ; reserve stack space for locals
     mov [rbp-8], rdi ; store env_end arg in frame
     mov r12, [rbp-8] ; load operand
-    mov rax, [r12-24] ; load f env field
-    mov [rbp-16], rax ; store value
     mov rax, [r12-16] ; load x env field
-    mov [rbp-24], rax ; store value
+    mov [rbp-16], rax ; store value
     mov rax, [r12-8] ; load ok env field
-    mov [rbp-32], rax ; store value
+    mov [rbp-24], rax ; store value
     mov rdi, r12 ; use pinned __env_end env_end pointer
     call release_heap_ptr ; release __env_end closure environment
-    mov rax, [rbp-32] ; load operand
-    push rax ; stack arg
     mov rax, [rbp-24] ; load operand
     push rax ; stack arg
     mov rax, [rbp-16] ; load operand
     push rax ; stack arg
     pop rdi ; restore arg into register
     pop rsi ; restore arg into register
-    pop rdx ; restore arg into register
     leave ; unwind before named jump
-    jmp zero
-global zero_deep_release
-zero_deep_release:
+    jmp _28_lambda
+global _28_lambda_deep_release
+_28_lambda_deep_release:
     push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
     sub rsp, 32 ; reserve stack space for locals
@@ -70,23 +64,14 @@ zero_deep_release:
     mov rax, [r12+40] ; load __num_remaining env field
     mov [rbp-16], rax ; store value
     mov rax, [rbp-16] ; load operand
-    mov rbx, 2 ; operand literal
+    mov rbx, 0 ; operand literal
     cmp rax, rbx
-    jg zero_release_skip_0
-    mov rax, [r12-24] ; load zero_release_field_0 env field
+    jg _28_lambda_release_skip_1
+    mov rax, [r12-8] ; load _28_lambda_release_field_1 env field
     mov [rbp-24], rax ; store value
     mov rdi, [rbp-24] ; load operand
     call release_heap_ptr ; release heap pointer
-zero_release_skip_0:
-    mov rax, [rbp-16] ; load operand
-    mov rbx, 0 ; operand literal
-    cmp rax, rbx
-    jg zero_release_skip_2
-    mov rax, [r12-8] ; load zero_release_field_2 env field
-    mov [rbp-32], rax ; store value
-    mov rdi, [rbp-32] ; load operand
-    call release_heap_ptr ; release heap pointer
-zero_release_skip_2:
+_28_lambda_release_skip_1:
     mov rdi, r12 ; use pinned __env_end env_end pointer
     call release_heap_ptr ; release __env_end closure environment
     leave
@@ -148,8 +133,8 @@ internal_memcpy_loop:
 internal_memcpy_done:
     pop rbp
     ret
-global zero_deepcopy
-zero_deepcopy:
+global _28_lambda_deepcopy
+_28_lambda_deepcopy:
     push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
     sub rsp, 32 ; reserve stack space for locals
@@ -158,436 +143,144 @@ zero_deepcopy:
     mov rax, [r12+40] ; load num_remaining env field
     mov [rbp-16], rax ; store value
     mov rax, [rbp-16] ; load operand
-    mov rbx, 2 ; operand literal
-    cmp rax, rbx
-    jg zero_deepcopy_skip_0
-    mov rcx, [r12-24] ; load field pointer
-    mov rdi, rcx ; copy pointer argument for deepcopy
-    call deepcopy_heap_ptr ; duplicate heap pointer
-    mov [r12-24], rax ; store duplicated pointer
-    mov [rbp-24], rax ; store value
-zero_deepcopy_skip_0:
-    mov rax, [rbp-16] ; load operand
     mov rbx, 0 ; operand literal
     cmp rax, rbx
-    jg zero_deepcopy_skip_2
+    jg _28_lambda_deepcopy_skip_1
     mov rcx, [r12-8] ; load field pointer
     mov rdi, rcx ; copy pointer argument for deepcopy
     call deepcopy_heap_ptr ; duplicate heap pointer
     mov [r12-8], rax ; store duplicated pointer
-    mov [rbp-32], rax ; store value
-zero_deepcopy_skip_2:
+    mov [rbp-24], rax ; store value
+_28_lambda_deepcopy_skip_1:
     leave
     ret
 
-global one
-one:
+global _36_lambda
+_36_lambda:
     push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store f arg in frame
-    mov [rbp-16], rsi ; store x arg in frame
-    mov [rbp-24], rdx ; store ok arg in frame
-    mov rbx, [rbp-8] ; load f closure env_end pointer
-    mov rax, [rbp-16] ; load operand
-    mov [rbx-16], rax ; store env field
-    mov rax, [rbp-24] ; load operand
-    mov [rbx-8], rax ; store env field
-    mov rdi, rbx ; pass env_end pointer to closure
-    mov rax, [rdi+0] ; load closure unwrapper entry point
-    leave ; unwind before jumping
-    jmp rax ; tail call into closure
-global one_unwrapper
-one_unwrapper:
+    ; load exit code
+    mov rdi, 0 ; exit code
+    call exit ; call libc exit to flush buffers
+global _36_lambda_unwrapper
+_36_lambda_unwrapper:
     push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
+    sub rsp, 16 ; reserve stack space for locals
     mov [rbp-8], rdi ; store env_end arg in frame
     mov r12, [rbp-8] ; load operand
-    mov rax, [r12-24] ; load f env field
-    mov [rbp-16], rax ; store value
-    mov rax, [r12-16] ; load x env field
-    mov [rbp-24], rax ; store value
-    mov rax, [r12-8] ; load ok env field
-    mov [rbp-32], rax ; store value
     mov rdi, r12 ; use pinned __env_end env_end pointer
     call release_heap_ptr ; release __env_end closure environment
-    mov rax, [rbp-32] ; load operand
-    push rax ; stack arg
-    mov rax, [rbp-24] ; load operand
-    push rax ; stack arg
-    mov rax, [rbp-16] ; load operand
-    push rax ; stack arg
-    pop rdi ; restore arg into register
-    pop rsi ; restore arg into register
-    pop rdx ; restore arg into register
     leave ; unwind before named jump
-    jmp one
-global one_deep_release
-one_deep_release:
+    jmp _36_lambda
+global _36_lambda_deep_release
+_36_lambda_deep_release:
     push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
+    sub rsp, 16 ; reserve stack space for locals
     mov [rbp-8], rdi ; store env_end arg in frame
     mov r12, [rbp-8] ; load operand
-    mov rax, [r12+40] ; load __num_remaining env field
-    mov [rbp-16], rax ; store value
-    mov rax, [rbp-16] ; load operand
-    mov rbx, 2 ; operand literal
-    cmp rax, rbx
-    jg one_release_skip_0
-    mov rax, [r12-24] ; load one_release_field_0 env field
-    mov [rbp-24], rax ; store value
-    mov rdi, [rbp-24] ; load operand
-    call release_heap_ptr ; release heap pointer
-one_release_skip_0:
-    mov rax, [rbp-16] ; load operand
-    mov rbx, 0 ; operand literal
-    cmp rax, rbx
-    jg one_release_skip_2
-    mov rax, [r12-8] ; load one_release_field_2 env field
-    mov [rbp-32], rax ; store value
-    mov rdi, [rbp-32] ; load operand
-    call release_heap_ptr ; release heap pointer
-one_release_skip_2:
     mov rdi, r12 ; use pinned __env_end env_end pointer
     call release_heap_ptr ; release __env_end closure environment
     leave
     ret
 
-global one_deepcopy
-one_deepcopy:
+global _36_lambda_deepcopy
+_36_lambda_deepcopy:
     push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
+    sub rsp, 16 ; reserve stack space for locals
     mov [rbp-8], rdi ; store env_end arg in frame
     mov r12, [rbp-8] ; load operand
-    mov rax, [r12+40] ; load num_remaining env field
-    mov [rbp-16], rax ; store value
-    mov rax, [rbp-16] ; load operand
-    mov rbx, 2 ; operand literal
-    cmp rax, rbx
-    jg one_deepcopy_skip_0
-    mov rcx, [r12-24] ; load field pointer
-    mov rdi, rcx ; copy pointer argument for deepcopy
-    call deepcopy_heap_ptr ; duplicate heap pointer
-    mov [r12-24], rax ; store duplicated pointer
-    mov [rbp-24], rax ; store value
-one_deepcopy_skip_0:
-    mov rax, [rbp-16] ; load operand
-    mov rbx, 0 ; operand literal
-    cmp rax, rbx
-    jg one_deepcopy_skip_2
-    mov rcx, [r12-8] ; load field pointer
-    mov rdi, rcx ; copy pointer argument for deepcopy
-    call deepcopy_heap_ptr ; duplicate heap pointer
-    mov [r12-8], rax ; store duplicated pointer
-    mov [rbp-32], rax ; store value
-one_deepcopy_skip_2:
     leave
     ret
 
-global _13_two
-_13_two:
+global _33_lambda
+_33_lambda:
     push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store f arg in frame
-    mov [rbp-16], rsi ; store ok arg in frame
-    mov [rbp-24], rdx ; store y arg in frame
-    mov rbx, [rbp-8] ; load f closure env_end pointer
-    mov rax, [rbp-24] ; load operand
-    mov [rbx-16], rax ; store env field
-    mov rax, [rbp-16] ; load operand
-    mov [rbx-8], rax ; store env field
-    mov rdi, rbx ; pass env_end pointer to closure
-    mov rax, [rdi+0] ; load closure unwrapper entry point
-    leave ; unwind before jumping
-    jmp rax ; tail call into closure
-global _13_two_unwrapper
-_13_two_unwrapper:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rax, [r12-24] ; load f env field
-    mov [rbp-16], rax ; store value
-    mov rax, [r12-16] ; load ok env field
-    mov [rbp-24], rax ; store value
-    mov rax, [r12-8] ; load y env field
-    mov [rbp-32], rax ; store value
-    mov rdi, r12 ; use pinned __env_end env_end pointer
-    call release_heap_ptr ; release __env_end closure environment
-    mov rax, [rbp-32] ; load operand
-    push rax ; stack arg
-    mov rax, [rbp-24] ; load operand
-    push rax ; stack arg
-    mov rax, [rbp-16] ; load operand
-    push rax ; stack arg
-    pop rdi ; restore arg into register
-    pop rsi ; restore arg into register
-    pop rdx ; restore arg into register
-    leave ; unwind before named jump
-    jmp _13_two
-global _13_two_deep_release
-_13_two_deep_release:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rax, [r12+40] ; load __num_remaining env field
-    mov [rbp-16], rax ; store value
-    mov rax, [rbp-16] ; load operand
-    mov rbx, 2 ; operand literal
-    cmp rax, rbx
-    jg _13_two_release_skip_0
-    mov rax, [r12-24] ; load _13_two_release_field_0 env field
-    mov [rbp-24], rax ; store value
-    mov rdi, [rbp-24] ; load operand
-    call release_heap_ptr ; release heap pointer
-_13_two_release_skip_0:
-    mov rax, [rbp-16] ; load operand
-    mov rbx, 1 ; operand literal
-    cmp rax, rbx
-    jg _13_two_release_skip_1
-    mov rax, [r12-16] ; load _13_two_release_field_1 env field
-    mov [rbp-32], rax ; store value
-    mov rdi, [rbp-32] ; load operand
-    call release_heap_ptr ; release heap pointer
-_13_two_release_skip_1:
-    mov rdi, r12 ; use pinned __env_end env_end pointer
-    call release_heap_ptr ; release __env_end closure environment
-    leave
-    ret
-
-global _13_two_deepcopy
-_13_two_deepcopy:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rax, [r12+40] ; load num_remaining env field
-    mov [rbp-16], rax ; store value
-    mov rax, [rbp-16] ; load operand
-    mov rbx, 2 ; operand literal
-    cmp rax, rbx
-    jg _13_two_deepcopy_skip_0
-    mov rcx, [r12-24] ; load field pointer
-    mov rdi, rcx ; copy pointer argument for deepcopy
-    call deepcopy_heap_ptr ; duplicate heap pointer
-    mov [r12-24], rax ; store duplicated pointer
-    mov [rbp-24], rax ; store value
-_13_two_deepcopy_skip_0:
-    mov rax, [rbp-16] ; load operand
-    mov rbx, 1 ; operand literal
-    cmp rax, rbx
-    jg _13_two_deepcopy_skip_1
-    mov rcx, [r12-16] ; load field pointer
-    mov rdi, rcx ; copy pointer argument for deepcopy
-    call deepcopy_heap_ptr ; duplicate heap pointer
-    mov [r12-16], rax ; store duplicated pointer
-    mov [rbp-32], rax ; store value
-_13_two_deepcopy_skip_1:
-    leave
-    ret
-
-global two
-two:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store f arg in frame
-    mov [rbp-16], rsi ; store x arg in frame
-    mov [rbp-24], rdx ; store ok arg in frame
+    sub rsp, 16 ; reserve stack space for locals
+    mov [rbp-8], rdi ; store x arg in frame
     mov rax, 9 ; mmap syscall
     xor rdi, rdi ; addr hint for kernel base selection
-    mov rsi, 72 ; length for allocation
+    mov rsi, 48 ; length for allocation
     mov rdx, 3 ; prot = read/write
     mov r10, 34 ; flags: private & anonymous
     mov r8, -1 ; fd = -1
     xor r9, r9 ; offset = 0
     syscall ; allocate env pages
     mov rbx, rax ; closure env base pointer
-    mov rax, [rbp-8] ; load operand
-    mov r12, rax ; shadow closure env_end pointer
-    push rbx ; save env base pointer
-    mov rbx, r12 ; clone source env_end pointer
-    mov r13, [rbx+24] ; load env size metadata for clone
-    mov r14, [rbx+32] ; load heap size metadata for clone
-    mov r12, rbx ; compute env base pointer for clone
-    sub r12, r13 ; env base pointer for clone source
-    mov rax, 9 ; mmap syscall
-    xor rdi, rdi ; addr hint for kernel base selection
-    mov rsi, r14 ; length for cloned environment
-    mov rdx, 3 ; prot = read/write
-    mov r10, 34 ; flags: private & anonymous
-    mov r8, -1 ; fd = -1
-    xor r9, r9 ; offset = 0
-    syscall ; allocate cloned env pages
-    mov r15, rax ; cloned closure env base pointer
-    mov rsi, r12 ; source env base for clone copy
-    mov rdi, r15 ; destination env base for clone copy
-    mov rcx, r14 ; bytes to copy for cloned env
-    cld ; ensure forward copy for env clone
-    rep movsb ; duplicate closure env data
-    mov rbx, r15 ; start from cloned env base
-    add rbx, r13 ; compute cloned env_end pointer
-    mov r12, rbx ; cloned env_end pointer
-    mov rax, [r12+16] ; load deepcopy helper entry point
-    push r12 ; preserve cloned env_end pointer
-    mov rdi, r12 ; pass env_end pointer to deepcopy helper
-    call rax ; deepcopy reference fields
-    pop r12 ; restore cloned env_end pointer
-    mov rax, r12 ; copy closure env_end to rax
-    pop rbx ; restore env base pointer
-    mov [rbx+0], r12 ; capture cloned closure pointer
-    mov rax, [rbp-24] ; load operand
-    mov r12, rax ; shadow closure env_end pointer
-    push rbx ; save env base pointer
-    mov rbx, r12 ; clone source env_end pointer
-    mov r13, [rbx+24] ; load env size metadata for clone
-    mov r14, [rbx+32] ; load heap size metadata for clone
-    mov r12, rbx ; compute env base pointer for clone
-    sub r12, r13 ; env base pointer for clone source
-    mov rax, 9 ; mmap syscall
-    xor rdi, rdi ; addr hint for kernel base selection
-    mov rsi, r14 ; length for cloned environment
-    mov rdx, 3 ; prot = read/write
-    mov r10, 34 ; flags: private & anonymous
-    mov r8, -1 ; fd = -1
-    xor r9, r9 ; offset = 0
-    syscall ; allocate cloned env pages
-    mov r15, rax ; cloned closure env base pointer
-    mov rsi, r12 ; source env base for clone copy
-    mov rdi, r15 ; destination env base for clone copy
-    mov rcx, r14 ; bytes to copy for cloned env
-    cld ; ensure forward copy for env clone
-    rep movsb ; duplicate closure env data
-    mov rbx, r15 ; start from cloned env base
-    add rbx, r13 ; compute cloned env_end pointer
-    mov r12, rbx ; cloned env_end pointer
-    mov rax, [r12+16] ; load deepcopy helper entry point
-    push r12 ; preserve cloned env_end pointer
-    mov rdi, r12 ; pass env_end pointer to deepcopy helper
-    call rax ; deepcopy reference fields
-    pop r12 ; restore cloned env_end pointer
-    mov rax, r12 ; copy closure env_end to rax
-    pop rbx ; restore env base pointer
-    mov [rbx+8], r12 ; capture cloned closure pointer
     mov r12, rbx ; env_end pointer before metadata
-    add r12, 24 ; move pointer past env payload
-    mov rax, 24 ; store env size metadata
+    mov rax, 0 ; store env size metadata
     mov qword [r12+24], rax ; env size metadata
-    mov rax, 72 ; store heap size metadata
+    mov rax, 48 ; store heap size metadata
     mov qword [r12+32], rax ; heap size metadata
-    lea rax, [_13_two_unwrapper] ; load unwrapper entry point
+    lea rax, [_36_lambda_unwrapper] ; load unwrapper entry point
     mov qword [r12+0], rax ; store unwrapper entry in metadata
-    lea rax, [_13_two_deep_release] ; load release helper entry point
+    lea rax, [_36_lambda_deep_release] ; load release helper entry point
     mov qword [r12+8], rax ; store release pointer in metadata
-    lea rax, [_13_two_deepcopy] ; load deep copy helper entry point
+    lea rax, [_36_lambda_deepcopy] ; load deep copy helper entry point
     mov qword [r12+16], rax ; store deep copy pointer in metadata
-    mov qword [r12+40], 1 ; store num_remaining
-    mov rax, r12 ; copy _14_two closure env_end to rax
-    mov [rbp-32], rax ; store value
-    mov rbx, [rbp-8] ; load f closure env_end pointer
-    mov rax, [rbp-16] ; load operand
-    mov [rbx-16], rax ; store env field
-    mov rax, [rbp-32] ; load operand
-    mov [rbx-8], rax ; store env field
-    mov rdi, rbx ; pass env_end pointer to closure
-    mov rax, [rdi+0] ; load closure unwrapper entry point
-    leave ; unwind before jumping
-    jmp rax ; tail call into closure
-global two_unwrapper
-two_unwrapper:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rax, [r12-24] ; load f env field
+    mov qword [r12+40], 0 ; store num_remaining
+    mov rax, r12 ; copy _36_lambda closure env_end to rax
     mov [rbp-16], rax ; store value
-    mov rax, [r12-16] ; load x env field
-    mov [rbp-24], rax ; store value
-    mov rax, [r12-8] ; load ok env field
-    mov [rbp-32], rax ; store value
-    mov rdi, r12 ; use pinned __env_end env_end pointer
-    call release_heap_ptr ; release __env_end closure environment
-    mov rax, [rbp-32] ; load operand
+    mov rax, [rbp-8] ; load operand
     push rax ; stack arg
-    mov rax, [rbp-24] ; load operand
-    push rax ; stack arg
-    mov rax, [rbp-16] ; load operand
+    lea rax, [rel _34] ; point to string literal
     push rax ; stack arg
     pop rdi ; restore arg into register
     pop rsi ; restore arg into register
-    pop rdx ; restore arg into register
-    leave ; unwind before named jump
-    jmp two
-global two_deep_release
-two_deep_release:
+    push rbp ; helper prologue
+    mov rbp, rsp
+    push r12
+    mov rax, rsp ; align stack for variadic printf call
+    and rax, 15
+    mov r12, rax
+    sub rsp, r12
+    call printf ; invoke libc printf
+    add rsp, r12
+    pop r12
+    pop rbp
+    mov r12, [rbp-16] ; load continuation env_end pointer
+    mov rax, [r12+0] ; load continuation entry point
+    mov rdi, r12 ; pass env_end pointer to continuation
+    leave ; unwind before jumping
+    jmp rax
+global _33_lambda_unwrapper
+_33_lambda_unwrapper:
     push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
+    sub rsp, 16 ; reserve stack space for locals
     mov [rbp-8], rdi ; store env_end arg in frame
     mov r12, [rbp-8] ; load operand
-    mov rax, [r12+40] ; load __num_remaining env field
+    mov rax, [r12-8] ; load x env field
     mov [rbp-16], rax ; store value
+    mov rdi, r12 ; use pinned __env_end env_end pointer
+    call release_heap_ptr ; release __env_end closure environment
     mov rax, [rbp-16] ; load operand
-    mov rbx, 2 ; operand literal
-    cmp rax, rbx
-    jg two_release_skip_0
-    mov rax, [r12-24] ; load two_release_field_0 env field
-    mov [rbp-24], rax ; store value
-    mov rdi, [rbp-24] ; load operand
-    call release_heap_ptr ; release heap pointer
-two_release_skip_0:
-    mov rax, [rbp-16] ; load operand
-    mov rbx, 0 ; operand literal
-    cmp rax, rbx
-    jg two_release_skip_2
-    mov rax, [r12-8] ; load two_release_field_2 env field
-    mov [rbp-32], rax ; store value
-    mov rdi, [rbp-32] ; load operand
-    call release_heap_ptr ; release heap pointer
-two_release_skip_2:
+    push rax ; stack arg
+    pop rdi ; restore arg into register
+    leave ; unwind before named jump
+    jmp _33_lambda
+global _33_lambda_deep_release
+_33_lambda_deep_release:
+    push rbp ; save executor frame pointer
+    mov rbp, rsp ; establish new frame base
+    sub rsp, 16 ; reserve stack space for locals
+    mov [rbp-8], rdi ; store env_end arg in frame
+    mov r12, [rbp-8] ; load operand
     mov rdi, r12 ; use pinned __env_end env_end pointer
     call release_heap_ptr ; release __env_end closure environment
     leave
     ret
 
-global two_deepcopy
-two_deepcopy:
+global _33_lambda_deepcopy
+_33_lambda_deepcopy:
     push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
+    sub rsp, 16 ; reserve stack space for locals
     mov [rbp-8], rdi ; store env_end arg in frame
     mov r12, [rbp-8] ; load operand
-    mov rax, [r12+40] ; load num_remaining env field
-    mov [rbp-16], rax ; store value
-    mov rax, [rbp-16] ; load operand
-    mov rbx, 2 ; operand literal
-    cmp rax, rbx
-    jg two_deepcopy_skip_0
-    mov rcx, [r12-24] ; load field pointer
-    mov rdi, rcx ; copy pointer argument for deepcopy
-    call deepcopy_heap_ptr ; duplicate heap pointer
-    mov [r12-24], rax ; store duplicated pointer
-    mov [rbp-24], rax ; store value
-two_deepcopy_skip_0:
-    mov rax, [rbp-16] ; load operand
-    mov rbx, 0 ; operand literal
-    cmp rax, rbx
-    jg two_deepcopy_skip_2
-    mov rcx, [r12-8] ; load field pointer
-    mov rdi, rcx ; copy pointer argument for deepcopy
-    call deepcopy_heap_ptr ; duplicate heap pointer
-    mov [r12-8], rax ; store duplicated pointer
-    mov [rbp-32], rax ; store value
-two_deepcopy_skip_2:
     leave
     ret
 
@@ -1089,217 +782,6 @@ three_deepcopy_skip_0:
     mov [r12-8], rax ; store duplicated pointer
     mov [rbp-32], rax ; store value
 three_deepcopy_skip_2:
-    leave
-    ret
-
-global _28_lambda
-_28_lambda:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store x arg in frame
-    mov [rbp-16], rsi ; store ok arg in frame
-    mov rax, [rbp-8] ; load operand
-    mov rbx, 10 ; operand literal
-    add rax, rbx ; add second integer
-    mov r12, [rbp-16] ; load continuation env_end pointer
-    mov [r12-8], rax ; store env field
-    mov rax, [r12+0] ; load continuation entry point
-    mov rdi, r12 ; pass env_end pointer to continuation
-    leave ; unwind before jumping
-    jmp rax
-global _28_lambda_unwrapper
-_28_lambda_unwrapper:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rax, [r12-16] ; load x env field
-    mov [rbp-16], rax ; store value
-    mov rax, [r12-8] ; load ok env field
-    mov [rbp-24], rax ; store value
-    mov rdi, r12 ; use pinned __env_end env_end pointer
-    call release_heap_ptr ; release __env_end closure environment
-    mov rax, [rbp-24] ; load operand
-    push rax ; stack arg
-    mov rax, [rbp-16] ; load operand
-    push rax ; stack arg
-    pop rdi ; restore arg into register
-    pop rsi ; restore arg into register
-    leave ; unwind before named jump
-    jmp _28_lambda
-global _28_lambda_deep_release
-_28_lambda_deep_release:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rax, [r12+40] ; load __num_remaining env field
-    mov [rbp-16], rax ; store value
-    mov rax, [rbp-16] ; load operand
-    mov rbx, 0 ; operand literal
-    cmp rax, rbx
-    jg _28_lambda_release_skip_1
-    mov rax, [r12-8] ; load _28_lambda_release_field_1 env field
-    mov [rbp-24], rax ; store value
-    mov rdi, [rbp-24] ; load operand
-    call release_heap_ptr ; release heap pointer
-_28_lambda_release_skip_1:
-    mov rdi, r12 ; use pinned __env_end env_end pointer
-    call release_heap_ptr ; release __env_end closure environment
-    leave
-    ret
-
-global _28_lambda_deepcopy
-_28_lambda_deepcopy:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 32 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rax, [r12+40] ; load num_remaining env field
-    mov [rbp-16], rax ; store value
-    mov rax, [rbp-16] ; load operand
-    mov rbx, 0 ; operand literal
-    cmp rax, rbx
-    jg _28_lambda_deepcopy_skip_1
-    mov rcx, [r12-8] ; load field pointer
-    mov rdi, rcx ; copy pointer argument for deepcopy
-    call deepcopy_heap_ptr ; duplicate heap pointer
-    mov [r12-8], rax ; store duplicated pointer
-    mov [rbp-24], rax ; store value
-_28_lambda_deepcopy_skip_1:
-    leave
-    ret
-
-global _36_lambda
-_36_lambda:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    ; load exit code
-    mov rdi, 0 ; exit code
-    call exit ; call libc exit to flush buffers
-global _36_lambda_unwrapper
-_36_lambda_unwrapper:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rdi, r12 ; use pinned __env_end env_end pointer
-    call release_heap_ptr ; release __env_end closure environment
-    leave ; unwind before named jump
-    jmp _36_lambda
-global _36_lambda_deep_release
-_36_lambda_deep_release:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rdi, r12 ; use pinned __env_end env_end pointer
-    call release_heap_ptr ; release __env_end closure environment
-    leave
-    ret
-
-global _36_lambda_deepcopy
-_36_lambda_deepcopy:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    leave
-    ret
-
-global _33_lambda
-_33_lambda:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store x arg in frame
-    mov rax, 9 ; mmap syscall
-    xor rdi, rdi ; addr hint for kernel base selection
-    mov rsi, 48 ; length for allocation
-    mov rdx, 3 ; prot = read/write
-    mov r10, 34 ; flags: private & anonymous
-    mov r8, -1 ; fd = -1
-    xor r9, r9 ; offset = 0
-    syscall ; allocate env pages
-    mov rbx, rax ; closure env base pointer
-    mov r12, rbx ; env_end pointer before metadata
-    mov rax, 0 ; store env size metadata
-    mov qword [r12+24], rax ; env size metadata
-    mov rax, 48 ; store heap size metadata
-    mov qword [r12+32], rax ; heap size metadata
-    lea rax, [_36_lambda_unwrapper] ; load unwrapper entry point
-    mov qword [r12+0], rax ; store unwrapper entry in metadata
-    lea rax, [_36_lambda_deep_release] ; load release helper entry point
-    mov qword [r12+8], rax ; store release pointer in metadata
-    lea rax, [_36_lambda_deepcopy] ; load deep copy helper entry point
-    mov qword [r12+16], rax ; store deep copy pointer in metadata
-    mov qword [r12+40], 0 ; store num_remaining
-    mov rax, r12 ; copy _36_lambda closure env_end to rax
-    mov [rbp-16], rax ; store value
-    mov rax, [rbp-8] ; load operand
-    push rax ; stack arg
-    lea rax, [rel _34] ; point to string literal
-    push rax ; stack arg
-    pop rdi ; restore arg into register
-    pop rsi ; restore arg into register
-    push rbp ; helper prologue
-    mov rbp, rsp
-    push r12
-    mov rax, rsp ; align stack for variadic printf call
-    and rax, 15
-    mov r12, rax
-    sub rsp, r12
-    call printf ; invoke libc printf
-    add rsp, r12
-    pop r12
-    pop rbp
-    mov r12, [rbp-16] ; load continuation env_end pointer
-    mov rax, [r12+0] ; load continuation entry point
-    mov rdi, r12 ; pass env_end pointer to continuation
-    leave ; unwind before jumping
-    jmp rax
-global _33_lambda_unwrapper
-_33_lambda_unwrapper:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rax, [r12-8] ; load x env field
-    mov [rbp-16], rax ; store value
-    mov rdi, r12 ; use pinned __env_end env_end pointer
-    call release_heap_ptr ; release __env_end closure environment
-    mov rax, [rbp-16] ; load operand
-    push rax ; stack arg
-    pop rdi ; restore arg into register
-    leave ; unwind before named jump
-    jmp _33_lambda
-global _33_lambda_deep_release
-_33_lambda_deep_release:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
-    mov rdi, r12 ; use pinned __env_end env_end pointer
-    call release_heap_ptr ; release __env_end closure environment
-    leave
-    ret
-
-global _33_lambda_deepcopy
-_33_lambda_deepcopy:
-    push rbp ; save executor frame pointer
-    mov rbp, rsp ; establish new frame base
-    sub rsp, 16 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store env_end arg in frame
-    mov r12, [rbp-8] ; load operand
     leave
     ret
 

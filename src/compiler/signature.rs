@@ -233,6 +233,7 @@ fn lower_sig_kind(ast_kind: &ast::SigKind, ctx: &mut ctx::Context, has_bang: boo
                 SigKind::Str
             }
         }
+        ast::SigKind::F64 => SigKind::F64,
         ast::SigKind::Variadic => SigKind::Variadic,
         ast::SigKind::CompileTimeInt => SigKind::CompileTimeInt,
         ast::SigKind::CompileTimeStr => SigKind::CompileTimeStr,

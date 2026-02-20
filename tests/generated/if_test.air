@@ -38,93 +38,6 @@ true_deepcopy_skip_1:
     @return()
 
 
-false($x: (), $y: ()):
-    @release($x)
-    @jumpclosure($y)
-
-
-false_unwrapper($env_end: int):
-    $__env_end = @pin($env_end)
-    $x = @field($__env_end, -2)
-    $y = @field($__env_end, -1)
-    @release($__env_end)
-    @jumpargs(false, $x: (), $y: ())
-
-
-false_deep_release($env_end: int):
-    $__env_end = @pin($env_end)
-    $__num_remaining = @field($__env_end, 5)
-    @gt(false_release_skip_0, $__num_remaining, 1)
-    $false_release_field_0 = @field($__env_end, -2)
-    @callptr($false_release_field_0)
-false_release_skip_0:
-    @gt(false_release_skip_1, $__num_remaining, 0)
-    $false_release_field_1 = @field($__env_end, -1)
-    @callptr($false_release_field_1)
-false_release_skip_1:
-    @release($__env_end)
-    @return()
-
-
-false_deepcopy($env_end: int):
-    $__env_end = @pin($env_end)
-    $num_remaining = @field($__env_end, 5)
-    @gt(false_deepcopy_skip_0, $num_remaining, 1)
-    @deepcopy($false_deepcopy_field_0, $__env_end, -2)
-false_deepcopy_skip_0:
-    @gt(false_deepcopy_skip_1, $num_remaining, 0)
-    @deepcopy($false_deepcopy_field_1, $__env_end, -1)
-false_deepcopy_skip_1:
-    @return()
-
-
-if($cond: (), $yes: (), $no: ()):
-    @jumpclosure($cond, $yes: int, $no: int)
-
-
-if_unwrapper($env_end: int):
-    $__env_end = @pin($env_end)
-    $cond = @field($__env_end, -3)
-    $yes = @field($__env_end, -2)
-    $no = @field($__env_end, -1)
-    @release($__env_end)
-    @jumpargs(if, $cond: (), $yes: (), $no: ())
-
-
-if_deep_release($env_end: int):
-    $__env_end = @pin($env_end)
-    $__num_remaining = @field($__env_end, 5)
-    @gt(if_release_skip_0, $__num_remaining, 2)
-    $if_release_field_0 = @field($__env_end, -3)
-    @callptr($if_release_field_0)
-if_release_skip_0:
-    @gt(if_release_skip_1, $__num_remaining, 1)
-    $if_release_field_1 = @field($__env_end, -2)
-    @callptr($if_release_field_1)
-if_release_skip_1:
-    @gt(if_release_skip_2, $__num_remaining, 0)
-    $if_release_field_2 = @field($__env_end, -1)
-    @callptr($if_release_field_2)
-if_release_skip_2:
-    @release($__env_end)
-    @return()
-
-
-if_deepcopy($env_end: int):
-    $__env_end = @pin($env_end)
-    $num_remaining = @field($__env_end, 5)
-    @gt(if_deepcopy_skip_0, $num_remaining, 2)
-    @deepcopy($if_deepcopy_field_0, $__env_end, -3)
-if_deepcopy_skip_0:
-    @gt(if_deepcopy_skip_1, $num_remaining, 1)
-    @deepcopy($if_deepcopy_field_1, $__env_end, -2)
-if_deepcopy_skip_1:
-    @gt(if_deepcopy_skip_2, $num_remaining, 0)
-    @deepcopy($if_deepcopy_field_2, $__env_end, -1)
-if_deepcopy_skip_2:
-    @return()
-
-
 _6_lambda():
     @exit($_7: int = 0)
 
@@ -208,6 +121,53 @@ _11_lambda_deep_release($env_end: int):
 
 _11_lambda_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
+    @return()
+
+
+if($cond: (), $yes: (), $no: ()):
+    @jumpclosure($cond, $yes: int, $no: int)
+
+
+if_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $cond = @field($__env_end, -3)
+    $yes = @field($__env_end, -2)
+    $no = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(if, $cond: (), $yes: (), $no: ())
+
+
+if_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(if_release_skip_0, $__num_remaining, 2)
+    $if_release_field_0 = @field($__env_end, -3)
+    @callptr($if_release_field_0)
+if_release_skip_0:
+    @gt(if_release_skip_1, $__num_remaining, 1)
+    $if_release_field_1 = @field($__env_end, -2)
+    @callptr($if_release_field_1)
+if_release_skip_1:
+    @gt(if_release_skip_2, $__num_remaining, 0)
+    $if_release_field_2 = @field($__env_end, -1)
+    @callptr($if_release_field_2)
+if_release_skip_2:
+    @release($__env_end)
+    @return()
+
+
+if_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(if_deepcopy_skip_0, $num_remaining, 2)
+    @deepcopy($if_deepcopy_field_0, $__env_end, -3)
+if_deepcopy_skip_0:
+    @gt(if_deepcopy_skip_1, $num_remaining, 1)
+    @deepcopy($if_deepcopy_field_1, $__env_end, -2)
+if_deepcopy_skip_1:
+    @gt(if_deepcopy_skip_2, $num_remaining, 0)
+    @deepcopy($if_deepcopy_field_2, $__env_end, -1)
+if_deepcopy_skip_2:
     @return()
 
 

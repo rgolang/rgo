@@ -36,14 +36,18 @@
                     Ident {
                         name: "exit",
                         args: [
-                            Lit(
-                                Literal {
-                                    value: Int(
-                                        0,
-                                    ),
-                                    span: ,
-                                },
-                            ),
+                            Arg {
+                                name: None,
+                                term: Lit(
+                                    Literal {
+                                        value: Int(
+                                            0,
+                                        ),
+                                        span: ,
+                                    },
+                                ),
+                                span: ,
+                            },
                         ],
                         span: ,
                     },
@@ -55,14 +59,18 @@
             Ident {
                 name: "printf",
                 args: [
-                    Lit(
-                        Literal {
-                            value: Str(
-                                "hello world",
-                            ),
-                            span: ,
-                        },
-                    ),
+                    Arg {
+                        name: None,
+                        term: Lit(
+                            Literal {
+                                value: Str(
+                                    "hello world",
+                                ),
+                                span: ,
+                            },
+                        ),
+                        span: ,
+                    },
                 ],
                 span: ,
             },

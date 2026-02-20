@@ -1,5 +1,5 @@
 use crate::compiler::ast;
-use crate::compiler::ast::{Arg, Lit, SigItem, SigKind, Signature};
+use crate::compiler::ast::{Lit, SigItem, SigKind, Signature};
 use crate::compiler::error;
 use crate::compiler::error::{Code, Error};
 use crate::compiler::format_hir;
@@ -163,11 +163,8 @@ fn emit_closure_for_term(
         } else {
             let mut lowered_args = Vec::with_capacity(info.args.len());
             for arg in &info.args {
-                let arg_name = emit_closure_for_term(ctx, &arg.name, lowered_items, seen);
-                lowered_args.push(ast::Arg {
-                    name: arg_name,
-                    span: arg.span,
-                });
+                let arg_name = emit_closure_for_term(ctx, arg, lowered_items, seen);
+                lowered_args.push(arg_name);
             }
 
             if lowered_args.is_empty() {
@@ -304,11 +301,19 @@ fn append_scope_capture_arg(
 ) -> Result<ast::Term, Error> {
     match term {
         ast::Term::Ident(mut ident) => {
-            ident.args.push(callback);
+            ident.args.push(ast::Arg {
+                name: None,
+                term: callback,
+                span,
+            });
             Ok(ast::Term::Ident(ident))
         }
         ast::Term::Lambda(mut lambda) => {
-            lambda.args.push(callback);
+            lambda.args.push(ast::Arg {
+                name: None,
+                term: callback,
+                span,
+            });
             Ok(ast::Term::Lambda(lambda))
         }
         _ => Err(error::new(
@@ -332,6 +337,7 @@ fn lower_exec(
             maybe_capture_name(ctx, &name)?;
             let (target, args) =
                 resolve_target(ctx, &name, args, hoisted, &mut lowered_items, span)?;
+            ensure_exec_args_complete(ctx, &target, args.len(), span)?;
             let of = emit_closure_for_term(ctx, &target.name, &mut lowered_items, &mut emitted);
             Exec { of, args, span }
         }
@@ -416,7 +422,7 @@ fn lower_arg(
     expected_param: Option<&SigItem>,
     hoisted: &mut VecDeque<BlockItem>,
     lowered_items: &mut Vec<BlockItem>,
-) -> Result<Arg, Error> {
+) -> Result<String, Error> {
     let term = maybe_wrap_builtin(ctx, term, expected_param)?;
     validate_input_type(ctx, &term, expected_param)?;
     let arg = match term {
@@ -433,10 +439,7 @@ fn lower_arg(
             )?;
 
             if args.is_empty() {
-                Arg {
-                    name: target.name,
-                    span: ast_ident.span,
-                }
+                target.name
             } else {
                 let new_name = ctx.new_name_for(&ast_ident.name); // TODO: Another new name for closure?
                 ctx.register_closure(Closure {
@@ -445,52 +448,36 @@ fn lower_arg(
                     args,
                     span: ast_ident.span,
                 });
-                Arg {
-                    name: new_name,
-                    span: ast_ident.span,
-                }
+                new_name
             }
         }
         ast::Term::Lit(literal) => {
             let new_name = ctx.new_name_for_literal();
-            let span = literal.span.clone();
             // Can theoretically get pushed to the root level
             lowered_items.push(BlockItem::LitDef {
                 name: new_name.clone(),
                 literal: literal,
             });
-            Arg {
-                name: new_name,
-                span: span,
-            }
+            new_name
         }
         ast::Term::Lambda(lambda) => {
-            let span = lambda.span;
             let apply_name = lower_lambda_term(ctx, lambda, hoisted, lowered_items)?;
-            Arg {
-                name: apply_name,
-                span,
-            }
+            apply_name
         }
     };
 
-    let span = arg.span;
     let mut seen = HashSet::new();
-    let new_arg_name = emit_closure_for_term(ctx, &arg.name, lowered_items, &mut seen);
-    return Ok(Arg {
-        name: new_arg_name,
-        span,
-    });
+    Ok(emit_closure_for_term(ctx, &arg, lowered_items, &mut seen))
 }
 
 fn resolve_target(
     ctx: &mut ctx::Context,
     name: &str,
-    ast_args: Vec<ast::Term>,
+    ast_args: Vec<ast::Arg>,
     hoisted: &mut VecDeque<BlockItem>,
     lowered_items: &mut Vec<BlockItem>,
     call_span: Span,
-) -> Result<(ContextEntry, Vec<Arg>), Error> {
+) -> Result<(ContextEntry, Vec<String>), Error> {
     let target: ContextEntry = ctx.get(name).cloned().ok_or_else(|| {
         error::new(
             Code::HIR,
@@ -503,17 +490,13 @@ fn resolve_target(
         maybe_capture_name(ctx, &cap.name)?;
     }
 
-    let mut args: Vec<Arg> = target
+    let mut args: Vec<String> = target
         .captures
         .iter()
-        .map(|cap| Arg {
-            name: cap.name.clone(),
-            span: cap.span,
-        })
+        .map(|cap| cap.name.clone())
         .collect();
 
-    let ast_args_len = ast_args.len();
-    if ast_args_len == 0 {
+    if ast_args.is_empty() {
         return Ok((target, args));
     }
 
@@ -527,11 +510,12 @@ fn resolve_target(
             )
         })?;
 
-    let params = &signature.items;
-    let expected_params = signature::expected_params_for_args(params, ast_args_len);
+    let resolved = resolve_call_arguments(ctx, &target, signature, ast_args, hoisted, call_span)?;
+    let expected_params =
+        signature::expected_params_for_args(&resolved.signature.items, resolved.terms.len());
 
-    let mut lowered = Vec::with_capacity(ast_args_len);
-    for (term, expected_param) in ast_args.into_iter().zip(expected_params.into_iter()) {
+    let mut lowered = Vec::with_capacity(resolved.terms.len());
+    for (term, expected_param) in resolved.terms.into_iter().zip(expected_params.into_iter()) {
         lowered.push(lower_arg(
             ctx,
             term,
@@ -542,20 +526,278 @@ fn resolve_target(
     }
 
     args.extend(lowered);
-    let total_param_count = params.len() + target.captures.len();
-    if !signature.is_variadic() && args.len() > total_param_count {
+    let total_param_count = resolved.signature.items.len() + resolved.target.captures.len();
+    if !resolved.signature.is_variadic() && args.len() > total_param_count {
         return Err(error::new(
             Code::HIR,
             format!(
                 "function '{}' expected {} arguments but got {}",
-                target.name,
+                resolved.target.name,
                 total_param_count,
                 args.len()
             ),
             call_span,
         ));
     }
-    Ok((target, args))
+    Ok((resolved.target, args))
+}
+
+struct ResolvedCallArgs {
+    target: ContextEntry,
+    signature: Signature,
+    terms: Vec<ast::Term>,
+}
+
+fn resolve_call_arguments(
+    ctx: &mut ctx::Context,
+    target: &ContextEntry,
+    signature: Signature,
+    ast_args: Vec<ast::Arg>,
+    hoisted: &mut VecDeque<BlockItem>,
+    call_span: Span,
+) -> Result<ResolvedCallArgs, Error> {
+    let has_named_args = ast_args.iter().any(|arg| arg.name.is_some());
+    if !has_named_args {
+        return Ok(ResolvedCallArgs {
+            target: target.clone(),
+            signature,
+            terms: ast_args.into_iter().map(|arg| arg.term).collect(),
+        });
+    }
+
+    let params = &signature.items;
+    let mut assigned = HashSet::new();
+    let mut resolved_indices = Vec::with_capacity(ast_args.len());
+    let mut resolved_terms = Vec::with_capacity(ast_args.len());
+
+    for call_arg in ast_args {
+        let param_index = if let Some(arg_name) = call_arg.name {
+            params
+                .iter()
+                .position(|param| !param.name.is_empty() && param.name == arg_name)
+                .ok_or_else(|| {
+                    error::new(
+                        Code::HIR,
+                        format!(
+                            "function '{}' has no parameter named '{}'",
+                            target.name, arg_name
+                        ),
+                        call_arg.span,
+                    )
+                })?
+        } else {
+            first_unassigned_param(params.len(), &assigned).ok_or_else(|| {
+                error::new(
+                    Code::HIR,
+                    format!(
+                        "function '{}' expected {} arguments but got {}",
+                        target.name,
+                        target.captures.len() + params.len(),
+                        target.captures.len() + resolved_indices.len() + 1
+                    ),
+                    call_span,
+                )
+            })?
+        };
+
+        if !assigned.insert(param_index) {
+            let dup_name = params
+                .get(param_index)
+                .map(|param| param.name.as_str())
+                .filter(|name| !name.is_empty())
+                .unwrap_or("?");
+            return Err(error::new(
+                Code::HIR,
+                format!(
+                    "function '{}' argument '{}' was provided more than once",
+                    target.name, dup_name
+                ),
+                call_arg.span,
+            ));
+        }
+
+        resolved_indices.push(param_index);
+        resolved_terms.push(call_arg.term);
+    }
+
+    let mut new_order = Vec::with_capacity(params.len());
+    let mut seen_indices = HashSet::new();
+    for param_index in &resolved_indices {
+        if seen_indices.insert(*param_index) {
+            new_order.push(*param_index);
+        }
+    }
+    for index in 0..params.len() {
+        if seen_indices.insert(index) {
+            new_order.push(index);
+        }
+    }
+
+    let is_reordered = new_order
+        .iter()
+        .enumerate()
+        .any(|(index, param_index)| index != *param_index);
+    if !is_reordered {
+        return Ok(ResolvedCallArgs {
+            target: target.clone(),
+            signature,
+            terms: resolved_terms,
+        });
+    }
+
+    let (wrapper_target, wrapper_signature) =
+        create_named_arg_wrapper(ctx, target, &signature, &new_order, hoisted, call_span)?;
+    Ok(ResolvedCallArgs {
+        target: wrapper_target,
+        signature: wrapper_signature,
+        terms: resolved_terms,
+    })
+}
+
+fn first_unassigned_param(param_count: usize, assigned: &HashSet<usize>) -> Option<usize> {
+    (0..param_count).find(|index| !assigned.contains(index))
+}
+
+fn create_named_arg_wrapper(
+    ctx: &mut ctx::Context,
+    target: &ContextEntry,
+    signature: &Signature,
+    new_order: &[usize],
+    hoisted: &mut VecDeque<BlockItem>,
+    call_span: Span,
+) -> Result<(ContextEntry, Signature), Error> {
+    let wrapper_name = ctx.new_name_for_fn(None);
+    let mut used_names = HashSet::new();
+    let mut reordered_params = Vec::with_capacity(signature.items.len());
+    let mut by_original_index = vec![String::new(); signature.items.len()];
+
+    for (position, param_index) in new_order.iter().enumerate() {
+        let item = &signature.items[*param_index];
+        let fallback_name = format!("_named_arg_{}", position);
+        let preferred_name = if item.name.is_empty() {
+            fallback_name.as_str()
+        } else {
+            item.name.as_str()
+        };
+        let param_name = unique_param_name(ctx, preferred_name, &mut used_names);
+        by_original_index[*param_index] = param_name.clone();
+        reordered_params.push(SigItem {
+            name: param_name,
+            kind: item.kind.clone(),
+            has_bang: item.has_bang,
+            span: item.span,
+        });
+    }
+
+    let wrapper_sig = Signature {
+        items: reordered_params.clone(),
+        generics: signature.generics.clone(),
+        span: call_span,
+    };
+
+    ctx.add_sig(
+        &wrapper_name,
+        &wrapper_name,
+        wrapper_sig.clone(),
+        call_span,
+        false,
+    )?;
+
+    if let Some(entry) = ctx.get_mut(&wrapper_name) {
+        entry.captures = target.captures.clone();
+    }
+
+    let mut runtime_sig_items = target.captures.clone();
+    runtime_sig_items.extend(reordered_params);
+
+    let mut exec_args = target
+        .captures
+        .iter()
+        .map(|capture| capture.name.clone())
+        .collect::<Vec<_>>();
+    for name in by_original_index {
+        exec_args.push(name);
+    }
+
+    hoisted.push_back(BlockItem::FunctionDef(Function {
+        name: wrapper_name.clone(),
+        sig: Signature {
+            items: runtime_sig_items,
+            generics: signature.generics.clone(),
+            span: call_span,
+        },
+        body: Block {
+            items: vec![BlockItem::Exec(Exec {
+                of: target.name.clone(),
+                args: exec_args,
+                span: call_span,
+            })],
+            span: call_span,
+        },
+        span: call_span,
+    }));
+
+    let wrapper_target = ctx.get(&wrapper_name).cloned().ok_or_else(|| {
+        error::new(
+            Code::HIR,
+            format!("could not resolve target '{}'", wrapper_name),
+            call_span,
+        )
+    })?;
+    Ok((wrapper_target, wrapper_sig))
+}
+
+fn unique_param_name(
+    ctx: &mut ctx::Context,
+    preferred_name: &str,
+    used_names: &mut HashSet<String>,
+) -> String {
+    if !preferred_name.is_empty() && used_names.insert(preferred_name.to_string()) {
+        return preferred_name.to_string();
+    }
+    loop {
+        let generated = ctx.new_name();
+        if used_names.insert(generated.clone()) {
+            return generated;
+        }
+    }
+}
+
+fn required_exec_arg_count(signature: &Signature, capture_count: usize) -> usize {
+    let is_variadic = signature
+        .items
+        .iter()
+        .any(|item| matches!(item.kind, SigKind::Variadic));
+    let param_count = if is_variadic {
+        signature.items.len().saturating_sub(1)
+    } else {
+        signature.items.len()
+    };
+    capture_count + param_count
+}
+
+fn ensure_exec_args_complete(
+    ctx: &ctx::Context,
+    target: &ContextEntry,
+    arg_count: usize,
+    span: Span,
+) -> Result<(), Error> {
+    let mut seen = HashSet::new();
+    let Some(signature) = signature::signature_from_kind(&target.kind, ctx, &mut seen) else {
+        return Ok(());
+    };
+    let required_count = required_exec_arg_count(&signature, target.captures.len());
+    if arg_count >= required_count {
+        return Ok(());
+    }
+    Err(error::new(
+        Code::HIR,
+        format!(
+            "cannot execute function '{}': not all args have been provided (expected at least {}, got {})",
+            target.name, required_count, arg_count
+        ),
+        span,
+    ))
 }
 
 fn maybe_wrap_builtin(
@@ -595,11 +837,15 @@ fn new_builtin_wrapper(
 
     let mut builtin_call = ident.clone();
     for item in &lambda_sig.items {
-        builtin_call.args.push(ast::Term::Ident(ast::Ident {
-            name: item.name.clone(),
-            args: Vec::new(),
+        builtin_call.args.push(ast::Arg {
+            name: None,
+            term: ast::Term::Ident(ast::Ident {
+                name: item.name.clone(),
+                args: Vec::new(),
+                span: Span::unknown(),
+            }),
             span: Span::unknown(),
-        }));
+        });
     }
 
     let body = ast::Block {
@@ -667,9 +913,14 @@ fn validate_input_type(
         return Ok(());
     };
 
+    let actual_is_compile_time_int = matches!(actual_kind, SigKind::CompileTimeInt);
     let normalized_actual = signature::normalize_sig_kind(&actual_kind, ctx);
 
-    if kind_matches(&normalized_actual, &normalized_expected) {
+    if kind_matches(
+        &normalized_actual,
+        &normalized_expected,
+        actual_is_compile_time_int,
+    ) {
         return Ok(());
     }
 
@@ -729,6 +980,9 @@ fn term_sig_kind(ctx: &mut ctx::Context, term: &ast::Term, allow_idents: bool) -
         ast::Term::Lit(ast::Literal {
             value: Lit::Str(_), ..
         }) => Some(SigKind::CompileTimeStr),
+        ast::Term::Lit(ast::Literal {
+            value: Lit::F64(_), ..
+        }) => Some(SigKind::F64),
         ast::Term::Ident(ast_ident) => {
             if allow_idents && ast_ident.args.is_empty() {
                 ctx.get(&ast_ident.name).map(|entry| entry.kind.clone())
@@ -745,7 +999,7 @@ fn term_sig_kind(ctx: &mut ctx::Context, term: &ast::Term, allow_idents: bool) -
     }
 }
 
-fn kind_matches(actual: &SigKind, expected: &SigKind) -> bool {
+fn kind_matches(actual: &SigKind, expected: &SigKind, actual_is_compile_time_int: bool) -> bool {
     if expected == actual {
         return true;
     }
@@ -753,6 +1007,7 @@ fn kind_matches(actual: &SigKind, expected: &SigKind) -> bool {
     match expected {
         SigKind::CompileTimeInt => actual == &SigKind::CompileTimeInt,
         SigKind::CompileTimeStr => actual == &SigKind::CompileTimeStr,
+        SigKind::F64 if actual_is_compile_time_int => return true,
         _ => canonicalize_kind(actual) == canonicalize_kind(expected),
     }
 }

@@ -144,14 +144,23 @@ impl fmt::Debug for air::AirStmt {
                 air::AirOp::Add(op) => {
                     write!(f, "{}", format_instr_op("add", &op.inputs, &op.target))
                 }
+                air::AirOp::AddF64(op) => {
+                    write!(f, "{}", format_instr_op("addf64", &op.inputs, &op.target))
+                }
                 air::AirOp::Sub(op) => {
                     write!(f, "{}", format_instr_op("sub", &op.inputs, &op.target))
                 }
                 air::AirOp::Mul(op) => {
                     write!(f, "{}", format_instr_op("mul", &op.inputs, &op.target))
                 }
+                air::AirOp::MulF64(op) => {
+                    write!(f, "{}", format_instr_op("mulf64", &op.inputs, &op.target))
+                }
                 air::AirOp::Div(op) => {
                     write!(f, "{}", format_instr_op("div", &op.inputs, &op.target))
+                }
+                air::AirOp::DivF64(op) => {
+                    write!(f, "{}", format_instr_op("divf64", &op.inputs, &op.target))
                 }
                 air::AirOp::JumpGt(jump) => write!(
                     f,
@@ -253,6 +262,7 @@ fn format_sig_kind_inner(kind: &air::SigKind, show_names: bool) -> String {
     match kind {
         air::SigKind::Int => "int".to_string(),
         air::SigKind::Str => "str".to_string(),
+        air::SigKind::F64 => "f64".to_string(),
         air::SigKind::Variadic => "...".to_string(),
         air::SigKind::CompileTimeInt => "int!".to_string(),
         air::SigKind::CompileTimeStr => "str!".to_string(),
@@ -290,6 +300,7 @@ fn format_arg(arg: &air::AirArg) -> String {
         let literal_text = match literal {
             ast::Lit::Str(value) => format_literal(value),
             ast::Lit::Int(value) => value.to_string(),
+            ast::Lit::F64(value) => value.to_string(),
         };
         text.push_str(&format!(" = {}", literal_text));
     }

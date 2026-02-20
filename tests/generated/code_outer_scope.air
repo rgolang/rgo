@@ -1,3 +1,24 @@
+_1_foo():
+    @exit($_2: int = 0)
+
+
+_1_foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_1_foo)
+
+
+_1_foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_1_foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
 bar($v: str, $ok: ()):
     @write($v: str, $ok)
 
@@ -27,27 +48,6 @@ bar_deepcopy($env_end: int):
     @gt(bar_deepcopy_skip_1, $num_remaining, 0)
     @deepcopy($bar_deepcopy_field_1, $__env_end, -1)
 bar_deepcopy_skip_1:
-    @return()
-
-
-_1_foo():
-    @exit($_2: int = 0)
-
-
-_1_foo_unwrapper($env_end: int):
-    $__env_end = @pin($env_end)
-    @release($__env_end)
-    @jumpargs(_1_foo)
-
-
-_1_foo_deep_release($env_end: int):
-    $__env_end = @pin($env_end)
-    @release($__env_end)
-    @return()
-
-
-_1_foo_deepcopy($env_end: int):
-    $__env_end = @pin($env_end)
     @return()
 
 

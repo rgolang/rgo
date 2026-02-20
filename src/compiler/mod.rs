@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io::{BufRead, Write};
 
 pub mod air;
@@ -39,6 +40,7 @@ pub fn compile<R: BufRead, W: Write>(input: R, out: &mut W) -> Result<(), Error>
     let mut symbols = SymbolRegistry::new();
     let mut hir_ctx = hir::Context::new();
     let mut air_functions: Vec<air::AirFunction> = Vec::new();
+    let mut hir_functions: HashMap<String, hir::Function> = HashMap::new();
 
     // Emit preamble (globals, default labels, etc.).
     codegen::write_preamble(out)?;
@@ -51,7 +53,7 @@ pub fn compile<R: BufRead, W: Write>(input: R, out: &mut W) -> Result<(), Error>
 
         // produce many functions/types etc (hoisted)
         while let Some(lowered) = lowerer.produce() {
-            match lowered.clone() {
+            match lowered {
                 hir::BlockItem::Import { label, path, span } => {
                     symbol::register_builtin_import(&label, &path, span, &mut symbols)?;
                 }
@@ -59,18 +61,31 @@ pub fn compile<R: BufRead, W: Write>(input: R, out: &mut W) -> Result<(), Error>
                     symbols.install_type(name.to_string(), SigKind::Sig(sig.clone()))?;
                 }
                 hir::BlockItem::FunctionDef(function) => {
-                    air_functions.extend(air::lower_function(&function, &mut symbols)?);
+                    let sig = air::FunctionSig {
+                        name: function.name.clone(),
+                        params: function.sig.items.clone(),
+                        span: function.span,
+                        builtin: None,
+                    };
+                    symbols.declare_function(sig)?;
+                    hir_functions.insert(function.name.clone(), function);
                 }
-                _ => {
-                    entry_items.push(lowered);
+                other => {
+                    entry_items.push(other);
                 }
             }
         }
     }
 
     if !entry_items.is_empty() {
-        let air_funcs = air::entry_function(entry_items, &mut symbols)?;
-        air_functions.extend(air_funcs);
+        let mut function_lowerer = air::FunctionLowerer::new(hir_functions);
+        let entry_funcs = air::entry_function(entry_items, &mut symbols, &mut function_lowerer)?;
+        let mut generated = function_lowerer.take_generated_functions();
+        generated.extend(entry_funcs);
+        air_functions.extend(generated);
+    } else {
+        // If there is no entry block, drop functions without lowering them.
+        let _ = hir_functions;
     }
 
     let mut artifacts = codegen::Artifacts::collect(&air_functions);

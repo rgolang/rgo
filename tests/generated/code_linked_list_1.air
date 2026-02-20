@@ -87,66 +87,78 @@ cons_deepcopy_skip_3:
     @return()
 
 
-iterate_inner($iterate: (), $handler: (), $end: (), $head: int, $tail: ()):
-    $next_iterate = @cloneclosure($iterate, ($_9_: int, $_10_: ()), ($_0_: (), $_3_: ()), ())
-    $__next_iterate_arg_clone_0 = @cloneclosure($handler, int, ())
-    $__next_iterate_env_end = @pin($next_iterate)
-    @setfield($__next_iterate_env_end, -3, $__next_iterate_arg_clone_0: ())
-    @setfield($__next_iterate_env_end, -2, $tail: ())
-    @setfield($__next_iterate_env_end, -1, $end: ())
-    @setfield($__next_iterate_env_end, 5, $__next_iterate_num_remaining_value: int = 0)
-    @jumpclosure($handler, $head: int, $next_iterate: int)
+handler($n: int, $ok: ()):
+    @printf($_41: str! = "%d, ", $n: int, $ok)
 
 
-iterate_inner_unwrapper($env_end: int):
+handler_unwrapper($env_end: int):
     $__env_end = @pin($env_end)
-    $iterate = @field($__env_end, -5)
-    $handler = @field($__env_end, -4)
-    $end = @field($__env_end, -3)
-    $head = @field($__env_end, -2)
-    $tail = @field($__env_end, -1)
+    $n = @field($__env_end, -2)
+    $ok = @field($__env_end, -1)
     @release($__env_end)
-    @jumpargs(iterate_inner, $iterate: (), $handler: (), $end: (), $head: int, $tail: ())
+    @jumpargs(handler, $n: int, $ok: ())
 
 
-iterate_inner_deep_release($env_end: int):
+handler_deep_release($env_end: int):
     $__env_end = @pin($env_end)
     $__num_remaining = @field($__env_end, 5)
-    @gt(iterate_inner_release_skip_0, $__num_remaining, 4)
-    $iterate_inner_release_field_0 = @field($__env_end, -5)
-    @callptr($iterate_inner_release_field_0)
-iterate_inner_release_skip_0:
-    @gt(iterate_inner_release_skip_1, $__num_remaining, 3)
-    $iterate_inner_release_field_1 = @field($__env_end, -4)
-    @callptr($iterate_inner_release_field_1)
-iterate_inner_release_skip_1:
-    @gt(iterate_inner_release_skip_2, $__num_remaining, 2)
-    $iterate_inner_release_field_2 = @field($__env_end, -3)
-    @callptr($iterate_inner_release_field_2)
-iterate_inner_release_skip_2:
-    @gt(iterate_inner_release_skip_4, $__num_remaining, 0)
-    $iterate_inner_release_field_4 = @field($__env_end, -1)
-    @callptr($iterate_inner_release_field_4)
-iterate_inner_release_skip_4:
+    @gt(handler_release_skip_1, $__num_remaining, 0)
+    $handler_release_field_1 = @field($__env_end, -1)
+    @callptr($handler_release_field_1)
+handler_release_skip_1:
     @release($__env_end)
     @return()
 
 
-iterate_inner_deepcopy($env_end: int):
+handler_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
     $num_remaining = @field($__env_end, 5)
-    @gt(iterate_inner_deepcopy_skip_0, $num_remaining, 4)
-    @deepcopy($iterate_inner_deepcopy_field_0, $__env_end, -5)
-iterate_inner_deepcopy_skip_0:
-    @gt(iterate_inner_deepcopy_skip_1, $num_remaining, 3)
-    @deepcopy($iterate_inner_deepcopy_field_1, $__env_end, -4)
-iterate_inner_deepcopy_skip_1:
-    @gt(iterate_inner_deepcopy_skip_2, $num_remaining, 2)
-    @deepcopy($iterate_inner_deepcopy_field_2, $__env_end, -3)
-iterate_inner_deepcopy_skip_2:
-    @gt(iterate_inner_deepcopy_skip_4, $num_remaining, 0)
-    @deepcopy($iterate_inner_deepcopy_field_4, $__env_end, -1)
-iterate_inner_deepcopy_skip_4:
+    @gt(handler_deepcopy_skip_1, $num_remaining, 0)
+    @deepcopy($handler_deepcopy_field_1, $__env_end, -1)
+handler_deepcopy_skip_1:
+    @return()
+
+
+_44_end():
+    @exit($_45: int = 0)
+
+
+_44_end_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_44_end)
+
+
+_44_end_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_44_end_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+end():
+    $_44_end = @newclosure<>(_44_end)
+    @printf($_42: str! = "end\n", $_44_end)
+
+
+end_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(end)
+
+
+end_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+end_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
     @return()
 
 
@@ -259,81 +271,6 @@ iterate_deepcopy_skip_1:
     @gt(iterate_deepcopy_skip_2, $num_remaining, 0)
     @deepcopy($iterate_deepcopy_field_2, $__env_end, -1)
 iterate_deepcopy_skip_2:
-    @return()
-
-
-handler($n: int, $ok: ()):
-    @printf($_41: str! = "%d, ", $n: int, $ok)
-
-
-handler_unwrapper($env_end: int):
-    $__env_end = @pin($env_end)
-    $n = @field($__env_end, -2)
-    $ok = @field($__env_end, -1)
-    @release($__env_end)
-    @jumpargs(handler, $n: int, $ok: ())
-
-
-handler_deep_release($env_end: int):
-    $__env_end = @pin($env_end)
-    $__num_remaining = @field($__env_end, 5)
-    @gt(handler_release_skip_1, $__num_remaining, 0)
-    $handler_release_field_1 = @field($__env_end, -1)
-    @callptr($handler_release_field_1)
-handler_release_skip_1:
-    @release($__env_end)
-    @return()
-
-
-handler_deepcopy($env_end: int):
-    $__env_end = @pin($env_end)
-    $num_remaining = @field($__env_end, 5)
-    @gt(handler_deepcopy_skip_1, $num_remaining, 0)
-    @deepcopy($handler_deepcopy_field_1, $__env_end, -1)
-handler_deepcopy_skip_1:
-    @return()
-
-
-_44_end():
-    @exit($_45: int = 0)
-
-
-_44_end_unwrapper($env_end: int):
-    $__env_end = @pin($env_end)
-    @release($__env_end)
-    @jumpargs(_44_end)
-
-
-_44_end_deep_release($env_end: int):
-    $__env_end = @pin($env_end)
-    @release($__env_end)
-    @return()
-
-
-_44_end_deepcopy($env_end: int):
-    $__env_end = @pin($env_end)
-    @return()
-
-
-end():
-    $_44_end = @newclosure<>(_44_end)
-    @printf($_42: str! = "end\n", $_44_end)
-
-
-end_unwrapper($env_end: int):
-    $__env_end = @pin($env_end)
-    @release($__env_end)
-    @jumpargs(end)
-
-
-end_deep_release($env_end: int):
-    $__env_end = @pin($env_end)
-    @release($__env_end)
-    @return()
-
-
-end_deepcopy($env_end: int):
-    $__env_end = @pin($env_end)
     @return()
 
 
