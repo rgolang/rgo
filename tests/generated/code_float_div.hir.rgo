@@ -8,7 +8,7 @@ _5_lambda: (){
     exit(_6)
 }
 
-_2_lambda: (x: str!, y: f64){
+_2_lambda: (x: f64, y: f64){
     _3: "result: %f"
     printf(_3, x, _5_lambda)
 }

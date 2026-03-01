@@ -1,0 +1,11 @@
+exit: @/exit
+int: @/int
+printf: @/printf
+T: (int, int, int)
+foo: <T>(x: T, ok:(T)){ // generic takes precedence
+    ok(x)
+}
+bar: (x: int){
+    printf("%d", x, exit(0))
+}
+foo(42, bar)

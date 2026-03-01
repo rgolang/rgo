@@ -3,7 +3,7 @@ int: @/int
 exit: @/exit
 printf: @/printf
 add: @/add
-eqi: @/eqi
+eqi: @/eq
 foo: (x: int, y: int, ok:(int)){
     add(x, y, ok)
 }

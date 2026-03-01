@@ -1,0 +1,437 @@
+_40_lambda():
+    @exit($_41: int = 0)
+
+
+_40_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_40_lambda)
+
+
+_40_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_40_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_37_lambda($s: str):
+    $_40_lambda = @newclosure<>(_40_lambda)
+    @printf($_38: str! = "element at index 1 is %s\n", $s: int, $_40_lambda)
+
+
+_37_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $s = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_37_lambda, $s: str)
+
+
+_37_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_37_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_48_lambda():
+    @exit($_49: int = 0)
+
+
+_48_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_48_lambda)
+
+
+_48_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_48_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_45_lambda():
+    $_48_lambda = @newclosure<>(_48_lambda)
+    @printf($_46: str! = "index out of bounds\n", $_48_lambda)
+
+
+_45_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_45_lambda)
+
+
+_45_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_45_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_34_lambda($nth: ()):
+    $_37_lambda = @newclosure<str>(_37_lambda)
+    $_45_lambda = @newclosure<>(_45_lambda)
+    @jumpclosure($nth, $_35: int = 1, $_37_lambda: int, $_45_lambda: int)
+
+
+_34_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $nth = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_34_lambda, $nth: ())
+
+
+_34_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_34_lambda_release_skip_0, $__num_remaining, 0)
+    $_34_lambda_release_field_0 = @field($__env_end, -1)
+    @callptr($_34_lambda_release_field_0)
+_34_lambda_release_skip_0:
+    @release($__env_end)
+    @return()
+
+
+_34_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_34_lambda_deepcopy_skip_0, $num_remaining, 0)
+    @deepcopy($_34_lambda_deepcopy_field_0, $__env_end, -1)
+_34_lambda_deepcopy_skip_0:
+    @return()
+
+
+_31_lambda($len: int, $nth: ()):
+    $_52_lambda = @newclosure<($index: int, $one: (), $none: ())>(_34_lambda, $nth: ())
+    @printf($_32: str! = "array has %d elements\n", $len: int, $_52_lambda)
+
+
+_31_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $len = @field($__env_end, -2)
+    $nth = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_31_lambda, $len: int, $nth: ())
+
+
+_31_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_31_lambda_release_skip_1, $__num_remaining, 0)
+    $_31_lambda_release_field_1 = @field($__env_end, -1)
+    @callptr($_31_lambda_release_field_1)
+_31_lambda_release_skip_1:
+    @release($__env_end)
+    @return()
+
+
+_31_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_31_lambda_deepcopy_skip_1, $num_remaining, 0)
+    @deepcopy($_31_lambda_deepcopy_field_1, $__env_end, -1)
+_31_lambda_deepcopy_skip_1:
+    @return()
+
+
+_8_array3($one: (), $a: str):
+    @jumpclosure($one, $a: int)
+
+
+_8_array3_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $one = @field($__env_end, -2)
+    $a = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_8_array3, $one: (), $a: str)
+
+
+_8_array3_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_8_array3_release_skip_0, $__num_remaining, 1)
+    $_8_array3_release_field_0 = @field($__env_end, -2)
+    @callptr($_8_array3_release_field_0)
+_8_array3_release_skip_0:
+    @release($__env_end)
+    @return()
+
+
+_8_array3_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_8_array3_deepcopy_skip_0, $num_remaining, 1)
+    @deepcopy($_8_array3_deepcopy_field_0, $__env_end, -2)
+_8_array3_deepcopy_skip_0:
+    @return()
+
+
+_14_array3($one: (), $b: str):
+    @jumpclosure($one, $b: int)
+
+
+_14_array3_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $one = @field($__env_end, -2)
+    $b = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_14_array3, $one: (), $b: str)
+
+
+_14_array3_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_14_array3_release_skip_0, $__num_remaining, 1)
+    $_14_array3_release_field_0 = @field($__env_end, -2)
+    @callptr($_14_array3_release_field_0)
+_14_array3_release_skip_0:
+    @release($__env_end)
+    @return()
+
+
+_14_array3_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_14_array3_deepcopy_skip_0, $num_remaining, 1)
+    @deepcopy($_14_array3_deepcopy_field_0, $__env_end, -2)
+_14_array3_deepcopy_skip_0:
+    @return()
+
+
+_20_array3($one: (), $c: str):
+    @jumpclosure($one, $c: int)
+
+
+_20_array3_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $one = @field($__env_end, -2)
+    $c = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_20_array3, $one: (), $c: str)
+
+
+_20_array3_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_20_array3_release_skip_0, $__num_remaining, 1)
+    $_20_array3_release_field_0 = @field($__env_end, -2)
+    @callptr($_20_array3_release_field_0)
+_20_array3_release_skip_0:
+    @release($__env_end)
+    @return()
+
+
+_20_array3_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_20_array3_deepcopy_skip_0, $num_remaining, 1)
+    @deepcopy($_20_array3_deepcopy_field_0, $__env_end, -2)
+_20_array3_deepcopy_skip_0:
+    @return()
+
+
+_17_array3($index: int, $one: (), $c: str, $none: ()):
+    $_21_array3 = @newclosure<($_4_array3: str), str>(_20_array3, $one: (), $c: str)
+    @eq(eq__21_array3_true_0_0, $index: int, $_18: int = 2)
+eq_none_false_0_0:
+    @release($_21_array3)
+    @jumpclosure($none)
+eq__21_array3_true_0_0:
+    @release($none)
+    @jumpclosure($_21_array3)
+
+
+_17_array3_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $index = @field($__env_end, -4)
+    $one = @field($__env_end, -3)
+    $c = @field($__env_end, -2)
+    $none = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_17_array3, $index: int, $one: (), $c: str, $none: ())
+
+
+_17_array3_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_17_array3_release_skip_1, $__num_remaining, 2)
+    $_17_array3_release_field_1 = @field($__env_end, -3)
+    @callptr($_17_array3_release_field_1)
+_17_array3_release_skip_1:
+    @gt(_17_array3_release_skip_3, $__num_remaining, 0)
+    $_17_array3_release_field_3 = @field($__env_end, -1)
+    @callptr($_17_array3_release_field_3)
+_17_array3_release_skip_3:
+    @release($__env_end)
+    @return()
+
+
+_17_array3_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_17_array3_deepcopy_skip_1, $num_remaining, 2)
+    @deepcopy($_17_array3_deepcopy_field_1, $__env_end, -3)
+_17_array3_deepcopy_skip_1:
+    @gt(_17_array3_deepcopy_skip_3, $num_remaining, 0)
+    @deepcopy($_17_array3_deepcopy_field_3, $__env_end, -1)
+_17_array3_deepcopy_skip_3:
+    @return()
+
+
+_11_array3($index: int, $one: (), $b: str, $c: str, $none: ()):
+    $_15_array3 = @newclosure<($_4_array3: str), str>(_14_array3, $one: (), $b: str)
+    $_22_array3 = @newclosure<int, ($_4_array3: str), str, ()>(_17_array3, $index: int, $one: (), $c: str, $none: ())
+    @eq(eq__15_array3_true_0_0, $index: int, $_12: int = 1)
+eq__22_array3_false_0_0:
+    @release($_15_array3)
+    @jumpclosure($_22_array3)
+eq__15_array3_true_0_0:
+    @release($_22_array3)
+    @jumpclosure($_15_array3)
+
+
+_11_array3_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $index = @field($__env_end, -5)
+    $one = @field($__env_end, -4)
+    $b = @field($__env_end, -3)
+    $c = @field($__env_end, -2)
+    $none = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_11_array3, $index: int, $one: (), $b: str, $c: str, $none: ())
+
+
+_11_array3_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_11_array3_release_skip_1, $__num_remaining, 3)
+    $_11_array3_release_field_1 = @field($__env_end, -4)
+    @callptr($_11_array3_release_field_1)
+_11_array3_release_skip_1:
+    @gt(_11_array3_release_skip_4, $__num_remaining, 0)
+    $_11_array3_release_field_4 = @field($__env_end, -1)
+    @callptr($_11_array3_release_field_4)
+_11_array3_release_skip_4:
+    @release($__env_end)
+    @return()
+
+
+_11_array3_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_11_array3_deepcopy_skip_1, $num_remaining, 3)
+    @deepcopy($_11_array3_deepcopy_field_1, $__env_end, -4)
+_11_array3_deepcopy_skip_1:
+    @gt(_11_array3_deepcopy_skip_4, $num_remaining, 0)
+    @deepcopy($_11_array3_deepcopy_field_4, $__env_end, -1)
+_11_array3_deepcopy_skip_4:
+    @return()
+
+
+_5_array3($a: str, $b: str, $c: str, $index: int, $one: (), $none: ()):
+    $_9_array3 = @newclosure<($_4_array3: str), str>(_8_array3, $one: (), $a: str)
+    $_23_array3 = @newclosure<int, ($_4_array3: str), str, str, ()>(_11_array3, $index: int, $one: (), $b: str, $c: str, $none: ())
+    @eq(eq__9_array3_true_0_0, $index: int, $_6: int = 0)
+eq__23_array3_false_0_0:
+    @release($_9_array3)
+    @jumpclosure($_23_array3)
+eq__9_array3_true_0_0:
+    @release($_23_array3)
+    @jumpclosure($_9_array3)
+
+
+_5_array3_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $a = @field($__env_end, -6)
+    $b = @field($__env_end, -5)
+    $c = @field($__env_end, -4)
+    $index = @field($__env_end, -3)
+    $one = @field($__env_end, -2)
+    $none = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_5_array3, $a: str, $b: str, $c: str, $index: int, $one: (), $none: ())
+
+
+_5_array3_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_5_array3_release_skip_4, $__num_remaining, 1)
+    $_5_array3_release_field_4 = @field($__env_end, -2)
+    @callptr($_5_array3_release_field_4)
+_5_array3_release_skip_4:
+    @gt(_5_array3_release_skip_5, $__num_remaining, 0)
+    $_5_array3_release_field_5 = @field($__env_end, -1)
+    @callptr($_5_array3_release_field_5)
+_5_array3_release_skip_5:
+    @release($__env_end)
+    @return()
+
+
+_5_array3_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_5_array3_deepcopy_skip_4, $num_remaining, 1)
+    @deepcopy($_5_array3_deepcopy_field_4, $__env_end, -2)
+_5_array3_deepcopy_skip_4:
+    @gt(_5_array3_deepcopy_skip_5, $num_remaining, 0)
+    @deepcopy($_5_array3_deepcopy_field_5, $__env_end, -1)
+_5_array3_deepcopy_skip_5:
+    @return()
+
+
+array3($a: str, $b: str, $c: str, $ok: ()):
+    $_24_array3 = @newclosure<str, str, str, int, ($_4_array3: str), ()>(_5_array3, $a: str, $b: str, $c: str)
+    @jumpclosure($ok, $_1: int = 3, $_24_array3: int)
+
+
+array3_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $a = @field($__env_end, -4)
+    $b = @field($__env_end, -3)
+    $c = @field($__env_end, -2)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(array3, $a: str, $b: str, $c: str, $ok: ())
+
+
+array3_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(array3_release_skip_3, $__num_remaining, 0)
+    $array3_release_field_3 = @field($__env_end, -1)
+    @callptr($array3_release_field_3)
+array3_release_skip_3:
+    @release($__env_end)
+    @return()
+
+
+array3_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(array3_deepcopy_skip_3, $num_remaining, 0)
+    @deepcopy($array3_deepcopy_field_3, $__env_end, -1)
+array3_deepcopy_skip_3:
+    @return()
+
+
+_start():
+    $_31_lambda = @newclosure<int, ($index: int, $one: (), $none: ())>(_31_lambda)
+    @jumpargs(array3, $_25: str = "alice", $_26: str = "bob", $_27: str = "charlie", $_31_lambda: ())
+

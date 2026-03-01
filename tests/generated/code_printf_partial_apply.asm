@@ -6,7 +6,7 @@ _6_lambda:
     push rbp ; save executor frame pointer
     mov rbp, rsp ; establish new frame base
     sub rsp, 16 ; reserve stack space for locals
-    mov [rbp-8], rdi ; store _0_ arg in frame
+    mov [rbp-8], rdi ; store _0_foo arg in frame
     mov rax, 1 ; operand literal
     push rax ; stack arg
     lea rax, [rel _7] ; point to string literal
@@ -52,7 +52,7 @@ _6_lambda_unwrapper:
     sub rsp, 16 ; reserve stack space for locals
     mov [rbp-8], rdi ; store env_end arg in frame
     mov r12, [rbp-8] ; load operand
-    mov rax, [r12-8] ; load _0_ env field
+    mov rax, [r12-8] ; load _0_foo env field
     mov [rbp-16], rax ; store value
     mov rdi, r12 ; use pinned __env_end env_end pointer
     call release_heap_ptr ; release __env_end closure environment

@@ -322,12 +322,12 @@ _start_eqs_loop_1:
     cmp al, dl
     jne _start_eqs_false_0 ; bytes differ
     test al, al
-    je eqs_true
+    je eqs__3_lambda_true_0_0
     inc r10
     inc r11
     jmp _start_eqs_loop_1
 _start_eqs_false_0:
-eqs_false:
+eqs__11_lambda_false_0_0:
     mov rdi, [rbp-8] ; load _3_lambda closure env_end pointer
     call release_heap_ptr ; release _3_lambda closure environment
     mov rbx, [rbp-16] ; load _11_lambda closure env_end pointer
@@ -335,7 +335,7 @@ eqs_false:
     mov rax, [rdi+0] ; load closure unwrapper entry point
     leave ; unwind before jumping
     jmp rax ; tail call into closure
-eqs_true:
+eqs__3_lambda_true_0_0:
     mov rdi, [rbp-16] ; load _11_lambda closure env_end pointer
     call release_heap_ptr ; release _11_lambda closure environment
     mov rbx, [rbp-8] ; load _3_lambda closure env_end pointer

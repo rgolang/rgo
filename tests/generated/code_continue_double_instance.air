@@ -165,15 +165,15 @@ _13_run_deepcopy_skip_1:
 
 
 run($ok: ()):
-    $a = @newclosure<int, int, ($_0_: int)>(foo, $_1: int = 1, $_2: int = 2)
+    $a = @newclosure<int, int, ($_0_foo: int)>(foo, $_1: int = 1, $_2: int = 2)
     $_11_run = @newclosure<($ok: ()), ()>(_9_run, $a: (), $ok: ())
-    $b = @newclosure<int, int, ($_0_: int)>(foo, $_1: int = 1, $_3: int = 3)
+    $b = @newclosure<int, int, ($_0_foo: int)>(foo, $_1: int = 1, $_3: int = 3)
     $_15_run = @newclosure<($ok: ()), ()>(_13_run, $b: (), $ok: ())
-    @eqi(eqi_true, $_6: int = 1, $_7: int = 1)
-eqi_false:
+    @eq(eq__11_run_true_0_0, $_6: int = 1, $_7: int = 1)
+eq__15_run_false_0_0:
     @release($_11_run)
     @jumpclosure($_15_run)
-eqi_true:
+eq__11_run_true_0_0:
     @release($_15_run)
     @jumpclosure($_11_run)
 

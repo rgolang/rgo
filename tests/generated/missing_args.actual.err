@@ -1,1 +1,1 @@
-[hir] cannot execute function 'foo': not all args have been provided (expected at least 3, got 0) at 7:1
+[hir] cannot execute function 'foo': not all args have been provided (expected at least 3, got 0) at 0:0

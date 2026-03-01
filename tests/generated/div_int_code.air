@@ -1,0 +1,93 @@
+_2_error():
+    @exit($_3: int = 1)
+
+
+_2_error_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_2_error)
+
+
+_2_error_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_2_error_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+error($msg: str):
+    $_2_error = @newclosure<>(_2_error)
+    @printf($_0: str! = "Error: %s\n", $msg: int, $_2_error)
+
+
+error_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $msg = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(error, $msg: str)
+
+
+error_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+error_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_13_lambda():
+    @exit($_14: int = 0)
+
+
+_13_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_13_lambda)
+
+
+_13_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_13_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_10_lambda($result: int):
+    $_13_lambda = @newclosure<>(_13_lambda)
+    @printf($_11: str! = "result: %d\n", $result: int, $_13_lambda)
+
+
+_10_lambda_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $result = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_10_lambda, $result: int)
+
+
+_10_lambda_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_10_lambda_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    $_8_error = @newclosure<str>(error, $_7: str = "division by zero")
+    $_10_lambda = @newclosure<int>(_10_lambda)
+    @div(_10_lambda, _8_error, $_5: int = 10, $_6: int = 5)
+

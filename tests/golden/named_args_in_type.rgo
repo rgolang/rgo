@@ -1,0 +1,13 @@
+exit: @/exit
+str: @/str
+printf: @/printf
+foo: (a: str, b: str, c:str){
+    printf("%s %s and %s", a, b, c, exit(0))
+}
+baz: (ok:(str)){
+    ok("hello")
+}
+bar: (ok:(x:str, y:str)){
+    baz(ok(y:"bob"))
+}
+bar(foo(b: "world"))

@@ -1,7 +1,6 @@
 use std::fmt;
 
 use crate::compiler::air;
-use crate::compiler::ast;
 use crate::compiler::span::Span;
 
 pub fn render_air_functions(functions: &[air::AirFunction]) -> String {
@@ -21,7 +20,7 @@ struct SigDisplay<'a>(&'a air::FunctionSig);
 impl<'a> fmt::Debug for SigDisplay<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let sig = self.0;
-        write!(f, "{}(", sig.name)?;
+        write!(f, "{}{}(", sig.name, format_sig_generics(&sig.generics))?;
         for (idx, param) in sig.params.iter().enumerate() {
             if idx > 0 {
                 write!(f, ", ")?;
@@ -121,9 +120,9 @@ impl fmt::Debug for air::AirStmt {
                 air::AirOp::JumpEqInt(eq) => {
                     let args = format_args_inline(&eq.args);
                     if args.is_empty() {
-                        write!(f, "@eqi({})", eq.target)
+                        write!(f, "@eq({})", eq.target)
                     } else {
-                        write!(f, "@eqi({}, {})", eq.target, args)
+                        write!(f, "@eq({}, {})", eq.target, args)
                     }
                 }
                 air::AirOp::JumpEqStr(eq) => {
@@ -142,25 +141,54 @@ impl fmt::Debug for air::AirStmt {
                     format_operand(&jump.right),
                 ),
                 air::AirOp::Add(op) => {
-                    write!(f, "{}", format_instr_op("add", &op.inputs, &op.target))
+                    write!(
+                        f,
+                        "{}",
+                        format_binary_instr_op("add", &op.input_a, &op.input_b, &op.target)
+                    )
                 }
                 air::AirOp::AddF64(op) => {
-                    write!(f, "{}", format_instr_op("addf64", &op.inputs, &op.target))
+                    write!(
+                        f,
+                        "{}",
+                        format_binary_instr_op("addf64", &op.input_a, &op.input_b, &op.target)
+                    )
                 }
                 air::AirOp::Sub(op) => {
-                    write!(f, "{}", format_instr_op("sub", &op.inputs, &op.target))
+                    write!(
+                        f,
+                        "{}",
+                        format_binary_instr_op("sub", &op.input_a, &op.input_b, &op.target)
+                    )
                 }
                 air::AirOp::Mul(op) => {
-                    write!(f, "{}", format_instr_op("mul", &op.inputs, &op.target))
+                    write!(
+                        f,
+                        "{}",
+                        format_binary_instr_op("mul", &op.input_a, &op.input_b, &op.target)
+                    )
                 }
                 air::AirOp::MulF64(op) => {
-                    write!(f, "{}", format_instr_op("mulf64", &op.inputs, &op.target))
+                    write!(
+                        f,
+                        "{}",
+                        format_binary_instr_op("mulf64", &op.input_a, &op.input_b, &op.target)
+                    )
                 }
-                air::AirOp::Div(op) => {
-                    write!(f, "{}", format_instr_op("div", &op.inputs, &op.target))
-                }
+                air::AirOp::DivInt(op) => write!(
+                    f,
+                    "@div({}, {}, {}, {})",
+                    op.ok_target,
+                    op.err_target,
+                    format_arg(&op.input_a),
+                    format_arg(&op.input_b)
+                ),
                 air::AirOp::DivF64(op) => {
-                    write!(f, "{}", format_instr_op("divf64", &op.inputs, &op.target))
+                    write!(
+                        f,
+                        "{}",
+                        format_binary_instr_op("divf64", &op.input_a, &op.input_b, &op.target)
+                    )
                 }
                 air::AirOp::JumpGt(jump) => write!(
                     f,
@@ -298,9 +326,9 @@ fn format_arg(arg: &air::AirArg) -> String {
     let mut text = format!("{binding}: {kind_text}");
     if let Some(literal) = &arg.literal {
         let literal_text = match literal {
-            ast::Lit::Str(value) => format_literal(value),
-            ast::Lit::Int(value) => value.to_string(),
-            ast::Lit::F64(value) => value.to_string(),
+            air::Lit::Str(value) => format_literal(value),
+            air::Lit::Int(value) => value.to_string(),
+            air::Lit::F64(value) => value.to_string(),
         };
         text.push_str(&format!(" = {}", literal_text));
     }
@@ -319,22 +347,36 @@ fn format_sig_kinds_inline(kinds: &[air::SigKind]) -> String {
         .join(", ")
 }
 
+fn format_sig_generics(generics: &std::collections::BTreeSet<String>) -> String {
+    if generics.is_empty() {
+        return String::new();
+    }
+    let generics = generics.iter().cloned().collect::<Vec<_>>().join(", ");
+    format!("<{generics}>")
+}
+
 fn format_function_target(target: &air::FunctionSig) -> String {
     if let Some(builtin) = &target.builtin {
         format!("@{}", builtin.name())
     } else {
-        target.name.clone()
+        format!("{}{}", target.name, format_sig_generics(&target.generics))
     }
 }
 
-fn format_instr_op(name: &str, inputs: &[air::AirArg], target: &str) -> String {
-    let inputs = format_args_inline(inputs);
+fn format_binary_instr_op(
+    name: &str,
+    input_a: &air::AirArg,
+    input_b: &air::AirArg,
+    target: &str,
+) -> String {
     let formatted_target = format_binding_name(target);
-    if inputs.is_empty() {
-        format!("@{}({})", name, formatted_target)
-    } else {
-        format!("@{}({}, {})", name, inputs, formatted_target)
-    }
+    format!(
+        "@{}({}, {}, {})",
+        name,
+        format_arg(input_a),
+        format_arg(input_b),
+        formatted_target
+    )
 }
 
 fn format_call_op(name: &str, args: &[air::AirArg], target: &str) -> String {

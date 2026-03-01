@@ -1,12 +1,12 @@
-_6_lambda($_0_: ()):
-    @printf($_7: str! = "result: %d", $_8: int = 1, $_0_)
+_6_lambda($_0_foo: ()):
+    @printf($_7: str! = "result: %d", $_8: int = 1, $_0_foo)
 
 
 _6_lambda_unwrapper($env_end: int):
     $__env_end = @pin($env_end)
-    $_0_ = @field($__env_end, -1)
+    $_0_foo = @field($__env_end, -1)
     @release($__env_end)
-    @jumpargs(_6_lambda, $_0_: ())
+    @jumpargs(_6_lambda, $_0_foo: ())
 
 
 _6_lambda_deep_release($env_end: int):

@@ -14,11 +14,6 @@
         path: "/exit",
         span: ,
     },
-    Import {
-        label: "write",
-        path: "/write",
-        span: ,
-    },
     SigDef {
         name: "arr",
         sig: Signature {
@@ -61,7 +56,7 @@
                                                         Signature {
                                                             items: [],
                                                             span: ,
-                                                            generics: [],
+                                                            generics: {},
                                                         },
                                                     ),
                                                     has_bang: false,
@@ -82,7 +77,7 @@
                                                                 },
                                                             ],
                                                             span: ,
-                                                            generics: [],
+                                                            generics: {},
                                                         },
                                                     ),
                                                     has_bang: false,
@@ -90,7 +85,7 @@
                                                 },
                                             ],
                                             span: ,
-                                            generics: [],
+                                            generics: {},
                                         },
                                     ),
                                     has_bang: false,
@@ -98,7 +93,7 @@
                                 },
                             ],
                             span: ,
-                            generics: [],
+                            generics: {},
                         },
                     ),
                     has_bang: false,
@@ -106,9 +101,9 @@
                 },
             ],
             span: ,
-            generics: [
+            generics: {
                 "T",
-            ],
+            },
         },
         span: ,
     },
@@ -135,45 +130,21 @@
                     },
                 ],
                 span: ,
-                generics: [],
+                generics: {},
             },
             body: Block {
                 items: [
                     Ident(
                         Ident {
-                            name: "write",
+                            name: "exit",
                             args: [
                                 Arg {
                                     name: None,
                                     term: Lit(
                                         Literal {
-                                            value: Str(
-                                                "done",
+                                            value: Int(
+                                                0,
                                             ),
-                                            span: ,
-                                        },
-                                    ),
-                                    span: ,
-                                },
-                                Arg {
-                                    name: None,
-                                    term: Ident(
-                                        Ident {
-                                            name: "exit",
-                                            args: [
-                                                Arg {
-                                                    name: None,
-                                                    term: Lit(
-                                                        Literal {
-                                                            value: Int(
-                                                                0,
-                                                            ),
-                                                            span: ,
-                                                        },
-                                                    ),
-                                                    span: ,
-                                                },
-                                            ],
                                             span: ,
                                         },
                                     ),

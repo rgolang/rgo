@@ -1,0 +1,32 @@
+str: @/str
+int: @/int
+exit: @/exit
+printf: @/printf
+add: @/add
+as_int: (x: int, ok:(int), _1_as_int:(str)){
+    ok(x)
+}
+int_or_str: ((int), (str))
+_8_foo: (ok:(), x: int){
+    _9: "number: %d"
+    printf(_9, x, ok)
+}
+
+_12_foo: (ok:(), x: str){
+    _13: "x is str: %s\n"
+    printf(_13, x, ok)
+}
+
+foo: (x:((int), (str)), ok:()){
+    _10_foo: _8_foo(ok)
+    _14_foo: _12_foo(ok)
+    x(_10_foo, _14_foo)
+}
+
+_18_lambda: (){
+    _19: 0
+    exit(_19)
+}
+_15: 42
+_16_as_int: as_int(_15)
+foo(_16_as_int, _18_lambda)

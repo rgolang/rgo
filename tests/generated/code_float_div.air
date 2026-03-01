@@ -19,7 +19,7 @@ _5_lambda_deepcopy($env_end: int):
     @return()
 
 
-_2_lambda($x: str!, $y: f64):
+_2_lambda($x: f64, $y: f64):
     $_5_lambda = @newclosure<>(_5_lambda)
     @printf($_3: str! = "result: %f", $x: int, $_5_lambda)
 
@@ -29,7 +29,7 @@ _2_lambda_unwrapper($env_end: int):
     $x = @field($__env_end, -2)
     $y = @field($__env_end, -1)
     @release($__env_end)
-    @jumpargs(_2_lambda, $x: str!, $y: f64)
+    @jumpargs(_2_lambda, $x: f64, $y: f64)
 
 
 _2_lambda_deep_release($env_end: int):
@@ -44,6 +44,6 @@ _2_lambda_deepcopy($env_end: int):
 
 
 _start():
-    $_8_ = @newclosure<str!, f64>(_2_lambda, $x: str! = 1.5)
+    $_8_ = @newclosure<f64, f64>(_2_lambda, $x: f64 = 1.5)
     @divf64($x: f64 = 1.5, $_0: f64 = 2, $_8_)
 

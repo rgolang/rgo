@@ -1,1 +1,1 @@
-[hir] expected int, found f64 at 5:5
+[hir] expected int, found f64 at 0:0

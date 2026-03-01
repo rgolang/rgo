@@ -163,7 +163,7 @@ end_deepcopy($env_end: int):
 
 
 _11_iterate($iterate: (), $handler: (), $end: (), $head: int, $tail: ()):
-    $next_iterate = @cloneclosure($iterate, ($_8_: int, $_9_: ()), ($_0_: (), $_3_: ()), ())
+    $next_iterate = @cloneclosure($iterate, ($_8_iterate: int, $_9_iterate: ()), ($_0_: (), $_3_: ()), ())
     $__next_iterate_arg_clone_0 = @cloneclosure($handler, int, ())
     $__next_iterate_env_end = @pin($next_iterate)
     @setfield($__next_iterate_env_end, -3, $__next_iterate_arg_clone_0: ())
@@ -226,8 +226,8 @@ _11_iterate_deepcopy_skip_4:
 
 
 iterate($handler: (), $arr: (), $end: ()):
-    $iterate = @newclosure<($_8_: int, $_9_: ()), ($_0_: (), $_3_: ()), ()>(iterate)
-    $_12_iterate = @newclosure<($handler: (), $arr: (), $end: ()), ($_8_: int, $_9_: ()), (), int, ($_0_: (), $_3_: ())>(_11_iterate, $iterate: (), $handler: (), $end: ())
+    $iterate = @newclosure<($_8_iterate: int, $_9_iterate: ()), ($_0_: (), $_3_: ()), ()>(iterate)
+    $_12_iterate = @newclosure<($handler: (), $arr: (), $end: ()), ($_8_iterate: int, $_9_iterate: ()), (), int, ($_0_: (), $_3_: ())>(_11_iterate, $iterate: (), $handler: (), $end: ())
     @jumpclosure($arr, $_12_iterate: int, $end: int)
 
 
@@ -275,11 +275,11 @@ iterate_deepcopy_skip_2:
 
 
 _start():
-    $nil = @newclosure<($_4_: int, $_5_: ()), ()>(nil)
-    $_17_cons = @newclosure<int, ($_0_: (), $_3_: ()), ($_6_: int, $_7_: ()), ()>(cons, $_16: int = 4, $nil: ())
-    $_18_cons = @newclosure<int, ($_0_: (), $_3_: ()), ($_6_: int, $_7_: ()), ()>(cons, $_15: int = 3, $_17_cons: ())
-    $_19_cons = @newclosure<int, ($_0_: (), $_3_: ()), ($_6_: int, $_7_: ()), ()>(cons, $_14: int = 2, $_18_cons: ())
-    $mylist = @newclosure<int, ($_0_: (), $_3_: ()), ($_6_: int, $_7_: ()), ()>(cons, $_13: int = 1, $_19_cons: ())
+    $nil = @newclosure<($_4_nil: int, $_5_nil: ()), ()>(nil)
+    $_17_cons = @newclosure<int, ($_0_: (), $_3_: ()), ($_6_cons: int, $_7_cons: ()), ()>(cons, $_16: int = 4, $nil: ())
+    $_18_cons = @newclosure<int, ($_0_: (), $_3_: ()), ($_6_cons: int, $_7_cons: ()), ()>(cons, $_15: int = 3, $_17_cons: ())
+    $_19_cons = @newclosure<int, ($_0_: (), $_3_: ()), ($_6_cons: int, $_7_cons: ()), ()>(cons, $_14: int = 2, $_18_cons: ())
+    $mylist = @newclosure<int, ($_0_: (), $_3_: ()), ($_6_cons: int, $_7_cons: ()), ()>(cons, $_13: int = 1, $_19_cons: ())
     $handler = @newclosure<int, ()>(handler)
     $end = @newclosure<>(end)
     @jumpargs(iterate, $handler: (), $mylist: (), $end: ())

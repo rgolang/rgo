@@ -71,7 +71,7 @@
                                     },
                                 ],
                                 span: ,
-                                generics: [],
+                                generics: {},
                             },
                             body: Block {
                                 items: [

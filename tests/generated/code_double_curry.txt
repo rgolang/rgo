@@ -42,7 +42,7 @@
                                     },
                                 ],
                                 span: ,
-                                generics: [],
+                                generics: {},
                             },
                         ),
                         has_bang: false,
@@ -50,7 +50,7 @@
                     },
                 ],
                 span: ,
-                generics: [],
+                generics: {},
             },
             body: Block {
                 items: [
@@ -116,7 +116,7 @@
                                     },
                                 ],
                                 span: ,
-                                generics: [],
+                                generics: {},
                             },
                         ),
                         has_bang: false,
@@ -124,7 +124,7 @@
                     },
                 ],
                 span: ,
-                generics: [],
+                generics: {},
             },
             body: Block {
                 items: [
@@ -208,7 +208,7 @@
                     },
                 ],
                 span: ,
-                generics: [],
+                generics: {},
             },
             body: Block {
                 items: [

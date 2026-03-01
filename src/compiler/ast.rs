@@ -1,4 +1,5 @@
 use crate::compiler::span::Span;
+use std::collections::BTreeSet;
 use std::hash::{Hash, Hasher};
 
 // An Item is a block-level construct: function definitions, type definitions, imports (for root level) and execs.
@@ -84,7 +85,7 @@ pub struct Signature {
     /// Span of the entire `( ... )` tuple, including parens.
     pub span: Span,
     /// Generic parameters declared just before the signature (e.g. `<T>`).
-    pub generics: Vec<String>,
+    pub generics: BTreeSet<String>,
 }
 
 impl Signature {
@@ -104,7 +105,7 @@ impl Signature {
         Signature {
             items,
             span,
-            generics: Vec::new(),
+            generics: BTreeSet::new(),
         }
     }
 
@@ -127,7 +128,7 @@ impl Signature {
         Signature {
             items: sig_items,
             span: span,
-            generics: Vec::new(),
+            generics: BTreeSet::new(),
         }
     }
     pub fn is_variadic(&self) -> bool {

@@ -825,8 +825,8 @@ run:
     mov rax, 1 ; operand literal
     mov rbx, 1 ; operand literal
     cmp rax, rbx
-    je eqi_true
-eqi_false:
+    je eq__10_run_true_0_0
+eq__14_run_false_0_0:
     mov rdi, [rbp-24] ; load _10_run closure env_end pointer
     call release_heap_ptr ; release _10_run closure environment
     mov rbx, [rbp-32] ; load _14_run closure env_end pointer
@@ -834,7 +834,7 @@ eqi_false:
     mov rax, [rdi+0] ; load closure unwrapper entry point
     leave ; unwind before jumping
     jmp rax ; tail call into closure
-eqi_true:
+eq__10_run_true_0_0:
     mov rdi, [rbp-32] ; load _14_run closure env_end pointer
     call release_heap_ptr ; release _14_run closure environment
     mov rbx, [rbp-24] ; load _10_run closure env_end pointer

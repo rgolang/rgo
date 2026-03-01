@@ -27,7 +27,6 @@ mod lexer_test;
 #[cfg(test)]
 mod parser_test;
 
-use ast::SigKind;
 use error::Error;
 use hir::Lowerer;
 use lexer::Lexer;
@@ -54,19 +53,14 @@ pub fn compile<R: BufRead, W: Write>(input: R, out: &mut W) -> Result<(), Error>
         // produce many functions/types etc (hoisted)
         while let Some(lowered) = lowerer.produce() {
             match lowered {
-                hir::BlockItem::Import { label, path, span } => {
-                    symbol::register_builtin_import(&label, &path, span, &mut symbols)?;
+                hir::BlockItem::Import { label, path } => {
+                    symbol::register_builtin_import(&label, &path, &mut symbols)?;
                 }
-                hir::BlockItem::SigDef { name, sig, .. } => {
-                    symbols.install_type(name.to_string(), SigKind::Sig(sig.clone()))?;
+                hir::BlockItem::SigDef { name, sig } => {
+                    symbols.install_type(name.to_string(), air::SigKind::Sig(sig.clone()))?;
                 }
                 hir::BlockItem::FunctionDef(function) => {
-                    let sig = air::FunctionSig {
-                        name: function.name.clone(),
-                        params: function.sig.items.clone(),
-                        span: function.span,
-                        builtin: None,
-                    };
+                    let sig = air::function_sig_from_hir(&function);
                     symbols.declare_function(sig)?;
                     hir_functions.insert(function.name.clone(), function);
                 }

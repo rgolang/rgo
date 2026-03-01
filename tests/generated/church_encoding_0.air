@@ -116,7 +116,7 @@ zero_deepcopy_skip_2:
 
 
 _start():
-    $_7_lambda = @newclosure<int, ($_6_: int)>(_7_lambda)
+    $_7_lambda = @newclosure<int, ($_6_lambda: int)>(_7_lambda)
     $_12_lambda = @newclosure<int>(_12_lambda)
     @jumpargs(zero, $_7_lambda: (), $_10: int = 0, $_12_lambda: ())
 

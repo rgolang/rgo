@@ -6,7 +6,7 @@
     },
     Import {
         label: "eqi",
-        path: "/eqi",
+        path: "/eq",
         span: ,
     },
     Import {
@@ -35,7 +35,7 @@
                             Signature {
                                 items: [],
                                 span: ,
-                                generics: [],
+                                generics: {},
                             },
                         ),
                         has_bang: false,
@@ -47,7 +47,7 @@
                             Signature {
                                 items: [],
                                 span: ,
-                                generics: [],
+                                generics: {},
                             },
                         ),
                         has_bang: false,
@@ -55,7 +55,7 @@
                     },
                 ],
                 span: ,
-                generics: [],
+                generics: {},
             },
             body: Block {
                 items: [
@@ -85,7 +85,7 @@
                             Signature {
                                 items: [],
                                 span: ,
-                                generics: [],
+                                generics: {},
                             },
                         ),
                         has_bang: false,
@@ -97,7 +97,7 @@
                             Signature {
                                 items: [],
                                 span: ,
-                                generics: [],
+                                generics: {},
                             },
                         ),
                         has_bang: false,
@@ -105,7 +105,7 @@
                     },
                 ],
                 span: ,
-                generics: [],
+                generics: {},
             },
             body: Block {
                 items: [
@@ -140,7 +140,7 @@
                                             Signature {
                                                 items: [],
                                                 span: ,
-                                                generics: [],
+                                                generics: {},
                                             },
                                         ),
                                         has_bang: false,
@@ -152,7 +152,7 @@
                                             Signature {
                                                 items: [],
                                                 span: ,
-                                                generics: [],
+                                                generics: {},
                                             },
                                         ),
                                         has_bang: false,
@@ -160,7 +160,7 @@
                                     },
                                 ],
                                 span: ,
-                                generics: [],
+                                generics: {},
                             },
                         ),
                         has_bang: false,
@@ -172,7 +172,7 @@
                             Signature {
                                 items: [],
                                 span: ,
-                                generics: [],
+                                generics: {},
                             },
                         ),
                         has_bang: false,
@@ -184,7 +184,7 @@
                             Signature {
                                 items: [],
                                 span: ,
-                                generics: [],
+                                generics: {},
                             },
                         ),
                         has_bang: false,
@@ -192,7 +192,7 @@
                     },
                 ],
                 span: ,
-                generics: [],
+                generics: {},
             },
             body: Block {
                 items: [
@@ -238,7 +238,7 @@
         params: Signature {
             items: [],
             span: ,
-            generics: [],
+            generics: {},
         },
         continuation: Block {
             items: [
@@ -311,7 +311,7 @@
                                 params: Signature {
                                     items: [],
                                     span: ,
-                                    generics: [],
+                                    generics: {},
                                 },
                                 body: Block {
                                     items: [

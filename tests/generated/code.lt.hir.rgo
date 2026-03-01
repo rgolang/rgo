@@ -1,0 +1,25 @@
+lt: @/lt
+write: @/write
+exit: @/exit
+_6_lambda: (){
+    _7: 0
+    exit(_7)
+}
+
+_3_lambda: (){
+    _4: "lt: true"
+    write(_4, _6_lambda)
+}
+
+_14_lambda: (){
+    _15: 0
+    exit(_15)
+}
+
+_11_lambda: (){
+    _12: "lt: false"
+    write(_12, _14_lambda)
+}
+_0: 1
+_1: 2
+lt(_0, _1, _3_lambda, _11_lambda)

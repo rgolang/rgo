@@ -1,5 +1,5 @@
 int: @/int
-eqi: @/eqi
+eqi: @/eq
 write: @/write
 printf: @/printf
 exit: @/exit

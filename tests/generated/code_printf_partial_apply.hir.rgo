@@ -12,9 +12,9 @@ foo: (ok:(())){
     ok(_2_foo)
 }
 
-_6_lambda: (_0_:()){
+_6_lambda: (_0_foo:()){
     _7: "result: %d"
     _8: 1
-    printf(_7, _8, _0_)
+    printf(_7, _8, _0_foo)
 }
 foo(_6_lambda)

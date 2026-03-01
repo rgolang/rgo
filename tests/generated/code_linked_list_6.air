@@ -163,7 +163,7 @@ end_deepcopy($env_end: int):
 
 
 iterate_iterate_inner($handler: (), $iterate: (), $end: (), $head: int, $tail: ()):
-    $next_iterate = @cloneclosure($iterate, ($_23_: int, $_24_: ()), ($_26_: (), $_33_: ()), ())
+    $next_iterate = @cloneclosure($iterate, ($_23_iterate_iterate_inner: int, $_24_iterate_iterate_inner: ()), ($_26_iterate_iterate_inner: (), $_33_iterate_iterate_inner: ()), ())
     $__next_iterate_arg_clone_0 = @cloneclosure($handler, int, ())
     $__next_iterate_env_end = @pin($next_iterate)
     @setfield($__next_iterate_env_end, -3, $__next_iterate_arg_clone_0: ())
@@ -226,8 +226,8 @@ iterate_iterate_inner_deepcopy_skip_4:
 
 
 iterate($handler: (), $arr: (), $end: ()):
-    $iterate = @newclosure<($_39_: int, $_40_: ()), ($_41_: (), $_44_: ()), ()>(iterate)
-    $iterate_inner = @newclosure<($_20_: int, $_21_: ()), ($_22_: (), $_25_: (), $_34_: ()), (), int, ($_35_: (), $_38_: ())>(iterate_iterate_inner, $handler: (), $iterate: (), $end: ())
+    $iterate = @newclosure<($_39_iterate: int, $_40_iterate: ()), ($_41_iterate: (), $_44_iterate: ()), ()>(iterate)
+    $iterate_inner = @newclosure<($_20_iterate_iterate_inner: int, $_21_iterate_iterate_inner: ()), ($_22_iterate_iterate_inner: (), $_25_iterate_iterate_inner: (), $_34_iterate_iterate_inner: ()), (), int, ($_35_iterate_iterate_inner: (), $_38_iterate_iterate_inner: ())>(iterate_iterate_inner, $handler: (), $iterate: (), $end: ())
     @jumpclosure($arr, $iterate_inner: int, $end: int)
 
 
@@ -275,8 +275,8 @@ iterate_deepcopy_skip_2:
 
 
 _start():
-    $nil = @newclosure<($_4_: int, $_5_: ()), ()>(nil)
-    $mylist = @newclosure<int, ($_10_: (), $_13_: ()), ($_14_: int, $_15_: ()), ()>(cons, $_48: int = 1, $nil: ())
+    $nil = @newclosure<($_4_nil: int, $_5_nil: ()), ()>(nil)
+    $mylist = @newclosure<int, ($_10_cons: (), $_13_cons: ()), ($_14_cons: int, $_15_cons: ()), ()>(cons, $_48: int = 1, $nil: ())
     $handler = @newclosure<int, ()>(handler)
     $end = @newclosure<>(end)
     @jumpargs(iterate, $handler: (), $mylist: (), $end: ())

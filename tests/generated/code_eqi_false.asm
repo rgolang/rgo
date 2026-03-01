@@ -315,8 +315,8 @@ _start:
     mov rax, 1 ; operand literal
     mov rbx, 0 ; operand literal
     cmp rax, rbx
-    je eqi_true
-eqi_false:
+    je eq__3_lambda_true_0_0
+eq__11_lambda_false_0_0:
     mov rdi, [rbp-8] ; load _3_lambda closure env_end pointer
     call release_heap_ptr ; release _3_lambda closure environment
     mov rbx, [rbp-16] ; load _11_lambda closure env_end pointer
@@ -324,7 +324,7 @@ eqi_false:
     mov rax, [rdi+0] ; load closure unwrapper entry point
     leave ; unwind before jumping
     jmp rax ; tail call into closure
-eqi_true:
+eq__3_lambda_true_0_0:
     mov rdi, [rbp-16] ; load _11_lambda closure env_end pointer
     call release_heap_ptr ; release _11_lambda closure environment
     mov rbx, [rbp-8] ; load _3_lambda closure env_end pointer

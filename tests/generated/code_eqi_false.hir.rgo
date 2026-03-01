@@ -1,4 +1,4 @@
-eqi: @/eqi
+eqi: @/eq
 write: @/write
 exit: @/exit
 _6_lambda: (){

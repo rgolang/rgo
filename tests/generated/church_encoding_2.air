@@ -115,7 +115,7 @@ _5_two_deepcopy_skip_1:
 
 
 two($f: (), $x: int, $ok: ()):
-    $_6_two = @newclosure<($_0_: int, $_1_: ()), ($_3_: int), int>(_5_two, $f: (), $ok: ())
+    $_6_two = @newclosure<($_0_two: int, $_1_two: ()), ($_3_two: int), int>(_5_two, $f: (), $ok: ())
     @jumpclosure($f, $x: int, $_6_two: int)
 
 
@@ -156,7 +156,7 @@ two_deepcopy_skip_2:
 
 
 _start():
-    $_10_lambda = @newclosure<int, ($_9_: int)>(_10_lambda)
+    $_10_lambda = @newclosure<int, ($_9_lambda: int)>(_10_lambda)
     $_15_lambda = @newclosure<int>(_15_lambda)
     @jumpargs(two, $_10_lambda: (), $_13: int = 0, $_15_lambda: ())
 

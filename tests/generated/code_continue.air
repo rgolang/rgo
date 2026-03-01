@@ -86,7 +86,7 @@ foo_deepcopy_skip_2:
 
 run($ok: ()):
     $_5_k = @newclosure<(), int>(_3_run_k, $ok: ())
-    $a = @newclosure<int, int, ($_0_: int)>(foo, $_1: int = 1, $_2: int = 2)
+    $a = @newclosure<int, int, ($_0_foo: int)>(foo, $_1: int = 1, $_2: int = 2)
     @jumpclosure($a, $_5_k: int)
 
 

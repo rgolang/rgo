@@ -1,0 +1,12 @@
+int: @/int
+str: @/str
+printf: @/printf
+div: @/div
+exit: @/exit
+
+error: (msg: str) {
+    printf("Error: %s\n", msg, exit(1))
+}
+div(10, 0, error("division by zero"), (result: int){
+    printf("result: %d\n", result, exit(0))
+})

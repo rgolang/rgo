@@ -59,17 +59,16 @@ impl SymbolRegistry {
 pub fn register_builtin_import(
     alias: &str,
     import_path: &str,
-    span: Span,
     symbols: &mut SymbolRegistry,
 ) -> Result<(), Error> {
     let name = last_slug(import_path);
     symbols.record_builtin_import(alias, name);
 
-    let spec = builtins::get_spec(name, span).ok_or_else(|| {
+    let spec = builtins::get_spec(name).ok_or_else(|| {
         Error::new(
             Code::Internal,
             format!("unknown import '@{}'", import_path),
-            span,
+            Span::unknown(),
         )
     })?;
 
@@ -80,12 +79,12 @@ pub fn register_builtin_import(
     Ok(())
 }
 
-pub fn builtin_function_sig(builtin_name: &str, span: Span) -> Result<FunctionSig, Error> {
-    let spec = builtins::get_spec(builtin_name, span).ok_or_else(|| {
+pub fn builtin_function_sig(builtin_name: &str) -> Result<FunctionSig, Error> {
+    let spec = builtins::get_spec(builtin_name).ok_or_else(|| {
         Error::new(
             Code::Internal,
             format!("unknown import '@{}'", builtin_name),
-            span,
+            Span::unknown(),
         )
     })?;
 
@@ -94,13 +93,13 @@ pub fn builtin_function_sig(builtin_name: &str, span: Span) -> Result<FunctionSi
             Error::new(
                 Code::Internal,
                 format!("unknown builtin '{}'", builtin_name),
-                span,
+                Span::unknown(),
             )
         })?;
         return Ok(FunctionSig {
             name: builtin_name.into(),
             params: sig.items,
-            span,
+            generics: sig.generics,
             builtin: Some(builtin),
         });
     }
@@ -108,6 +107,6 @@ pub fn builtin_function_sig(builtin_name: &str, span: Span) -> Result<FunctionSi
     Err(Error::new(
         Code::Internal,
         format!("'{}' is not a callable builtin", builtin_name),
-        span,
+        Span::unknown(),
     ))
 }

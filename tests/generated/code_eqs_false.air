@@ -87,11 +87,11 @@ _11_lambda_deepcopy($env_end: int):
 _start():
     $_3_lambda = @newclosure<>(_3_lambda)
     $_11_lambda = @newclosure<>(_11_lambda)
-    @eqs(eqs_true, $_0: str = "aaa", $_1: str = "aab")
-eqs_false:
+    @eqs(eqs__3_lambda_true_0_0, $_0: str = "aaa", $_1: str = "aab")
+eqs__11_lambda_false_0_0:
     @release($_3_lambda)
     @jumpclosure($_11_lambda)
-eqs_true:
+eqs__3_lambda_true_0_0:
     @release($_11_lambda)
     @jumpclosure($_3_lambda)
 

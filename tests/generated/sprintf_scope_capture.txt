@@ -40,7 +40,7 @@
             params: Signature {
                 items: [],
                 span: ,
-                generics: [],
+                generics: {},
             },
             body: Block {
                 items: [
@@ -60,7 +60,7 @@
                                 },
                             ],
                             span: ,
-                            generics: [],
+                            generics: {},
                         },
                         continuation: Block {
                             items: [
@@ -80,7 +80,7 @@
                                             },
                                         ],
                                         span: ,
-                                        generics: [],
+                                        generics: {},
                                     },
                                     continuation: Block {
                                         items: [

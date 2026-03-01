@@ -125,7 +125,8 @@ _2_lambda_unwrapper:
     movsd xmm0, [rbp-24] ; load float operand
     movq rax, xmm0
     push rax ; stack arg
-    mov rax, [rbp-16] ; load operand
+    movsd xmm0, [rbp-16] ; load float operand
+    movq rax, xmm0
     push rax ; stack arg
     pop rdi ; restore arg into register
     pop rsi ; restore arg into register

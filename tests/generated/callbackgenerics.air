@@ -225,7 +225,7 @@ p1_deepcopy_skip_0:
 
 
 _start():
-    $foo = @newclosure<($_0_: ()), ()>(foo)
+    $foo = @newclosure<($_0_foo: ()), ()>(foo)
     $p2 = @newclosure<()>(p2)
     $_11_ = @newclosure<($p: (), $ok: ()), ($ok: ())>(_6_lambda, $foo: (), $p2: ())
     $p1 = @newclosure<()>(p1)

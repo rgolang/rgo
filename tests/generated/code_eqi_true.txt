@@ -1,7 +1,7 @@
 [
     Import {
         label: "eqi",
-        path: "/eqi",
+        path: "/eq",
         span: ,
     },
     Import {
@@ -49,7 +49,7 @@
                             params: Signature {
                                 items: [],
                                 span: ,
-                                generics: [],
+                                generics: {},
                             },
                             body: Block {
                                 items: [
@@ -113,7 +113,7 @@
                             params: Signature {
                                 items: [],
                                 span: ,
-                                generics: [],
+                                generics: {},
                             },
                             body: Block {
                                 items: [

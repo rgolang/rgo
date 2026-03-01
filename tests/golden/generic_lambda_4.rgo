@@ -1,0 +1,11 @@
+exit: @/exit
+int: @/int
+printf: @/printf
+receiver: <T>(T)
+foo: <T>(x: T, ok:receiver<T>){
+    ok(x)
+}
+bar: (x: int){
+    printf("%d", x, exit(0))
+}
+foo(42, bar)

@@ -1,4 +1,4 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::{BTreeSet, VecDeque};
 use std::io::BufRead;
 
 use crate::compiler::ast;
@@ -14,7 +14,7 @@ pub struct Parser<R: BufRead> {
     lexer: Lexer<R>,
     peeked: VecDeque<Token>,
     allow_top_imports: bool,
-    generic_param_stack: Vec<Vec<String>>,
+    generic_param_stack: Vec<BTreeSet<String>>,
 }
 
 #[derive(Copy, Clone)]
@@ -154,7 +154,7 @@ impl<R: BufRead> Parser<R> {
         }
 
         if has_head || has_brace {
-            let params = if has_head {
+            let mut params = if has_head {
                 self.with_generic_scope(&generics, |parser| {
                     parser.parse_params(ParamContext::Params)
                 })?
@@ -162,12 +162,13 @@ impl<R: BufRead> Parser<R> {
                 Signature {
                     items: Vec::new(),
                     span: params_span,
-                    generics: Vec::new(),
+                    generics: BTreeSet::new(),
                 }
             };
 
             if matches!(self.peek_token()?.kind, TokenKind::LBrace) {
                 // FUNCTION CASE
+                params.generics = generics.clone();
 
                 let brace = self.expect_token("{", |k| matches!(k, TokenKind::LBrace))?;
                 let body = self.parse_body(brace.span)?;
@@ -334,7 +335,7 @@ impl<R: BufRead> Parser<R> {
                 let params = Signature {
                     items: Vec::new(),
                     span: token.span,
-                    generics: Vec::new(),
+                    generics: BTreeSet::new(),
                 };
                 let body = self.parse_body(token.span)?;
                 self.expect_token("}", |k| matches!(k, TokenKind::RBrace))?;
@@ -355,12 +356,15 @@ impl<R: BufRead> Parser<R> {
 
     fn parse_argument_list(&mut self) -> Result<Vec<ast::Arg>, Error> {
         let mut args = Vec::new();
+        self.skip_newlines()?;
         if matches!(self.peek_token()?.kind, TokenKind::RParen) {
             self.bump()?;
             return Ok(args);
         }
         loop {
+            self.skip_newlines()?;
             args.push(self.parse_call_arg()?);
+            self.skip_newlines()?;
             if self
                 .consume_if(|kind| matches!(kind, TokenKind::Comma))?
                 .is_some()
@@ -369,6 +373,7 @@ impl<R: BufRead> Parser<R> {
             }
             break;
         }
+        self.skip_newlines()?;
         self.expect_token(")", |kind| matches!(kind, TokenKind::RParen))?;
         Ok(args)
     }
@@ -440,23 +445,21 @@ impl<R: BufRead> Parser<R> {
         })
     }
 
-    fn parse_generic_params(&mut self) -> Result<Vec<String>, Error> {
+    fn parse_generic_params(&mut self) -> Result<BTreeSet<String>, Error> {
         if !matches!(self.peek_token()?.kind, TokenKind::AngleOpen) {
-            return Ok(Vec::new());
+            return Ok(BTreeSet::new());
         }
         let lt = self.expect_token("<", |kind| matches!(kind, TokenKind::AngleOpen))?;
-        let mut params = Vec::new();
-        let mut seen = HashSet::new();
+        let mut params = BTreeSet::new();
         loop {
             let (name, span) = self.parse_identifier("generic parameter name")?;
-            if !seen.insert(name.clone()) {
+            if !params.insert(name.clone()) {
                 return Err(Error::new(
                     Code::Parse,
                     format!("generic parameter '{}' already declared", name),
                     span,
                 ));
             }
-            params.push(name);
             if self
                 .consume_if(|kind| matches!(kind, TokenKind::Comma))?
                 .is_none()
@@ -475,11 +478,11 @@ impl<R: BufRead> Parser<R> {
         Ok(params)
     }
 
-    fn with_generic_scope<F, Res>(&mut self, params: &[String], f: F) -> Result<Res, Error>
+    fn with_generic_scope<F, Res>(&mut self, params: &BTreeSet<String>, f: F) -> Result<Res, Error>
     where
         F: FnOnce(&mut Self) -> Result<Res, Error>,
     {
-        self.generic_param_stack.push(params.to_vec());
+        self.generic_param_stack.push(params.clone());
         let result = f(self);
         self.generic_param_stack.pop();
         result
@@ -489,7 +492,7 @@ impl<R: BufRead> Parser<R> {
         self.generic_param_stack
             .iter()
             .rev()
-            .any(|scope| scope.iter().any(|param| param == name))
+            .any(|scope| scope.contains(name))
     }
 
     fn collect_param_kinds(params: &[SigItem]) -> Result<Vec<ast::SigKind>, Error> {
@@ -535,7 +538,7 @@ impl<R: BufRead> Parser<R> {
                 let kind = SigKind::Sig(Signature {
                     items: args,
                     span: lparen.span,
-                    generics: Vec::new(),
+                    generics: BTreeSet::new(),
                 });
                 return Ok(kind);
             }
@@ -621,7 +624,7 @@ impl<R: BufRead> Parser<R> {
         Ok(Signature {
             items: params,
             span: lparen.span,
-            generics: Vec::new(),
+            generics: BTreeSet::new(),
         })
     }
 

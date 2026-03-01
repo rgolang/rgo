@@ -52,7 +52,7 @@
                             Signature {
                                 items: [],
                                 span: ,
-                                generics: [],
+                                generics: {},
                             },
                         ),
                         has_bang: false,
@@ -60,7 +60,7 @@
                     },
                 ],
                 span: ,
-                generics: [],
+                generics: {},
             },
             body: Block {
                 items: [
@@ -204,7 +204,7 @@
                             params: Signature {
                                 items: [],
                                 span: ,
-                                generics: [],
+                                generics: {},
                             },
                             body: Block {
                                 items: [

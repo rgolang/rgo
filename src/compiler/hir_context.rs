@@ -1,8 +1,8 @@
 use crate::compiler::air::ENTRY_FUNCTION_NAME;
-use crate::compiler::ast::{SigItem, SigKind, Signature};
 use crate::compiler::builtins;
 use crate::compiler::error::{Code, Error};
 use crate::compiler::hir::Closure;
+use crate::compiler::hir::{SigItem, SigKind, Signature};
 use crate::compiler::span::Span;
 use crate::last_slug;
 use std::cell::Cell;
@@ -201,7 +201,6 @@ impl Context {
                     name: name.clone(),
                     kind: entry.kind.clone(),
                     has_bang: false,
-                    span: entry.span.clone(),
                 };
                 if entry.is_capture {
                     capture_params.push(item);
@@ -222,7 +221,6 @@ impl Context {
                     name: name.clone(),
                     kind: entry.kind.clone(),
                     has_bang: false,
-                    span: entry.span.clone(),
                 };
                 if entry.is_capture {
                     capture_params.push(item);
@@ -232,13 +230,13 @@ impl Context {
         capture_params
     }
 
-    pub fn add_literal(&mut self, name: &str, kind: SigKind, span: Span) -> Result<(), Error> {
+    pub fn add_literal(&mut self, name: &str, kind: SigKind) -> Result<(), Error> {
         self.add(
             name,
             ContextEntry {
                 name: name.to_string(),
                 kind,
-                span,
+                span: Span::unknown(),
                 is_builtin: false,
                 is_root: false,
                 is_param: false,
@@ -339,7 +337,6 @@ impl Context {
             name: closure.name.clone(),
             of: target,
             args,
-            span: closure.span,
         }
     }
 }
@@ -352,7 +349,7 @@ pub fn register_import(
 ) -> Result<(), Error> {
     let name = last_slug(import_path);
 
-    let spec = builtins::get_spec(name, span).ok_or_else(|| {
+    let spec = builtins::get_spec(name).ok_or_else(|| {
         Error::new(
             Code::Internal,
             format!("unknown import '@{}'", import_path),

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::compiler::{
-    air, ast,
+    air,
     error::Error,
     hir,
     symbol::{self, SymbolRegistry},
@@ -15,19 +15,14 @@ pub fn generate_air_functions(items: &[hir::BlockItem]) -> Result<Vec<air::AirFu
 
     for item in items {
         match item {
-            hir::BlockItem::Import { label, path, span } => {
-                symbol::register_builtin_import(label, path, *span, &mut symbols)?;
+            hir::BlockItem::Import { label, path } => {
+                symbol::register_builtin_import(label, path, &mut symbols)?;
             }
-            hir::BlockItem::SigDef { name, sig, .. } => {
-                symbols.install_type(name.to_string(), ast::SigKind::Sig(sig.clone()))?;
+            hir::BlockItem::SigDef { name, sig } => {
+                symbols.install_type(name.to_string(), air::SigKind::Sig(sig.clone()))?;
             }
             hir::BlockItem::FunctionDef(function) => {
-                symbols.declare_function(air::FunctionSig {
-                    name: function.name.clone(),
-                    params: function.sig.items.clone(),
-                    span: function.span,
-                    builtin: None,
-                })?;
+                symbols.declare_function(air::function_sig_from_hir(function))?;
                 hir_functions.insert(function.name.clone(), function.clone());
             }
             _ => entry_items.push(item.clone()),

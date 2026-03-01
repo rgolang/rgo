@@ -1,11 +1,10 @@
 use crate::compiler::air;
 use crate::compiler::air::{
-    AirAdd, AirAddF64, AirArg, AirCallPtr, AirCallPtrTarget, AirDiv, AirDivF64, AirField,
+    AirAdd, AirAddF64, AirArg, AirCallPtr, AirCallPtrTarget, AirDivF64, AirDivInt, AirField,
     AirFunction, AirJump, AirJumpArgs, AirJumpClosure, AirJumpEq, AirJumpGt, AirJumpLt, AirLabel,
     AirMul, AirMulF64, AirNewClosure, AirOp, AirPin, AirReturn, AirStmt, AirSub, AirSysExit,
-    AirValue, SigKind,
+    AirValue, Lit, SigKind,
 };
-use crate::compiler::ast::Lit;
 use crate::compiler::builtins;
 use crate::compiler::builtins::AirRuntimeHelper;
 use crate::compiler::error::{Code, Error};
@@ -104,6 +103,15 @@ impl Artifacts {
         }
     }
 
+    fn collect_literals_in_binary_inputs(&mut self, input_a: &AirArg, input_b: &AirArg) {
+        if let Some(Lit::Str(value)) = &input_a.literal {
+            self.add_string_literal(&input_a.name, value);
+        }
+        if let Some(Lit::Str(value)) = &input_b.literal {
+            self.add_string_literal(&input_b.name, value);
+        }
+    }
+
     fn collect_literals_in_op(&mut self, op: &AirOp) {
         match op {
             AirOp::JumpClosure(jump) => self.collect_literals_in_args(&jump.args),
@@ -112,10 +120,10 @@ impl Artifacts {
             AirOp::JumpEqInt(eq) | AirOp::JumpEqStr(eq) => {
                 self.collect_literals_in_args(&eq.args);
             }
-            AirOp::Add(op) => self.collect_literals_in_args(&op.inputs),
-            AirOp::Sub(op) => self.collect_literals_in_args(&op.inputs),
-            AirOp::Mul(op) => self.collect_literals_in_args(&op.inputs),
-            AirOp::Div(op) => self.collect_literals_in_args(&op.inputs),
+            AirOp::Add(op) => self.collect_literals_in_binary_inputs(&op.input_a, &op.input_b),
+            AirOp::Sub(op) => self.collect_literals_in_binary_inputs(&op.input_a, &op.input_b),
+            AirOp::Mul(op) => self.collect_literals_in_binary_inputs(&op.input_a, &op.input_b),
+            AirOp::DivInt(op) => self.collect_literals_in_binary_inputs(&op.input_a, &op.input_b),
             AirOp::Printf(call) => self.collect_literals_in_args(&call.args),
             AirOp::Sprintf(call) => self.collect_literals_in_args(&call.args),
             AirOp::Write(call) => self.collect_literals_in_args(&call.args),
@@ -263,7 +271,7 @@ impl FrameLayout {
             layout.allocate_word(&param.name)?;
         }
         for stmt in &air.items {
-            if let Some((name, ..)) = air_statement_binding_info(stmt) {
+            if let Some(name) = air_statement_binding_info(stmt) {
                 layout.allocate_word(name)?;
             }
         }
@@ -291,12 +299,12 @@ impl FrameLayout {
     }
 }
 
-fn air_statement_binding_info<'a>(stmt: &'a AirStmt) -> Option<(&'a str, Span)> {
+fn air_statement_binding_info<'a>(stmt: &'a AirStmt) -> Option<&'a str> {
     match stmt {
-        AirStmt::Op(AirOp::NewClosure(s)) => Some((&s.name, s.span)),
-        AirStmt::Op(AirOp::CloneClosure(s)) => Some((&s.dst, s.span)),
-        AirStmt::Op(AirOp::Field(field)) => Some((field.result.as_str(), field.span)),
-        AirStmt::Op(AirOp::CopyField(field)) => Some((field.result.as_str(), field.span)),
+        AirStmt::Op(AirOp::NewClosure(s)) => Some(&s.name),
+        AirStmt::Op(AirOp::CloneClosure(s)) => Some(&s.dst),
+        AirStmt::Op(AirOp::Field(field)) => Some(field.result.as_str()),
+        AirStmt::Op(AirOp::CopyField(field)) => Some(field.result.as_str()),
         AirStmt::Op(AirOp::ReleaseHeap(..)) => None,
         AirStmt::Label(_) => None,
         AirStmt::Op(_) => None,
@@ -361,7 +369,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             let binding = self
                 .frame
                 .binding_mut(name)
-                .ok_or_else(|| Error::new(Code::Codegen, "missing binding", param.span))?;
+                .ok_or_else(|| Error::new(Code::Codegen, "missing binding", Span::unknown()))?;
             let slot_addr = binding.slot_addr(0);
 
             if !spilled && slot + 1 <= ARG_REGS.len() {
@@ -424,17 +432,17 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             AirOp::NewClosure(closure) => {
                 let name = closure.name.clone();
                 self.emit_new_closure(closure)?;
-                self.store_binding_value(&name, closure.span)
+                self.store_binding_value(&name)
             }
             AirOp::CloneClosure(clone) => {
                 self.emit_clone_closure(clone)?;
-                self.store_binding_value(&clone.dst, clone.span)
+                self.store_binding_value(&clone.dst)
             }
             AirOp::Jump(jump) => self.emit_jump(jump),
             AirOp::JumpEqInt(eq) => self.emit_eq_int_jump(eq),
             AirOp::JumpEqStr(eq) => self.emit_eq_str_jump(eq),
             AirOp::JumpLt(jump) => self.emit_lt_jump(jump),
-            AirOp::ReleaseHeap(release) => self.emit_release_heap_ptr(&release.name, release.span),
+            AirOp::ReleaseHeap(release) => self.emit_release_heap_ptr(&release.name),
             AirOp::Pin(pin) => self.emit_pin(pin),
             AirOp::Field(field) => self.emit_get_field(field),
             AirOp::SetField(set) => self.emit_set_field(set),
@@ -442,7 +450,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             AirOp::Add(op) => self.emit_add(op),
             AirOp::Sub(op) => self.emit_sub(op),
             AirOp::Mul(op) => self.emit_mul(op),
-            AirOp::Div(op) => self.emit_div(op),
+            AirOp::DivInt(op) => self.emit_div_int(op),
             AirOp::AddF64(op) => self.emit_add_f64(op),
             AirOp::MulF64(op) => self.emit_mul_f64(op),
             AirOp::DivF64(op) => self.emit_div_f64(op),
@@ -452,29 +460,22 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 &op.args,
                 &op.arg_kinds,
                 &op.target,
-                op.span,
             ),
             AirOp::Sprintf(op) => self.emit_libc_op(
                 builtins::Builtin::Sprintf,
                 &op.args,
                 &op.arg_kinds,
                 &op.target,
-                op.span,
             ),
             AirOp::Write(op) => self.emit_libc_op(
                 builtins::Builtin::Write,
                 &op.args,
                 &op.arg_kinds,
                 &op.target,
-                op.span,
             ),
-            AirOp::Puts(op) => self.emit_libc_op(
-                builtins::Builtin::Puts,
-                &op.args,
-                &op.arg_kinds,
-                &op.target,
-                op.span,
-            ),
+            AirOp::Puts(op) => {
+                self.emit_libc_op(builtins::Builtin::Puts, &op.args, &op.arg_kinds, &op.target)
+            }
             AirOp::CallPtr(call) => self.emit_call_ptr(call),
             AirOp::SysExit(syscall) => self.emit_exit_syscall(syscall),
             AirOp::JumpArgs(call) => self.emit_jump_args(call),
@@ -495,7 +496,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             Error::new(
                 Code::Codegen,
                 format!("unknown binding '{}'", clone.src),
-                clone.span,
+                Span::unknown(),
             )
         })?;
 
@@ -564,9 +565,9 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
     }
     fn emit_add(&mut self, op: &AirAdd) -> Result<(), Error> {
         self.emit_binary_op(
-            &op.inputs,
+            &op.input_a,
+            &op.input_b,
             &op.target,
-            op.span,
             "add",
             "add second integer",
             false,
@@ -575,9 +576,9 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
     fn emit_sub(&mut self, op: &AirSub) -> Result<(), Error> {
         self.emit_binary_op(
-            &op.inputs,
+            &op.input_a,
+            &op.input_b,
             &op.target,
-            op.span,
             "sub",
             "subtract subtrahend",
             false,
@@ -586,105 +587,98 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
     fn emit_mul(&mut self, op: &AirMul) -> Result<(), Error> {
         self.emit_binary_op(
-            &op.inputs,
+            &op.input_a,
+            &op.input_b,
             &op.target,
-            op.span,
             "mul",
             "multiply by multiplier",
             false,
         )
     }
 
-    fn emit_div(&mut self, op: &AirDiv) -> Result<(), Error> {
-        self.emit_binary_op(
-            &op.inputs,
-            &op.target,
-            op.span,
-            "div",
-            "divide by divisor",
-            true,
-        )
+    fn emit_div_int(&mut self, op: &AirDivInt) -> Result<(), Error> {
+        self.load_arg_into_reg(&op.input_b, "rbx")?;
+
+        let ok_label = self.new_label("div_ok");
+        writeln!(
+            self.out,
+            "    cmp rbx, 0 ; check divisor for division by zero"
+        )?;
+        writeln!(self.out, "    jne {}", ok_label)?;
+
+        self.emit_release_heap_ptr(&op.ok_target)?;
+        self.emit_value_jump(&op.err_target, false)?;
+
+        writeln!(self.out, "{}:", ok_label)?;
+        self.emit_release_heap_ptr(&op.err_target)?;
+        self.load_arg_into_reg(&op.input_a, "rax")?;
+        self.load_arg_into_reg(&op.input_b, "rbx")?;
+        writeln!(self.out, "    cqo ; sign extend dividend")?;
+        writeln!(self.out, "    idiv rbx ; divide by divisor")?;
+        self.emit_value_jump(&op.ok_target, true)
     }
 
     fn emit_add_f64(&mut self, op: &AirAddF64) -> Result<(), Error> {
         self.emit_float_binary_op(
-            &op.inputs,
+            &op.input_a,
+            &op.input_b,
             &op.target,
-            op.span,
             "addsd",
-            "addf64",
             "add second float",
         )
     }
 
     fn emit_mul_f64(&mut self, op: &AirMulF64) -> Result<(), Error> {
         self.emit_float_binary_op(
-            &op.inputs,
+            &op.input_a,
+            &op.input_b,
             &op.target,
-            op.span,
             "mulsd",
-            "mulf64",
             "multiply by multiplier float",
         )
     }
 
     fn emit_div_f64(&mut self, op: &AirDivF64) -> Result<(), Error> {
         self.emit_float_binary_op(
-            &op.inputs,
+            &op.input_a,
+            &op.input_b,
             &op.target,
-            op.span,
             "divsd",
-            "divf64",
             "divide by divisor float",
         )
     }
 
     fn emit_binary_op(
         &mut self,
-        inputs: &[AirArg],
+        input_a: &AirArg,
+        input_b: &AirArg,
         target: &str,
-        span: Span,
         opcode: &str,
         second_comment: &str,
         is_div: bool,
     ) -> Result<(), Error> {
-        if inputs.len() != 2 {
-            return Err(Error::new(
-                Code::Codegen,
-                format!("{opcode} requires two arguments"),
-                span,
-            ));
-        }
-        self.load_arg_into_reg(&inputs[0], "rax")?;
-        self.load_arg_into_reg(&inputs[1], "rbx")?;
+        self.load_arg_into_reg(input_a, "rax")?;
+        self.load_arg_into_reg(input_b, "rbx")?;
         if is_div {
             writeln!(self.out, "    cqo ; sign extend dividend")?;
             writeln!(self.out, "    idiv rbx ; {}", second_comment)?;
         } else {
             writeln!(self.out, "    {} rax, rbx ; {}", opcode, second_comment)?;
         }
-        self.emit_value_jump(target, span, true)?;
+        self.emit_value_jump(target, true)?;
         Ok(())
     }
 
     fn emit_float_binary_op(
         &mut self,
-        inputs: &[AirArg],
+        input_a: &AirArg,
+        input_b: &AirArg,
         target: &str,
-        span: Span,
         opcode: &str,
-        op_name: &str,
         comment: &str,
     ) -> Result<(), Error> {
-        if inputs.len() != 2 {
-            return Err(Error::new(
-                Code::Codegen,
-                format!("{op_name} requires two arguments"),
-                span,
-            ));
-        }
-        self.load_arg_into_xmm(&inputs[0], "xmm0")?;
-        self.load_arg_into_xmm(&inputs[1], "xmm1")?;
+        self.load_arg_into_xmm(input_a, "xmm0")?;
+        self.load_arg_into_xmm(input_b, "xmm1")?;
         writeln!(
             self.out,
             "    {opcode} xmm0, xmm1 ; {comment}",
@@ -692,7 +686,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             comment = comment
         )?;
         writeln!(self.out, "    movq rax, xmm0 ; move float result to rax")?;
-        self.emit_value_jump(target, span, true)?;
+        self.emit_value_jump(target, true)?;
         Ok(())
     }
 
@@ -702,16 +696,19 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         args: &[AirArg],
         arg_kinds: &[SigKind],
         target: &str,
-        span: Span,
     ) -> Result<(), Error> {
-        let has_result = self.emit_libc_call(builtin, args, arg_kinds, span)?;
-        self.emit_value_jump(target, span, has_result)?;
+        let has_result = self.emit_libc_call(builtin, args, arg_kinds)?;
+        self.emit_value_jump(target, has_result)?;
         Ok(())
     }
 
-    fn emit_value_jump(&mut self, target: &str, span: Span, has_result: bool) -> Result<(), Error> {
+    fn emit_value_jump(&mut self, target: &str, has_result: bool) -> Result<(), Error> {
         let binding = self.frame.binding(target).cloned().ok_or_else(|| {
-            Error::new(Code::Codegen, format!("unknown binding '{}'", target), span)
+            Error::new(
+                Code::Codegen,
+                format!("unknown binding '{}'", target),
+                Span::unknown(),
+            )
         })?;
         writeln!(
             self.out,
@@ -743,7 +740,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             Error::new(
                 Code::Codegen,
                 format!("unknown binding '{}'", jump.env_end),
-                jump.span,
+                Span::unknown(),
             )
         })?;
         writeln!(
@@ -798,11 +795,11 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             "    mov rax, [{}] ; load {} env field",
             addr, name
         )?;
-        self.store_binding_value(&field.result, field.span)?;
+        self.store_binding_value(&field.result)?;
         Ok(())
     }
 
-    fn emit_release_heap_ptr(&mut self, name: &str, _span: Span) -> Result<(), Error> {
+    fn emit_release_heap_ptr(&mut self, name: &str) -> Result<(), Error> {
         if let Some(binding) = self.frame.binding(name) {
             let binding = binding.clone();
             let env_offset = binding.slot_addr(0);
@@ -848,7 +845,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             "    mov [{}], rax ; store duplicated pointer",
             field_addr
         )?;
-        self.store_binding_value(&field.result, field.span)?;
+        self.store_binding_value(&field.result)?;
         Ok(())
     }
 
@@ -1243,9 +1240,13 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         Ok(())
     }
 
-    fn store_binding_value(&mut self, name: &str, span: Span) -> Result<(), Error> {
+    fn store_binding_value(&mut self, name: &str) -> Result<(), Error> {
         let binding = self.frame.binding_mut(name).ok_or_else(|| {
-            Error::new(Code::Codegen, format!("unknown binding '{}'", name), span)
+            Error::new(
+                Code::Codegen,
+                format!("unknown binding '{}'", name),
+                Span::unknown(),
+            )
         })?;
         writeln!(
             self.out,
@@ -1278,7 +1279,6 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         builtin: builtins::Builtin,
         args: &[AirArg],
         arg_kinds: &[SigKind],
-        span: Span,
     ) -> Result<bool, Error> {
         match builtin {
             builtins::Builtin::Printf => {
@@ -1286,7 +1286,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                     return Err(Error::new(
                         Code::Codegen,
                         "printf requires a format string before the continuation",
-                        span,
+                        Span::unknown(),
                     ));
                 }
 
@@ -1302,7 +1302,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                     return Err(Error::new(
                         Code::Codegen,
                         "sprintf requires a format string before the continuation",
-                        span,
+                        Span::unknown(),
                     ));
                 }
 
@@ -1315,7 +1315,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                     return Err(Error::new(
                         Code::Codegen,
                         "sprintf requires at least one register slot for the buffer pointer",
-                        span,
+                        Span::unknown(),
                     ));
                 }
                 for i in (0..arg_split.reg_slots).rev() {
@@ -1346,7 +1346,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                     return Err(Error::new(
                         Code::Codegen,
                         "write requires a buffer before the continuation",
-                        span,
+                        Span::unknown(),
                     ));
                 }
 
@@ -1381,7 +1381,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                     return Err(Error::new(
                         Code::Codegen,
                         "puts requires a buffer before the continuation",
-                        span,
+                        Span::unknown(),
                     ));
                 }
 
@@ -1396,7 +1396,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
             _ => Err(Error::new(
                 Code::Codegen,
                 format!("unsupported libc call '{}'", builtin.name()),
-                span,
+                Span::unknown(),
             )),
         }
     }

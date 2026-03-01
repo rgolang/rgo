@@ -109,6 +109,6 @@ foo_deepcopy_skip_0:
 
 
 _start():
-    $p = @newclosure<int, int, ($_0_: int, $_1_: int)>(new_point, $_7: int = 1, $_8: int = 2)
+    $p = @newclosure<int, int, ($_0_new_point: int, $_1_new_point: int)>(new_point, $_7: int = 1, $_8: int = 2)
     @jumpargs(foo, $p: ())
 

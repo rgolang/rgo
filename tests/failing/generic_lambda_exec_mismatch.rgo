@@ -1,0 +1,13 @@
+int: @/int
+str: @/str
+exit: @/exit
+
+foo: <T>(x:T, y:T, ok:()){
+    ok
+}
+
+done: (){
+    exit(0)
+}
+
+foo(1, "bad", done)

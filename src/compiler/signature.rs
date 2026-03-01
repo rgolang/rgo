@@ -1,12 +1,34 @@
 use crate::compiler::ast;
-use crate::compiler::ast::{SigIdent, SigItem, SigKind, Signature};
+use crate::compiler::hir;
 use crate::compiler::hir_context as ctx;
 use crate::compiler::span::Span;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
-pub fn resolve_ast_signature(signature: &ast::Signature, ctx: &mut ctx::Context) -> Signature {
-    Signature {
-        span: signature.span,
+pub fn ast_signature_to_hir(signature: ast::Signature) -> hir::Signature {
+    hir::Signature {
+        items: signature
+            .items
+            .into_iter()
+            .map(ast_sig_item_to_hir)
+            .collect(),
+        generics: signature.generics,
+    }
+}
+
+pub fn hir_signature_to_ast(signature: hir::Signature) -> ast::Signature {
+    ast::Signature {
+        items: signature
+            .items
+            .into_iter()
+            .map(hir_sig_item_to_ast)
+            .collect(),
+        span: Span::unknown(),
+        generics: signature.generics,
+    }
+}
+
+pub fn resolve_signature(signature: &hir::Signature, ctx: &mut ctx::Context) -> hir::Signature {
+    hir::Signature {
         items: signature
             .items
             .iter()
@@ -17,22 +39,20 @@ pub fn resolve_ast_signature(signature: &ast::Signature, ctx: &mut ctx::Context)
                     item.name.clone()
                 };
                 let ty = lower_sig_kind(&item.kind, ctx, item.has_bang);
-                SigItem {
+                hir::SigItem {
                     name,
                     kind: ty,
                     has_bang: item.has_bang,
-                    span: item.span,
                 }
             })
             .collect(),
         generics: signature.generics.clone(),
     }
 }
-
 /// Normalize a HIR SigKind by resolving any `Ident` that refers to an imported builtin (ctxentry.is_builtin=true),
 /// converting e.g. `Ident("str") -> SigKind::Str`, `Ident("int") -> SigKind::Int`, etc.
 /// Uses a single canonical folder to avoid match duplication.
-pub fn normalize_signature(signature: &Signature, ctx: &ctx::Context) -> Signature {
+pub fn normalize_signature(signature: &hir::Signature, ctx: &ctx::Context) -> hir::Signature {
     let items = signature
         .items
         .iter()
@@ -42,27 +62,26 @@ pub fn normalize_signature(signature: &Signature, ctx: &ctx::Context) -> Signatu
             normalized_item
         })
         .collect();
-    Signature {
+    hir::Signature {
         items,
-        span: signature.span,
         generics: signature.generics.clone(),
     }
 }
 
-pub fn normalize_sig_kind(kind: &SigKind, ctx: &ctx::Context) -> SigKind {
+pub fn normalize_sig_kind(kind: &hir::SigKind, ctx: &ctx::Context) -> hir::SigKind {
     let mut seen = HashSet::new();
     normalize_sig_kind_inner(kind, ctx, &mut seen)
 }
 
 fn normalize_sig_kind_inner(
-    kind: &SigKind,
+    kind: &hir::SigKind,
     ctx: &ctx::Context,
     seen: &mut HashSet<String>,
-) -> SigKind {
+) -> hir::SigKind {
     match kind {
-        SigKind::Ident(ident) => {
+        hir::SigKind::Ident(ident) => {
             if seen.contains(&ident.name) {
-                return SigKind::Ident(ident.clone());
+                return hir::SigKind::Ident(ident.clone());
             }
             if let Some(entry) = ctx.get(&ident.name) {
                 seen.insert(ident.name.clone());
@@ -70,9 +89,9 @@ fn normalize_sig_kind_inner(
                 seen.remove(&ident.name);
                 return resolved;
             }
-            SigKind::Ident(ident.clone())
+            hir::SigKind::Ident(ident.clone())
         }
-        SigKind::Sig(signature) => {
+        hir::SigKind::Sig(signature) => {
             let items = signature
                 .items
                 .iter()
@@ -82,9 +101,8 @@ fn normalize_sig_kind_inner(
                     normalized_item
                 })
                 .collect();
-            SigKind::Sig(Signature {
+            hir::SigKind::Sig(hir::Signature {
                 items,
-                span: signature.span,
                 generics: signature.generics.clone(),
             })
         }
@@ -92,43 +110,38 @@ fn normalize_sig_kind_inner(
     }
 }
 
-pub fn resolve_target_signature(target: &str, ctx: &ctx::Context) -> Option<Signature> {
+pub fn resolve_target_signature(target: &str, ctx: &ctx::Context) -> Option<hir::Signature> {
     let mut visited = HashSet::new();
     ctx.get(target)
         .and_then(|entry| signature_from_kind(&entry.kind, ctx, &mut visited))
 }
 
-// With cycle detection
 pub fn signature_from_kind(
-    kind: &SigKind,
+    kind: &hir::SigKind,
     ctx: &ctx::Context,
     visited: &mut HashSet<String>,
-) -> Option<Signature> {
+) -> Option<hir::Signature> {
     match kind {
-        SigKind::Sig(signature) => Some(signature.clone()),
-
-        SigKind::Ident(ident) => {
+        hir::SigKind::Sig(signature) => Some(signature.clone()),
+        hir::SigKind::Ident(ident) => {
             let name = &ident.name;
             if !visited.insert(name.clone()) {
-                return None; // Cycle detected
+                return None;
             }
-
             let out = ctx
                 .get(name)
                 .and_then(|entry| signature_from_kind(&entry.kind, ctx, visited));
-
             visited.remove(name);
             out
         }
-
         _ => None,
     }
 }
 
 pub fn expected_params_for_args<'a>(
-    params: &'a [SigItem],
+    params: &'a [hir::SigItem],
     args_len: usize,
-) -> Vec<Option<&'a SigItem>> {
+) -> Vec<Option<&'a hir::SigItem>> {
     let mut expected = Vec::with_capacity(args_len);
     if args_len == 0 {
         return expected;
@@ -138,7 +151,7 @@ pub fn expected_params_for_args<'a>(
     let mut suffix_start = args_len;
     let variadic_index = params
         .iter()
-        .position(|item| matches!(item.kind, SigKind::Variadic));
+        .position(|item| matches!(item.kind, hir::SigKind::Variadic));
 
     if let Some(var_idx) = variadic_index {
         let prefix_count = var_idx;
@@ -168,81 +181,126 @@ pub fn expected_params_for_args<'a>(
     expected
 }
 
-/// Core logic for resolving identifiers.
-/// If ctx has an entry for `ident.name` and it is_builtin=true, we convert to the builtin kind:
-/// `str -> SigKind::Str`, `int -> SigKind::Int`, etc.
-/// Otherwise it remains a user-defined SigKind::Ident.
-fn resolve_ident(ident: &SigIdent, ctx: &ctx::Context) -> (SigKind, bool) {
+fn resolve_ident(ident: &hir::SigIdent, ctx: &ctx::Context) -> hir::SigKind {
     if let Some(entry) = ctx.get(&ident.name) {
-        if entry.is_builtin {
-            return (entry.kind.clone(), true);
+        if entry.is_builtin || matches!(entry.kind, hir::SigKind::Generic(_)) {
+            return entry.kind.clone();
         }
     }
-    (SigKind::Ident(ident.clone()), false)
+    hir::SigKind::Ident(ident.clone())
 }
 
-fn lower_sig_kind(ast_kind: &ast::SigKind, ctx: &mut ctx::Context, has_bang: bool) -> SigKind {
-    match ast_kind {
-        ast::SigKind::Ident(ast_ident) => {
-            let ident = SigIdent {
-                name: ast_ident.name.clone(),
-                span: ast_ident.span,
-            };
-            let kind = resolve_ident(&ident, ctx).0;
+fn ast_sig_item_to_hir(item: ast::SigItem) -> hir::SigItem {
+    hir::SigItem {
+        name: item.name,
+        kind: ast_sig_kind_to_hir(item.kind),
+        has_bang: item.has_bang,
+    }
+}
+
+fn ast_sig_kind_to_hir(kind: ast::SigKind) -> hir::SigKind {
+    match kind {
+        ast::SigKind::Int => hir::SigKind::Int,
+        ast::SigKind::Str => hir::SigKind::Str,
+        ast::SigKind::F64 => hir::SigKind::F64,
+        ast::SigKind::Variadic => hir::SigKind::Variadic,
+        ast::SigKind::CompileTimeInt => hir::SigKind::CompileTimeInt,
+        ast::SigKind::CompileTimeStr => hir::SigKind::CompileTimeStr,
+        ast::SigKind::Ident(ident) => hir::SigKind::Ident(hir::SigIdent { name: ident.name }),
+        ast::SigKind::Sig(signature) => hir::SigKind::Sig(ast_signature_to_hir(signature)),
+        ast::SigKind::GenericInst { name, args } => hir::SigKind::GenericInst {
+            name,
+            args: args.into_iter().map(ast_sig_kind_to_hir).collect(),
+        },
+        ast::SigKind::Generic(name) => hir::SigKind::Generic(name),
+    }
+}
+
+fn hir_sig_item_to_ast(item: hir::SigItem) -> ast::SigItem {
+    ast::SigItem {
+        name: item.name,
+        kind: hir_sig_kind_to_ast(item.kind),
+        has_bang: item.has_bang,
+        span: Span::unknown(),
+    }
+}
+
+fn hir_sig_kind_to_ast(kind: hir::SigKind) -> ast::SigKind {
+    match kind {
+        hir::SigKind::Int => ast::SigKind::Int,
+        hir::SigKind::Str => ast::SigKind::Str,
+        hir::SigKind::F64 => ast::SigKind::F64,
+        hir::SigKind::Variadic => ast::SigKind::Variadic,
+        hir::SigKind::CompileTimeInt => ast::SigKind::CompileTimeInt,
+        hir::SigKind::CompileTimeStr => ast::SigKind::CompileTimeStr,
+        hir::SigKind::Ident(ident) => ast::SigKind::Ident(ast::SigIdent {
+            name: ident.name,
+            span: Span::unknown(),
+        }),
+        hir::SigKind::Sig(signature) => ast::SigKind::Sig(hir_signature_to_ast(signature)),
+        hir::SigKind::GenericInst { name, args } => ast::SigKind::GenericInst {
+            name,
+            args: args.into_iter().map(hir_sig_kind_to_ast).collect(),
+        },
+        hir::SigKind::Generic(name) => ast::SigKind::Generic(name),
+    }
+}
+
+fn lower_sig_kind(kind: &hir::SigKind, ctx: &mut ctx::Context, has_bang: bool) -> hir::SigKind {
+    match kind {
+        hir::SigKind::Ident(ident) => {
+            let resolved = resolve_ident(ident, ctx);
             if has_bang {
-                match kind {
-                    SigKind::Int => SigKind::CompileTimeInt,
-                    SigKind::Str => SigKind::CompileTimeStr,
-                    SigKind::CompileTimeInt => SigKind::CompileTimeInt,
-                    SigKind::CompileTimeStr => SigKind::CompileTimeStr,
+                match resolved {
+                    hir::SigKind::Int => hir::SigKind::CompileTimeInt,
+                    hir::SigKind::Str => hir::SigKind::CompileTimeStr,
+                    hir::SigKind::CompileTimeInt => hir::SigKind::CompileTimeInt,
+                    hir::SigKind::CompileTimeStr => hir::SigKind::CompileTimeStr,
                     other => other,
                 }
             } else {
-                kind
+                resolved
             }
         }
-        ast::SigKind::Sig(signature) => SigKind::Sig(resolve_ast_signature(signature, ctx)),
-        ast::SigKind::GenericInst { name, args } => {
+        hir::SigKind::Sig(signature) => hir::SigKind::Sig(resolve_signature(signature, ctx)),
+        hir::SigKind::GenericInst { name, args } => {
             let resolved_args = args
                 .iter()
-                .map(|arg| lower_sig_kind(&arg, ctx, false)) // TODO: handle has_bang?
+                .map(|arg| lower_sig_kind(arg, ctx, false))
                 .collect::<Vec<_>>();
 
-            instantiate_generic_inst(name, &resolved_args, ctx).unwrap_or_else(|| {
-                SigKind::Ident(SigIdent {
-                    name: name.clone(),
-                    span: Span::unknown(),
-                })
-            })
+            instantiate_generic_inst(name, &resolved_args, ctx)
+                .unwrap_or_else(|| hir::SigKind::Ident(hir::SigIdent { name: name.clone() }))
         }
-        ast::SigKind::Generic(name) => SigKind::Ident(SigIdent {
-            name: name.clone(),
-            span: Span::unknown(),
-        }),
-        ast::SigKind::Int => {
+        hir::SigKind::Generic(name) => hir::SigKind::Generic(name.clone()),
+        hir::SigKind::Int => {
             if has_bang {
-                SigKind::CompileTimeInt
+                hir::SigKind::CompileTimeInt
             } else {
-                SigKind::Int
+                hir::SigKind::Int
             }
         }
-        ast::SigKind::Str => {
+        hir::SigKind::Str => {
             if has_bang {
-                SigKind::CompileTimeStr
+                hir::SigKind::CompileTimeStr
             } else {
-                SigKind::Str
+                hir::SigKind::Str
             }
         }
-        ast::SigKind::F64 => SigKind::F64,
-        ast::SigKind::Variadic => SigKind::Variadic,
-        ast::SigKind::CompileTimeInt => SigKind::CompileTimeInt,
-        ast::SigKind::CompileTimeStr => SigKind::CompileTimeStr,
+        hir::SigKind::F64 => hir::SigKind::F64,
+        hir::SigKind::Variadic => hir::SigKind::Variadic,
+        hir::SigKind::CompileTimeInt => hir::SigKind::CompileTimeInt,
+        hir::SigKind::CompileTimeStr => hir::SigKind::CompileTimeStr,
     }
 }
 
-fn instantiate_generic_inst(name: &str, args: &[SigKind], ctx: &ctx::Context) -> Option<SigKind> {
+fn instantiate_generic_inst(
+    name: &str,
+    args: &[hir::SigKind],
+    ctx: &ctx::Context,
+) -> Option<hir::SigKind> {
     let entry = ctx.get(name)?;
-    let signature = if let SigKind::Sig(signature) = &entry.kind {
+    let signature = if let hir::SigKind::Sig(signature) = &entry.kind {
         signature
     } else {
         return None;
@@ -252,17 +310,20 @@ fn instantiate_generic_inst(name: &str, args: &[SigKind], ctx: &ctx::Context) ->
         return None;
     }
 
-    let mapping: HashMap<String, SigKind> = signature
+    let mapping: HashMap<String, hir::SigKind> = signature
         .generics
         .iter()
         .cloned()
         .zip(args.iter().cloned())
         .collect();
 
-    Some(SigKind::Sig(substitute_signature(signature, &mapping)))
+    Some(hir::SigKind::Sig(substitute_signature(signature, &mapping)))
 }
 
-fn substitute_signature(signature: &Signature, mapping: &HashMap<String, SigKind>) -> Signature {
+fn substitute_signature(
+    signature: &hir::Signature,
+    mapping: &HashMap<String, hir::SigKind>,
+) -> hir::Signature {
     let items = signature
         .items
         .iter()
@@ -273,22 +334,28 @@ fn substitute_signature(signature: &Signature, mapping: &HashMap<String, SigKind
         })
         .collect();
 
-    Signature {
+    hir::Signature {
         items,
-        span: signature.span,
-        generics: Vec::new(),
+        generics: BTreeSet::new(),
     }
 }
 
 // TODO: Remove this
-fn substitute_kind(kind: &SigKind, mapping: &HashMap<String, SigKind>) -> SigKind {
+fn substitute_kind(kind: &hir::SigKind, mapping: &HashMap<String, hir::SigKind>) -> hir::SigKind {
     match kind {
-        SigKind::Sig(signature) => SigKind::Sig(substitute_signature(signature, mapping)),
-        SigKind::Ident(ident) => {
+        hir::SigKind::Sig(signature) => hir::SigKind::Sig(substitute_signature(signature, mapping)),
+        hir::SigKind::Ident(ident) => {
             if let Some(mapped) = mapping.get(&ident.name) {
                 mapped.clone()
             } else {
-                SigKind::Ident(ident.clone())
+                hir::SigKind::Ident(ident.clone())
+            }
+        }
+        hir::SigKind::Generic(name) => {
+            if let Some(mapped) = mapping.get(name) {
+                mapped.clone()
+            } else {
+                hir::SigKind::Generic(name.clone())
             }
         }
         _ => kind.clone(),

@@ -86,7 +86,7 @@ bar_deepcopy_skip_2:
 
 foo($ok: ()):
     $_7_foo = @newclosure<(), int>(_5_foo, $ok: ())
-    $c1 = @newclosure<int, int, ($_0_: int)>(bar, $_1: int = 1, $_2: int = 2)
+    $c1 = @newclosure<int, int, ($_0_bar: int)>(bar, $_1: int = 1, $_2: int = 2)
     @jumpclosure($c1, $_7_foo: int)
 
 

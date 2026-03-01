@@ -49,7 +49,7 @@
                             params: Signature {
                                 items: [],
                                 span: ,
-                                generics: [],
+                                generics: {},
                             },
                             body: Block {
                                 items: [
@@ -113,7 +113,7 @@
                             params: Signature {
                                 items: [],
                                 span: ,
-                                generics: [],
+                                generics: {},
                             },
                             body: Block {
                                 items: [

@@ -115,7 +115,7 @@ _7_three_deepcopy_skip_1:
 
 
 _5_three($f: (), $ok: (), $y: int):
-    $_8_three = @newclosure<($_0_: int, $_1_: ()), ($_3_: int), int>(_7_three, $f: (), $ok: ())
+    $_8_three = @newclosure<($_0_three: int, $_1_three: ()), ($_3_three: int), int>(_7_three, $f: (), $ok: ())
     @jumpclosure($f, $y: int, $_8_three: int)
 
 
@@ -156,7 +156,7 @@ _5_three_deepcopy_skip_1:
 
 
 three($f: (), $x: int, $ok: ()):
-    $_9_three = @newclosure<($_0_: int, $_1_: ()), ($_3_: int), int>(_5_three, $f: (), $ok: ())
+    $_9_three = @newclosure<($_0_three: int, $_1_three: ()), ($_3_three: int), int>(_5_three, $f: (), $ok: ())
     @jumpclosure($f, $x: int, $_9_three: int)
 
 
@@ -197,7 +197,7 @@ three_deepcopy_skip_2:
 
 
 _start():
-    $_13_lambda = @newclosure<int, ($_12_: int)>(_13_lambda)
+    $_13_lambda = @newclosure<int, ($_12_lambda: int)>(_13_lambda)
     $_18_lambda = @newclosure<int>(_18_lambda)
     @jumpargs(three, $_13_lambda: (), $_16: int = 0, $_18_lambda: ())
 
