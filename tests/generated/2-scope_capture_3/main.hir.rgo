@@ -1,0 +1,30 @@
+str: @str
+int: @int
+printf: @printf
+add: @add
+exit: @exit
+_2_foo: (ok:(int)){
+    _3: 1
+    _4: 2
+    add(_3, _4, ok)
+}
+
+_9_foo: (){
+    _10: 0
+    exit(_10)
+}
+
+_6_foo: (x: int){
+    _7: "result: %d"
+    printf(_7, x, _9_foo)
+}
+
+foo: (){
+    _13_foo: _2_foo(_6_foo)
+    _13_foo()
+}
+
+main: (){
+    foo()
+}
+main()

@@ -1,0 +1,23 @@
+int: @int
+str: @str
+printf: @printf
+exit: @exit
+foo: (f:(str, ()), ok:()){
+    _2: "42"
+    f(_2, ok)
+}
+
+print: (n: str, ok:()){
+    _3: "The winning number is %s\n"
+    printf(_3, n, ok)
+}
+
+_5_main: (){
+    _6: 0
+    exit(_6)
+}
+
+main: (){
+    foo(print, _5_main)
+}
+main()

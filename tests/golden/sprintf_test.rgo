@@ -1,9 +1,0 @@
-int: @/int
-str: @/str
-sprintf: @/sprintf
-write: @/write
-exit: @/exit
-
-sprintf("result: %d", 3, (s:str){
-    write(s, exit(0))
-})

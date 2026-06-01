@@ -1,0 +1,15 @@
+int: @int
+printf: @printf
+exit: @exit
+x: 41
+_3_main: (){
+    _4: 0
+    exit(_4)
+}
+
+main: (){
+    _0: "the answer is: %d"
+    _1: 42
+    printf(_0, _1, _3_main)
+}
+main()

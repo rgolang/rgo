@@ -1,0 +1,9 @@
+exit: @exit
+str: @str
+printf: @printf
+foo: (a: str, b: str){
+    printf("%s %s", a, b, exit(0))
+}
+main: () {
+    foo(b: "world", c: "hello")
+}

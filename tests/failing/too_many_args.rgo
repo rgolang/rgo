@@ -1,7 +1,0 @@
-int: @/int
-exit: @/exit
-
-foo: (x: int, y: int) {
-    exit(0)
-}
-foo(1, 2, 3)

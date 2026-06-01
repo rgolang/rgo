@@ -1,0 +1,33 @@
+int: @int
+str: @str
+printf: @printf
+div: @div
+exit: @exit
+_2_error: (){
+    _3: 1
+    exit(_3)
+}
+
+error: (msg: str){
+    _0: "Error: %s\n"
+    printf(_0, msg, _2_error)
+}
+
+_13_main: (){
+    _14: 0
+    exit(_14)
+}
+
+_10_main: (result: int){
+    _11: "result: %d\n"
+    printf(_11, result, _13_main)
+}
+
+main: (){
+    _5: 10
+    _6: 5
+    _7: "division by zero"
+    _8_error: error(_7)
+    div(_5, _6, _8_error, _10_main)
+}
+main()

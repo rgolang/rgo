@@ -1,0 +1,14 @@
+str: @str
+write: @write
+exit: @exit
+
+bar: (v: str, ok: ()) {
+    write(v, ok)
+}
+msg: "hi"
+foo: () {
+    bar(msg, exit(0))
+}
+main: () {
+    foo()
+}

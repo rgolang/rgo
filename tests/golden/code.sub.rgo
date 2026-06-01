@@ -1,8 +1,0 @@
-sub: @/sub
-int: @/int
-printf: @/printf
-exit: @/exit
-
-sub(9, 4, (n: int) {
-    printf("sub: %d", n, exit(0))
-})

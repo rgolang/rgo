@@ -1,0 +1,9 @@
+int: @int
+printf: @printf
+exit: @exit
+foo: (n: int) {
+    printf("Number: %d\n", n, exit(0))
+}
+main: () {
+    foo("invalid_arg")  // Error: expected int, found str
+}

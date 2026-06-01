@@ -1,0 +1,29 @@
+eqi: @eq
+write: @write
+exit: @exit
+_6_main: (){
+    _7: 0
+    exit(_7)
+}
+
+_3_main: (){
+    _4: "true"
+    write(_4, _6_main)
+}
+
+_14_main: (){
+    _15: 0
+    exit(_15)
+}
+
+_11_main: (){
+    _12: "false"
+    write(_12, _14_main)
+}
+
+main: (){
+    _0: 1
+    _1: 0
+    eqi(_0, _1, _3_main, _11_main)
+}
+main()

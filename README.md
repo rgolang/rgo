@@ -17,11 +17,13 @@ The grammar file lives in: [grammar.peg](./grammar.peg)
 
 # Example
 ```
-@/printf
-@/exit
+printf: @printf
+exit: @exit
 
 name: "Alice"
-printf("hello %s", name, exit(0))
+main: () {
+    printf("hello %s", name, exit(0))
+}
 ```
 
 ## Execution Model & Core Semantics
@@ -38,7 +40,7 @@ There are no expressions, operators or return values, all computation is a seque
 
 A definition introduces a name for a value inside the current scope:
 ```
-@/printf
+printf: @printf
 
 name: "Bob"
 foo: (ok:()){
@@ -49,15 +51,17 @@ foo: (ok:()){
 ### Execution
 
 ```
-@/exit
-@/printf
+exit: @exit
+printf: @printf
 
 name: "Bob"
 foo: (ok:()){
    printf("hello %s", name, ok)
 }
 end: exit(0)
-foo(end)
+main: () {
+    foo(end)
+}
 ```
 
 This syntax `foo(end)` does **not** imply a C-style function call.  
@@ -132,15 +136,15 @@ Programs are then lowered directly into tail-jump CPS and compiled straight to a
 git clone https://github.com/rgolang/rgo.git
 cd rgo
 docker build -t rgo-compiler .
-docker run --rm -i rgo-compiler < code/hello.rgo
+docker run --rm -i rgo-compiler - main < code/hello.rgo
 ```
 
-This compiles and runs `code/hello.rgo`
+This compiles and runs `code/hello.rgo` by invoking its `main` target.
 
 This is what happens inside the container (or on your linux machine)
 ```sh
 apt-get install -y nasm gcc make
-cargo run -- code/hello.rgo code/hello.asm
+cargo run -- code/hello.rgo main code/hello.asm
 nasm -felf64 code/hello.asm -o bin/hello.o
 ld -dynamic-linker /lib64/ld-linux-x86-64.so.2 -lc bin/hello.o -o bin/hello
 ./bin/hello

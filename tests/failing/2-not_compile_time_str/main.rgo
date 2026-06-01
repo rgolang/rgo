@@ -1,0 +1,12 @@
+str: @str
+exit: @exit
+printf: @printf
+bar: (fmt: str!) {
+    printf(fmt, exit(0))
+}
+foo: (fmt: str) {
+    bar(fmt)
+}
+main: () {
+    foo("Hi %s\n")
+}

@@ -1,0 +1,16 @@
+int: @int
+str: @str
+printf: @printf
+exit: @exit
+
+foo: <T, U>(x:T, y:U, ok:(T, U)){
+    ok(x, y)
+}
+
+done: (a:int, b:str){
+    printf("a=%d b=%s\n", a, b, exit(0))
+}
+
+main: () {
+    foo(41, "hi", done)
+}

@@ -1,0 +1,15 @@
+str: @str
+int: @int
+printf: @printf
+exit: @exit
+list: ((int, list), ())
+nil: (cb:(v:int, l:list), end: ()){
+    end()
+}
+cons: (h:int, t:list, cb:(v:int, l:list), end: ()){
+    cb(h, t)
+}
+
+main: () {
+    exit(0)
+}

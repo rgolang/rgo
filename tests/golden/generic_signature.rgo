@@ -1,9 +1,0 @@
-int: @/int
-str: @/str
-exit: @/exit
-
-arr: <T>((len: int, nth:(idx:int, none:(), one:(T))))
-
-foo: (items: arr<str>) {
-    exit(0)
-}

@@ -1,0 +1,217 @@
+[
+    Import {
+        label: "int",
+        path: "int",
+        span: ,
+    },
+    Import {
+        label: "printf",
+        path: "printf",
+        span: ,
+    },
+    Import {
+        label: "add",
+        path: "add",
+        span: ,
+    },
+    Import {
+        label: "exit",
+        path: "exit",
+        span: ,
+    },
+    FunctionDef {
+        name: "print_sum",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "ok",
+                        kind: Sig(
+                            Signature {
+                                items: [],
+                                span: ,
+                                generics: {},
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                ],
+                span: ,
+                generics: {},
+            },
+            body: Block {
+                items: [
+                    ScopeCapture {
+                        params: Signature {
+                            items: [
+                                SigItem {
+                                    name: "total",
+                                    kind: Ident(
+                                        SigIdent {
+                                            name: "int",
+                                            span: ,
+                                        },
+                                    ),
+                                    has_bang: false,
+                                    span: ,
+                                },
+                            ],
+                            span: ,
+                            generics: {},
+                        },
+                        continuation: Block {
+                            items: [
+                                Ident(
+                                    Ident {
+                                        name: "printf",
+                                        args: [
+                                            Arg {
+                                                name: None,
+                                                term: Lit(
+                                                    Literal {
+                                                        value: Str(
+                                                            "sum is %d\n",
+                                                        ),
+                                                        span: ,
+                                                    },
+                                                ),
+                                                span: ,
+                                            },
+                                            Arg {
+                                                name: None,
+                                                term: Ident(
+                                                    Ident {
+                                                        name: "total",
+                                                        args: [],
+                                                        span: ,
+                                                    },
+                                                ),
+                                                span: ,
+                                            },
+                                            Arg {
+                                                name: None,
+                                                term: Ident(
+                                                    Ident {
+                                                        name: "ok",
+                                                        args: [],
+                                                        span: ,
+                                                    },
+                                                ),
+                                                span: ,
+                                            },
+                                        ],
+                                        span: ,
+                                    },
+                                ),
+                            ],
+                            span: ,
+                        },
+                        term: Ident(
+                            Ident {
+                                name: "add",
+                                args: [
+                                    Arg {
+                                        name: None,
+                                        term: Lit(
+                                            Literal {
+                                                value: Int(
+                                                    3,
+                                                ),
+                                                span: ,
+                                            },
+                                        ),
+                                        span: ,
+                                    },
+                                    Arg {
+                                        name: None,
+                                        term: Lit(
+                                            Literal {
+                                                value: Int(
+                                                    4,
+                                                ),
+                                                span: ,
+                                            },
+                                        ),
+                                        span: ,
+                                    },
+                                ],
+                                span: ,
+                            },
+                        ),
+                        span: ,
+                    },
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "main",
+        lambda: Lambda {
+            params: Signature {
+                items: [],
+                span: ,
+                generics: {},
+            },
+            body: Block {
+                items: [
+                    ScopeCapture {
+                        params: Signature {
+                            items: [],
+                            span: ,
+                            generics: {},
+                        },
+                        continuation: Block {
+                            items: [
+                                Ident(
+                                    Ident {
+                                        name: "exit",
+                                        args: [
+                                            Arg {
+                                                name: None,
+                                                term: Lit(
+                                                    Literal {
+                                                        value: Int(
+                                                            0,
+                                                        ),
+                                                        span: ,
+                                                    },
+                                                ),
+                                                span: ,
+                                            },
+                                        ],
+                                        span: ,
+                                    },
+                                ),
+                            ],
+                            span: ,
+                        },
+                        term: Ident(
+                            Ident {
+                                name: "print_sum",
+                                args: [],
+                                span: ,
+                            },
+                        ),
+                        span: ,
+                    },
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    Ident(
+        Ident {
+            name: "main",
+            args: [],
+            span: ,
+        },
+    ),
+]

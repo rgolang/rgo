@@ -1,0 +1,12 @@
+foo: (ok:()){
+    ok()
+}
+
+bar: (){
+    foo(bar)
+}
+
+main: (){
+    bar()
+}
+main()

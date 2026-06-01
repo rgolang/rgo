@@ -42,42 +42,27 @@ impl<R: BufRead> Lexer<R> {
 
         let token = match ch {
             '@' => {
-                // Check if next char is '/' for builtin imports (@/name)
-                let owner = if let Some(('/', _)) =
-                    self.peek_char().map_err(|err| self.io_error(err))?
-                {
-                    self.next_char().map_err(|err| self.io_error(err))?; // consume '/'
-                    String::new() // empty string represents builtin (/)
-                } else {
-                    // Collect owner name for user-defined imports (@owner/name)
-                    let owner_name = self.collect_identifier()?;
-                    if owner_name.is_empty() {
-                        return Err(Error::new(Code::Lex, "import owner cannot be empty", span));
-                    }
-                    // Expect '/' after owner
-                    let (slash, _) = self
-                        .next_char()
-                        .map_err(|err| self.io_error(err))?
-                        .ok_or_else(|| {
-                            Error::new(Code::Lex, "expected '/' after import owner", span)
-                        })?;
-                    if slash != '/' {
-                        return Err(Error::new(Code::Lex, "expected '/' in import path", span));
-                    }
-                    owner_name
-                };
+                if let Some(('/', _)) = self.peek_char().map_err(|err| self.io_error(err))? {
+                    return Err(Error::new(
+                        Code::Lex,
+                        "builtin imports use @name, not @/name or @owner/name",
+                        span,
+                    ));
+                }
 
-                let name = self.collect_identifier()?;
-                if name.is_empty() {
+                let import_path = self.collect_identifier()?;
+                if import_path.is_empty() {
                     return Err(Error::new(Code::Lex, "import name cannot be empty", span));
                 }
 
-                // Combine owner and name into format: "owner/name" or "/name" for builtins
-                let import_path = if owner.is_empty() {
-                    format!("/{}", name)
-                } else {
-                    format!("{}/{}", owner, name)
-                };
+                if let Some(('/', _)) = self.peek_char().map_err(|err| self.io_error(err))? {
+                    return Err(Error::new(
+                        Code::Lex,
+                        "builtin imports use @name, not @/name or @owner/name",
+                        span,
+                    ));
+                }
+
                 Token::new(TokenKind::Import(import_path), span)
             }
             'a'..='z' | 'A'..='Z' | '_' => {

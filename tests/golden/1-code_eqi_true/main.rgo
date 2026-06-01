@@ -1,0 +1,11 @@
+eqi: @eq
+write: @write
+exit: @exit
+
+main: () {
+    eqi(1, 1, {
+        write("true", exit(0))
+    }, {
+        write("false", exit(0))
+    })
+}

@@ -1,0 +1,29 @@
+int: @int
+printf: @printf
+str: @str
+exit: @exit
+tail: (int, tail)
+_4_identity: (){
+    _5: 0
+    exit(_5)
+}
+
+identity: (node:(int, tail)){
+    _2: "unused\n"
+    printf(_2, _4_identity)
+}
+
+_9_hello: (){
+    _10: 0
+    exit(_10)
+}
+
+hello: (){
+    _7: "hi\n"
+    printf(_7, _9_hello)
+}
+
+main: (){
+    hello()
+}
+main()

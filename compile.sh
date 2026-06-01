@@ -1,8 +1,19 @@
 #!/bin/sh
 set -e
 
-# If no args or "-" → read RGO source from stdin
-if [ -z "$1" ] || [ "$1" = "-" ]; then
+usage() {
+    echo "usage: rgo-compile <input.rgo|-> <target>" >&2
+    exit 64
+}
+
+if [ "$#" -ne 2 ]; then
+    usage
+fi
+
+target="$2"
+
+# If input is "-" read RGO source from stdin.
+if [ "$1" = "-" ]; then
     file="stdin_input.rgo"
     cat > "$file"
 else
@@ -12,7 +23,7 @@ fi
 base="${file%.rgo}"
 
 # Compile source → assembly
-/usr/local/cargo/bin/compiler "$file" "$base.asm"
+/usr/local/cargo/bin/compiler "$file" "$target" "$base.asm"
 
 # Assemble
 nasm -felf64 "$base.asm" -o "$base.o"

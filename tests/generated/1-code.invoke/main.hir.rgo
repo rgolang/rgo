@@ -1,0 +1,20 @@
+write: @write
+exit: @exit
+_4_foo: (){
+    _5: 0
+    exit(_5)
+}
+
+_1_foo: (){
+    _2: "foo,"
+    write(_2, _4_foo)
+}
+
+foo: (){
+    _1_foo()
+}
+
+main: (){
+    foo()
+}
+main()

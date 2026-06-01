@@ -1,8 +1,8 @@
-int: @/int
-add: @/add
-write: @/write
-itoa: @/itoa
-exit: @/exit
+int: @int
+add: @add
+write: @write
+itoa: @itoa
+exit: @exit
 
 foo: (a: int, b: int) {
     add(a, b, (n: int){
@@ -11,4 +11,6 @@ foo: (a: int, b: int) {
         })
     })
 }
-foo(1, 2)
+main: () {
+    foo(1, 2)
+}

@@ -1,0 +1,9 @@
+exit: @exit
+int: @int
+printf: @printf
+foo: <T>(x: int){
+    printf("%d", x, exit(0))
+}
+main: () {
+    foo(42)
+}

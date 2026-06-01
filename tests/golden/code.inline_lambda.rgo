@@ -1,8 +1,0 @@
-int: @/int
-printf: @/printf
-exit: @/exit
-
-(x:int){
-    () = printf("the answer is: %d", x)
-    exit(0)
-}(42)

@@ -4,7 +4,6 @@ use crate::compiler::air::{self, FunctionSig, SigKind};
 use crate::compiler::builtins;
 use crate::compiler::error::{Code, Error};
 use crate::compiler::span::Span;
-use crate::last_slug;
 
 #[derive(Debug, Default)]
 pub struct SymbolRegistry {
@@ -61,10 +60,9 @@ pub fn register_builtin_import(
     import_path: &str,
     symbols: &mut SymbolRegistry,
 ) -> Result<(), Error> {
-    let name = last_slug(import_path);
-    symbols.record_builtin_import(alias, name);
+    symbols.record_builtin_import(alias, import_path);
 
-    let spec = builtins::get_spec(name).ok_or_else(|| {
+    let spec = builtins::get_spec(import_path).ok_or_else(|| {
         Error::new(
             Code::Internal,
             format!("unknown import '@{}'", import_path),

@@ -1,0 +1,7 @@
+int: @int
+printf: @printf
+exit: @exit
+
+main: () {
+    printf("hello %s\n", "world", exit(0))
+}

@@ -1,0 +1,11 @@
+lt: @lt
+write: @write
+exit: @exit
+
+main: () {
+    lt(1, 2, {
+        write("lt: true", exit(0))
+    }, {
+        write("lt: false", exit(0))
+    })
+}

@@ -1,0 +1,8 @@
+int: @int
+printf: @printf
+exit: @exit
+
+x: 42
+main: () {
+    printf("Hello %d!", 42, exit(0))
+}

@@ -1,0 +1,15 @@
+int: @int
+str: @str
+exit: @exit
+
+foo: <T, U>(x:T, y:U, ok:(T, U)){
+    ok(y, x) // wrong order here
+}
+
+done: (a:int, b:str){
+    exit(0)
+}
+
+main: () {
+    foo(1, "bad", done)
+}

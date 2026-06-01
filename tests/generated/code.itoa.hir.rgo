@@ -1,9 +1,0 @@
-str: @/str
-itoa: @/itoa
-exit: @/exit
-_2_lambda: (s: str){
-    _3: 0
-    exit(_3)
-}
-_0: 1
-itoa(_0, _2_lambda)

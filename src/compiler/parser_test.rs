@@ -19,7 +19,7 @@ fn parser_test() {
     let expected_pretty = r#"[
     Import {
         label: "str",
-        path: "/str",
+        path: "str",
         span: Span {
             line: 2,
             column: 1,
@@ -28,7 +28,7 @@ fn parser_test() {
     },
     Import {
         label: "printf",
-        path: "/printf",
+        path: "printf",
         span: Span {
             line: 3,
             column: 1,

@@ -74,14 +74,6 @@ pub fn sanitize_function_name(name: &str) -> String {
         .collect()
 }
 
-pub fn last_slug(path: &str) -> &str {
-    if let Some(slash_pos) = path.rfind('/') {
-        &path[slash_pos + 1..]
-    } else {
-        path
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::compile;
@@ -90,12 +82,12 @@ mod tests {
     #[test]
     fn compile_simple_program() {
         let source = r#"
-int: @/int
-str: @/str
-add: @/add
-exit: @/exit
-write: @/write
-sprintf: @/sprintf
+int: @int
+str: @str
+add: @add
+exit: @exit
+write: @write
+sprintf: @sprintf
 
 print_int: (value: int) {
     sprintf("%d", value, (res: str){
@@ -107,12 +99,15 @@ add_five: (ok:(int)) {
     add(5, 0, ok)
 }
 
-add_five((res: int) {
-    print_int(res)
-})
+main: () {
+    add_five((res: int) {
+        print_int(res)
+    })
+}
         "#;
         let mut output = Vec::new();
-        compile(Cursor::new(source.as_bytes()), &mut output).expect("compiler produced asm");
+        compile(Cursor::new(source.as_bytes()), "main", &mut output)
+            .expect("compiler produced asm");
         let asm = String::from_utf8(output).expect("valid utf8");
         assert!(asm.contains("global _start"));
         assert!(asm.contains("global add_five"));

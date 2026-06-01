@@ -294,7 +294,7 @@ fn lower_block_item(
                     ));
                 };
                 ctx.register_closure(closure);
-                ctx.add_type(&name, &name, result_type, Span::unknown(), false)?;
+                ctx.add_literal(&name, result_type)?;
                 Ok(lowered_items)
             }
         }
@@ -345,6 +345,10 @@ fn lower_exec(
             let (target, args) = resolve_target(ctx, &name, args, hoisted, &mut lowered_items)?;
             ensure_exec_args_complete(ctx, &target, args.len())?;
             let of = emit_closure_for_term(ctx, &target.name, &mut lowered_items, &mut emitted);
+            let args = args
+                .into_iter()
+                .map(|arg| emit_closure_for_term(ctx, &arg, &mut lowered_items, &mut emitted))
+                .collect();
             Exec { of, args }
         }
         ast::Term::Lambda(lambda) => {
@@ -711,7 +715,10 @@ fn create_named_arg_wrapper(
         });
     }
     for capture in &target.captures {
-        if !wrapper_captures.iter().any(|item| item.name == capture.name) {
+        if !wrapper_captures
+            .iter()
+            .any(|item| item.name == capture.name)
+        {
             wrapper_captures.push(capture.clone());
         }
     }
@@ -1079,7 +1086,9 @@ fn kind_matches(
             if actual_sig.items.len() != expected_sig.items.len() {
                 return false;
             }
-            for (actual_item, expected_item) in actual_sig.items.iter().zip(expected_sig.items.iter()) {
+            for (actual_item, expected_item) in
+                actual_sig.items.iter().zip(expected_sig.items.iter())
+            {
                 if !kind_matches(
                     &actual_item.kind,
                     &expected_item.kind,
@@ -1131,9 +1140,9 @@ fn has_generic_kind(kind: &SigKind, active_generics: &BTreeSet<String>) -> bool 
             .items
             .iter()
             .any(|item| has_generic_kind(&item.kind, active_generics)),
-        SigKind::GenericInst { args, .. } => {
-            args.iter().any(|arg| has_generic_kind(arg, active_generics))
-        }
+        SigKind::GenericInst { args, .. } => args
+            .iter()
+            .any(|arg| has_generic_kind(arg, active_generics)),
         _ => false,
     }
 }

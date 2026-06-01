@@ -1,10 +1,12 @@
-str: @/str
-printf: @/printf
-exit: @/exit
+str: @str
+printf: @printf
+exit: @exit
 foo: (ok:(str)){
     ok("bob")
 }
 bar: (name0: str, name1: str){
     printf("hello %s and %s\n", name0, name1, exit(0))
 }
-foo(bar("alice"))
+main: () {
+    foo(bar("alice"))
+}

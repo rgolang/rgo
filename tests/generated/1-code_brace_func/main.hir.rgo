@@ -1,0 +1,16 @@
+write: @write
+exit: @exit
+_2_say_hi: (){
+    _3: 0
+    exit(_3)
+}
+
+say_hi: (){
+    _0: "hi"
+    write(_0, _2_say_hi)
+}
+
+main: (){
+    say_hi()
+}
+main()

@@ -1,10 +1,10 @@
-@/str
-@/int
-@/printf
-@/sprintf
-@/write
-@/add
-@/exit
+str: @str
+int: @int
+printf: @printf
+sprintf: @sprintf
+write: @write
+add: @add
+exit: @exit
 _6_foo: (ok:(), s: str){
     write(s, ok)
 }
@@ -22,8 +22,12 @@ foo: (ok:()){
     add(_0, _1, _8_foo)
 }
 
-_10_lambda: (){
+_10_main: (){
     _11: 0
     exit(_11)
 }
-foo(_10_lambda)
+
+main: (){
+    foo(_10_main)
+}
+main()

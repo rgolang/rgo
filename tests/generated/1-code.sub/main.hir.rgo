@@ -1,0 +1,20 @@
+sub: @sub
+int: @int
+printf: @printf
+exit: @exit
+_6_main: (){
+    _7: 0
+    exit(_7)
+}
+
+_3_main: (n: int){
+    _4: "sub: %d"
+    printf(_4, n, _6_main)
+}
+
+main: (){
+    _0: 9
+    _1: 4
+    sub(_0, _1, _3_main)
+}
+main()

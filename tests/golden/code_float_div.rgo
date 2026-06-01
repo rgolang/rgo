@@ -1,9 +1,0 @@
-float: @/f64
-div: @/divf64
-printf: @/printf
-exit: @/exit
-
-x: 1.5
-div(x, 2.0, (y: float){
-    printf("result: %f", x, exit(0))
-})

@@ -1,0 +1,81 @@
+exit: @exit
+str: @str
+int: @int
+printf: @printf
+eqi: @eq
+_8_array3: (one:(str), a: str){
+    one(a)
+}
+
+_14_array3: (one:(str), b: str){
+    one(b)
+}
+
+_20_array3: (one:(str), c: str){
+    one(c)
+}
+
+_17_array3: (index: int, one:(str), c: str, none:()){
+    _18: 2
+    _21_array3: _20_array3(one, c)
+    eqi(index, _18, _21_array3, none)
+}
+
+_11_array3: (index: int, one:(str), b: str, c: str, none:()){
+    _12: 1
+    _15_array3: _14_array3(one, b)
+    _22_array3: _17_array3(index, one, c, none)
+    eqi(index, _12, _15_array3, _22_array3)
+}
+
+_5_array3: (a: str, b: str, c: str, index: int, one:(str), none:()){
+    _6: 0
+    _9_array3: _8_array3(one, a)
+    _23_array3: _11_array3(index, one, b, c, none)
+    eqi(index, _6, _9_array3, _23_array3)
+}
+
+array3: (a: str, b: str, c: str, ok:(int, (int, (str), ()))){
+    _1: 3
+    _24_array3: _5_array3(a, b, c)
+    ok(_1, _24_array3)
+}
+
+_40_main: (){
+    _41: 0
+    exit(_41)
+}
+
+_37_main: (s: str){
+    _38: "element at index 1 is %s\n"
+    printf(_38, s, _40_main)
+}
+
+_48_main: (){
+    _49: 0
+    exit(_49)
+}
+
+_45_main: (){
+    _46: "index out of bounds\n"
+    printf(_46, _48_main)
+}
+
+_34_main: (nth:(int, (str), ())){
+    _35: 1
+    nth(_35, _37_main, _45_main)
+}
+
+_31_main: (len: int, nth:(int, (str), ())){
+    _32: "array has %d elements\n"
+    _52_main: _34_main(nth)
+    printf(_32, len, _52_main)
+}
+
+main: (){
+    _25: "alice"
+    _26: "bob"
+    _27: "charlie"
+    array3(_25, _26, _27, _31_main)
+}
+main()

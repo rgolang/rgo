@@ -1,0 +1,1087 @@
+[
+    Import {
+        label: "str",
+        path: "str",
+        span: ,
+    },
+    Import {
+        label: "int",
+        path: "int",
+        span: ,
+    },
+    Import {
+        label: "printf",
+        path: "printf",
+        span: ,
+    },
+    Import {
+        label: "exit",
+        path: "exit",
+        span: ,
+    },
+    SigDef {
+        name: "list",
+        sig: Signature {
+            items: [
+                SigItem {
+                    name: "",
+                    kind: Sig(
+                        Signature {
+                            items: [
+                                SigItem {
+                                    name: "",
+                                    kind: Ident(
+                                        SigIdent {
+                                            name: "int",
+                                            span: ,
+                                        },
+                                    ),
+                                    has_bang: false,
+                                    span: ,
+                                },
+                                SigItem {
+                                    name: "",
+                                    kind: Ident(
+                                        SigIdent {
+                                            name: "list",
+                                            span: ,
+                                        },
+                                    ),
+                                    has_bang: false,
+                                    span: ,
+                                },
+                            ],
+                            span: ,
+                            generics: {},
+                        },
+                    ),
+                    has_bang: false,
+                    span: ,
+                },
+                SigItem {
+                    name: "",
+                    kind: Sig(
+                        Signature {
+                            items: [],
+                            span: ,
+                            generics: {},
+                        },
+                    ),
+                    has_bang: false,
+                    span: ,
+                },
+            ],
+            span: ,
+            generics: {},
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "nil",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "next",
+                        kind: Sig(
+                            Signature {
+                                items: [
+                                    SigItem {
+                                        name: "",
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "int",
+                                                span: ,
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                    SigItem {
+                                        name: "",
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "list",
+                                                span: ,
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                ],
+                                span: ,
+                                generics: {},
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "end",
+                        kind: Sig(
+                            Signature {
+                                items: [],
+                                span: ,
+                                generics: {},
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                ],
+                span: ,
+                generics: {},
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "end",
+                            args: [],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "cons",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "head",
+                        kind: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: ,
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "tail",
+                        kind: Ident(
+                            SigIdent {
+                                name: "list",
+                                span: ,
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "next",
+                        kind: Sig(
+                            Signature {
+                                items: [
+                                    SigItem {
+                                        name: "",
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "int",
+                                                span: ,
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                    SigItem {
+                                        name: "",
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "list",
+                                                span: ,
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                ],
+                                span: ,
+                                generics: {},
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "end",
+                        kind: Sig(
+                            Signature {
+                                items: [],
+                                span: ,
+                                generics: {},
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                ],
+                span: ,
+                generics: {},
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "next",
+                            args: [
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "head",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "tail",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                            ],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "_iterate_0",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "iterate",
+                        kind: Sig(
+                            Signature {
+                                items: [
+                                    SigItem {
+                                        name: "",
+                                        kind: Sig(
+                                            Signature {
+                                                items: [
+                                                    SigItem {
+                                                        name: "",
+                                                        kind: Ident(
+                                                            SigIdent {
+                                                                name: "int",
+                                                                span: ,
+                                                            },
+                                                        ),
+                                                        has_bang: false,
+                                                        span: ,
+                                                    },
+                                                    SigItem {
+                                                        name: "",
+                                                        kind: Sig(
+                                                            Signature {
+                                                                items: [],
+                                                                span: ,
+                                                                generics: {},
+                                                            },
+                                                        ),
+                                                        has_bang: false,
+                                                        span: ,
+                                                    },
+                                                ],
+                                                span: ,
+                                                generics: {},
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                    SigItem {
+                                        name: "",
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "list",
+                                                span: ,
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                    SigItem {
+                                        name: "",
+                                        kind: Sig(
+                                            Signature {
+                                                items: [],
+                                                span: ,
+                                                generics: {},
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                ],
+                                span: ,
+                                generics: {},
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "handler",
+                        kind: Sig(
+                            Signature {
+                                items: [
+                                    SigItem {
+                                        name: "",
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "int",
+                                                span: ,
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                    SigItem {
+                                        name: "",
+                                        kind: Sig(
+                                            Signature {
+                                                items: [],
+                                                span: ,
+                                                generics: {},
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                ],
+                                span: ,
+                                generics: {},
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "end",
+                        kind: Sig(
+                            Signature {
+                                items: [],
+                                span: ,
+                                generics: {},
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "head",
+                        kind: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: ,
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "tail",
+                        kind: Ident(
+                            SigIdent {
+                                name: "list",
+                                span: ,
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                ],
+                span: ,
+                generics: {},
+            },
+            body: Block {
+                items: [
+                    IdentDef {
+                        name: "_iterate__iterate_0_iterate_0",
+                        ident: Ident {
+                            name: "iterate",
+                            args: [
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "handler",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "tail",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "end",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                            ],
+                            span: ,
+                        },
+                        span: ,
+                    },
+                    Ident(
+                        Ident {
+                            name: "handler",
+                            args: [
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "head",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "_iterate__iterate_0_iterate_0",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                            ],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "iterate",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "handler",
+                        kind: Sig(
+                            Signature {
+                                items: [
+                                    SigItem {
+                                        name: "",
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "int",
+                                                span: ,
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                    SigItem {
+                                        name: "",
+                                        kind: Sig(
+                                            Signature {
+                                                items: [],
+                                                span: ,
+                                                generics: {},
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                ],
+                                span: ,
+                                generics: {},
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "arr",
+                        kind: Ident(
+                            SigIdent {
+                                name: "list",
+                                span: ,
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "end",
+                        kind: Sig(
+                            Signature {
+                                items: [],
+                                span: ,
+                                generics: {},
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                ],
+                span: ,
+                generics: {},
+            },
+            body: Block {
+                items: [
+                    IdentDef {
+                        name: "_iterate_1",
+                        ident: Ident {
+                            name: "_iterate_0",
+                            args: [
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "iterate",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "handler",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "end",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                            ],
+                            span: ,
+                        },
+                        span: ,
+                    },
+                    Ident(
+                        Ident {
+                            name: "arr",
+                            args: [
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "_iterate_1",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "end",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                            ],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    LitDef {
+        name: "_10",
+        literal: Literal {
+            value: Int(
+                1,
+            ),
+            span: ,
+        },
+        span: ,
+    },
+    LitDef {
+        name: "_11",
+        literal: Literal {
+            value: Int(
+                2,
+            ),
+            span: ,
+        },
+        span: ,
+    },
+    LitDef {
+        name: "_12",
+        literal: Literal {
+            value: Int(
+                3,
+            ),
+            span: ,
+        },
+        span: ,
+    },
+    LitDef {
+        name: "_13",
+        literal: Literal {
+            value: Int(
+                4,
+            ),
+            span: ,
+        },
+        span: ,
+    },
+    IdentDef {
+        name: "_cons_14",
+        ident: Ident {
+            name: "cons",
+            args: [
+                Arg {
+                    name: None,
+                    term: Ident(
+                        Ident {
+                            name: "_13",
+                            args: [],
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
+                Arg {
+                    name: None,
+                    term: Ident(
+                        Ident {
+                            name: "nil",
+                            args: [],
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
+            ],
+            span: ,
+        },
+        span: ,
+    },
+    IdentDef {
+        name: "_cons_15",
+        ident: Ident {
+            name: "cons",
+            args: [
+                Arg {
+                    name: None,
+                    term: Ident(
+                        Ident {
+                            name: "_12",
+                            args: [],
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
+                Arg {
+                    name: None,
+                    term: Ident(
+                        Ident {
+                            name: "_cons_14",
+                            args: [],
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
+            ],
+            span: ,
+        },
+        span: ,
+    },
+    IdentDef {
+        name: "_cons_16",
+        ident: Ident {
+            name: "cons",
+            args: [
+                Arg {
+                    name: None,
+                    term: Ident(
+                        Ident {
+                            name: "_11",
+                            args: [],
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
+                Arg {
+                    name: None,
+                    term: Ident(
+                        Ident {
+                            name: "_cons_15",
+                            args: [],
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
+            ],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "handler",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "n",
+                        kind: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: ,
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "ok",
+                        kind: Sig(
+                            Signature {
+                                items: [],
+                                span: ,
+                                generics: {},
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                ],
+                span: ,
+                generics: {},
+            },
+            body: Block {
+                items: [
+                    LitDef {
+                        name: "_handler_0",
+                        literal: Literal {
+                            value: Str(
+                                "%d, ",
+                            ),
+                            span: ,
+                        },
+                        span: ,
+                    },
+                    Ident(
+                        Ident {
+                            name: "printf",
+                            args: [
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "_handler_0",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "n",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "ok",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                            ],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "_end_1",
+        lambda: Lambda {
+            params: Signature {
+                items: [],
+                span: ,
+                generics: {},
+            },
+            body: Block {
+                items: [
+                    LitDef {
+                        name: "_end__end_1_0",
+                        literal: Literal {
+                            value: Int(
+                                0,
+                            ),
+                            span: ,
+                        },
+                        span: ,
+                    },
+                    Ident(
+                        Ident {
+                            name: "exit",
+                            args: [
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "_end__end_1_0",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                            ],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "end",
+        lambda: Lambda {
+            params: Signature {
+                items: [],
+                span: ,
+                generics: {},
+            },
+            body: Block {
+                items: [
+                    LitDef {
+                        name: "_end_0",
+                        literal: Literal {
+                            value: Str(
+                                "end\n",
+                            ),
+                            span: ,
+                        },
+                        span: ,
+                    },
+                    Ident(
+                        Ident {
+                            name: "printf",
+                            args: [
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "_end_0",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "_end_1",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                            ],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    IdentDef {
+        name: "mylist",
+        ident: Ident {
+            name: "cons",
+            args: [
+                Arg {
+                    name: None,
+                    term: Ident(
+                        Ident {
+                            name: "_10",
+                            args: [],
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
+                Arg {
+                    name: None,
+                    term: Ident(
+                        Ident {
+                            name: "_cons_16",
+                            args: [],
+                            span: ,
+                        },
+                    ),
+                    span: ,
+                },
+            ],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "main",
+        lambda: Lambda {
+            params: Signature {
+                items: [],
+                span: ,
+                generics: {},
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "iterate",
+                            args: [
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "handler",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "mylist",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "end",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                            ],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    Ident(
+        Ident {
+            name: "main",
+            args: [],
+            span: ,
+        },
+    ),
+]

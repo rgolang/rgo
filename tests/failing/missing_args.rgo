@@ -1,7 +1,0 @@
-exit: @/exit
-str: @/str
-printf: @/printf
-foo: (a: str, b: str, ok: (str)){
-    printf("%s %s", a, b, exit(0))
-}
-foo

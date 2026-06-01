@@ -1,0 +1,29 @@
+str: @str
+int: @int
+add: @add
+printf: @printf
+exit: @exit
+zero: (f:(int, (int)), x: int, ok:(int)){
+    ok(x)
+}
+
+_7_main: (x: int, ok:(int)){
+    _8: 10
+    add(x, _8, ok)
+}
+
+_15_main: (){
+    _16: 0
+    exit(_16)
+}
+
+_12_main: (x: int){
+    _13: "result: %d"
+    printf(_13, x, _15_main)
+}
+
+main: (){
+    _10: 0
+    zero(_7_main, _10, _12_main)
+}
+main()

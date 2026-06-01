@@ -1,0 +1,18 @@
+printf: @printf
+exit: @exit
+str: @str
+w: (s: str, ok:()){
+    _0: "Gotcha: %s"
+    printf(_0, s, ok)
+}
+
+_3_main: (){
+    _4: 0
+    exit(_4)
+}
+
+main: (){
+    _1: "one"
+    w(_1, _3_main)
+}
+main()

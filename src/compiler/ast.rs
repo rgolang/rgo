@@ -2,7 +2,7 @@ use crate::compiler::span::Span;
 use std::collections::BTreeSet;
 use std::hash::{Hash, Hasher};
 
-// An Item is a block-level construct: function definitions, type definitions, imports (for root level) and execs.
+// An Item is a block-level construct: function definitions, type definitions, imports, and execs.
 #[derive(Debug, Clone)]
 pub enum BlockItem {
     Import {

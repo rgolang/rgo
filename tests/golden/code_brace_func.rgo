@@ -1,7 +1,0 @@
-write: @/write
-exit: @/exit
-
-say_hi: {
-    write("hi", exit(0))
-}
-say_hi()

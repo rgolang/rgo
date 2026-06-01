@@ -1,8 +1,0 @@
-int: @/int
-str: @/str
-exit: @/exit
-arr: <T>((int, (int, (), (T))))
-foo: (items:((int, (int, (), (str))))){
-    _2: 0
-    exit(_2)
-}

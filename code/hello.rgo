@@ -1,15 +1,17 @@
-str: @/str
-int: @/int
-printf: @/printf
-sprintf: @/sprintf
-write: @/write
-add: @/add
-exit: @/exit
+str: @str
+int: @int
+printf: @printf
+sprintf: @sprintf
+write: @write
+add: @add
+exit: @exit
 
 foo: (ok:()){
     (x: int) = add(1, 2)
     (s:str) = sprintf("result: %d\n", x)
     write(s, ok)
 }
-() = foo()
-exit(0)
+
+main: () {
+    foo(exit(0))
+}

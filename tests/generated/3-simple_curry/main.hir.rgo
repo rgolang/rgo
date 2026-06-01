@@ -1,0 +1,27 @@
+int: @int
+exit: @exit
+printf: @printf
+new_point: (x: int, y: int, ok:(int, int)){
+    ok(x, y)
+}
+
+ok_exit: (){
+    _2: 0
+    exit(_2)
+}
+
+p_handle: (x: int, y: int){
+    _3: "got: %d, %d\n"
+    printf(_3, x, y, ok_exit)
+}
+
+foo: (p:((int, int))){
+    p(p_handle)
+}
+_7: 1
+_8: 2
+main: (p:((int, int))){
+    foo(p)
+}
+p: new_point(_7, _8)
+main(p)

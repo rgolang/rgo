@@ -89,7 +89,9 @@ if: (cond: ((),()), ok:()){
     cond(printf("does not work\n", exit(0)), ok)
 }
 next: {printf("works\n", exit(0))}
-if(true, next)
+main: () {
+    if(true, next)
+}
 
 // #### linked list
 // list: ((int, list), ())
@@ -343,4 +345,3 @@ if(true, next)
 //         })
 //     })
 // }
-

@@ -1,0 +1,14 @@
+int: @int
+printf: @printf
+exit: @exit
+_3_main: (){
+    _4: 0
+    exit(_4)
+}
+
+main: (){
+    _0: "hello %s\n"
+    _1: "world"
+    printf(_0, _1, _3_main)
+}
+main()

@@ -4,7 +4,6 @@ use crate::compiler::error::{Code, Error};
 use crate::compiler::hir::Closure;
 use crate::compiler::hir::{SigItem, SigKind, Signature};
 use crate::compiler::span::Span;
-use crate::last_slug;
 use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
@@ -105,7 +104,10 @@ impl Context {
             return true;
         }
         let entry_scope = &entry.scope;
-        if entry_scope.is_empty() || entry_scope.len() >= ctx_scope.len() {
+        if entry_scope.is_empty() {
+            return true;
+        }
+        if entry_scope.len() >= ctx_scope.len() {
             return false;
         }
         entry_scope
@@ -347,9 +349,7 @@ pub fn register_import(
     import_path: &str,
     span: Span,
 ) -> Result<(), Error> {
-    let name = last_slug(import_path);
-
-    let spec = builtins::get_spec(name).ok_or_else(|| {
+    let spec = builtins::get_spec(import_path).ok_or_else(|| {
         Error::new(
             Code::Internal,
             format!("unknown import '@{}'", import_path),

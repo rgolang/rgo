@@ -1,0 +1,18 @@
+exit: @exit
+int: @int
+add: @add
+sub: @sub
+printf: @printf
+
+bar: (){
+    printf("outer bar", exit(0))
+}
+foo: (ok:()) {
+    bar: (){
+        printf("inner bar\n", ok)
+    }
+    bar
+}
+main: () {
+    foo(bar)
+}

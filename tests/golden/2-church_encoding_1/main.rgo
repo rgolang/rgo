@@ -1,0 +1,16 @@
+str: @str
+int: @int
+add: @add
+printf: @printf
+exit: @exit
+
+one: (f: (int, (int)), x: int, ok: (int)){
+    f(x, ok)
+}
+main: () {
+    one((x: int, ok:(int)){
+        add(x, 10, ok)
+    }, 0, (x: int){
+        printf("result: %d", x, exit(0))
+    })
+}

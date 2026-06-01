@@ -1,0 +1,9 @@
+write: @write
+exit: @exit
+
+say_hi: {
+    write("hi", exit(0))
+}
+main: () {
+    say_hi()
+}

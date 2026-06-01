@@ -1,0 +1,12 @@
+str: @str
+int: @int
+write: @write
+exit: @exit
+
+x: "Hello world!\n"
+foo: (ok:()){
+	write(x, ok)
+}
+main: () {
+    foo(exit(0))
+}

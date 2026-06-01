@@ -1,0 +1,11 @@
+int: @int
+str: @str
+sprintf: @sprintf
+write: @write
+exit: @exit
+
+main: () {
+    sprintf("result: %d", 3, (s:str){
+        write(s, exit(0))
+    })
+}

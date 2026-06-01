@@ -1,0 +1,71 @@
+_5_main():
+    @exit($_6: int = 0)
+
+
+_5_main_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_5_main)
+
+
+_5_main_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_5_main_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_2_main($x: f64, $y: f64):
+    $_5_main = @newclosure<>(_5_main)
+    @printf($_3: str! = "result: %f", $x: int, $_5_main)
+
+
+_2_main_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $x = @field($__env_end, -2)
+    $y = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_2_main, $x: f64, $y: f64)
+
+
+_2_main_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_2_main_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+main($x: f64):
+    $_8_main = @newclosure<f64, f64>(_2_main, $x: f64)
+    @divf64($x: f64, $_0: f64 = 2, $_8_main)
+
+
+main_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $x = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(main, $x: f64)
+
+
+main_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+main_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    @jumpargs(main, $x: f64 = 1.5)
+

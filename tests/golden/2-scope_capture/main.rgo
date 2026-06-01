@@ -1,0 +1,14 @@
+int: @int
+printf: @printf
+add: @add
+exit: @exit
+
+print_sum: (ok:()){
+    (total:int) = add(3, 4)
+    printf("sum is %d\n", total, ok)
+}
+
+main: () {
+    () = print_sum
+    exit(0)
+}

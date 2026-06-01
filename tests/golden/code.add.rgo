@@ -1,5 +1,0 @@
-int: @/int
-add: @/add
-exit: @/exit
-
-add(1, 2, (n: int){ exit(0) })

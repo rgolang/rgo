@@ -21,7 +21,7 @@ fn codegen_test() {
     let cursor = Cursor::new(&source[..]);
     let mut output = Vec::new();
 
-    compile(cursor, &mut output).expect("codegen should accept codegen_test.rgo");
+    compile(cursor, "main", &mut output).expect("codegen should accept codegen_test.rgo");
 
     let asm = String::from_utf8(output).expect("assembly should be UTF-8");
     let expected = include_str!("codegen_test.expected.asm");
@@ -41,7 +41,7 @@ fn codegen_curry_test() {
     let cursor = Cursor::new(&source[..]);
     let mut output = Vec::new();
 
-    compile(cursor, &mut output).expect("codegen should accept codegen_curry_test.rgo");
+    compile(cursor, "main", &mut output).expect("codegen should accept codegen_curry_test.rgo");
 
     let asm = String::from_utf8(output).expect("assembly should be UTF-8");
     let expected = include_str!("codegen_curry_test.expected.asm");

@@ -1,0 +1,118 @@
+_6_main():
+    @exit($_7: int = 0)
+
+
+_6_main_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_6_main)
+
+
+_6_main_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_6_main_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_3_main():
+    $_6_main = @newclosure<>(_6_main)
+    @write($_4: str = "true", $_6_main)
+
+
+_3_main_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_3_main)
+
+
+_3_main_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_3_main_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_14_main():
+    @exit($_15: int = 0)
+
+
+_14_main_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_14_main)
+
+
+_14_main_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_14_main_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_11_main():
+    $_14_main = @newclosure<>(_14_main)
+    @write($_12: str = "false", $_14_main)
+
+
+_11_main_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_11_main)
+
+
+_11_main_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_11_main_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+main():
+    $_3_main = @newclosure<>(_3_main)
+    $_11_main = @newclosure<>(_11_main)
+    @eqs(eqs__3_main_true_0_0, $_0: str = "aaa", $_1: str = "aab")
+eqs__11_main_false_0_0:
+    @release($_3_main)
+    @jumpclosure($_11_main)
+eqs__3_main_true_0_0:
+    @release($_11_main)
+    @jumpclosure($_3_main)
+
+
+main_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(main)
+
+
+main_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+main_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    @jumpargs(main)
+

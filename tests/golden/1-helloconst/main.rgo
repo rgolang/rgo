@@ -1,0 +1,8 @@
+int: @int
+write: @write
+exit: @exit
+
+x: "Hello world!\n"
+main: () {
+    write(x, exit(0)) // This will print
+}

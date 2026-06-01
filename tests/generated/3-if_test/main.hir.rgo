@@ -1,0 +1,41 @@
+int: @int
+eqi: @eq
+write: @write
+printf: @printf
+exit: @exit
+true: (x:(), y:()){
+    x()
+}
+
+false: (x:(), y:()){
+    y()
+}
+
+if: (cond:((), ()), yes:(), no:()){
+    cond(yes, no)
+}
+
+_6_main: (){
+    _7: 0
+    exit(_7)
+}
+
+_3_main: (){
+    _4: "works"
+    printf(_4, _6_main)
+}
+
+_14_main: (){
+    _15: 0
+    exit(_15)
+}
+
+_11_main: (){
+    _12: "doesn't work"
+    printf(_12, _14_main)
+}
+
+main: (){
+    if(true, _3_main, _11_main)
+}
+main()

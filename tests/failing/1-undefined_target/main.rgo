@@ -1,0 +1,5 @@
+printf: @printf
+
+main: () {
+    foo()
+}

@@ -1,0 +1,12 @@
+int: @int
+str: @str
+printf: @printf
+write: @write
+exit: @exit
+
+foo: (ok:(())){
+    ok(exit(0))
+}
+main: () {
+    foo(printf("result: %d", 1))
+}

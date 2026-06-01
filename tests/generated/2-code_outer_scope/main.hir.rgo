@@ -1,0 +1,20 @@
+str: @str
+write: @write
+exit: @exit
+bar: (v: str, ok:()){
+    write(v, ok)
+}
+msg: "hi"
+_1_foo: (){
+    _2: 0
+    exit(_2)
+}
+
+foo: (msg: str!){
+    bar(msg, _1_foo)
+}
+
+main: (msg: str!){
+    foo(msg)
+}
+main(msg)

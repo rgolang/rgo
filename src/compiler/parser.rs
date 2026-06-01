@@ -46,38 +46,32 @@ impl<R: BufRead> Parser<R> {
     // }
 
     pub fn next(&mut self) -> Result<Option<BlockItem>, Error> {
-        loop {
-            self.skip_newlines()?;
-            let token = self.peek_token()?.clone();
-            match token.kind {
-                TokenKind::Eof => return Ok(None),
-                TokenKind::Import(_) => {
-                    return Err(Error::new(
-                        Code::Parse,
-                        "imports must have a label (e.g. `printf: @/printf`)",
-                        token.span,
-                    )
-                    .into());
-                }
-                _ => {
-                    let item = self.parse_block_item()?;
-                    let item_span = item.span();
-                    let is_import = matches!(&item, BlockItem::Import { .. });
-                    if is_import {
-                        if !self.allow_top_imports {
-                            return Err(Error::new(
-                                Code::Parse,
-                                "@ imports must appear before any other items",
-                                item_span,
-                            )
-                            .into());
-                        }
-                    } else {
-                        self.allow_top_imports = false;
+        self.skip_newlines()?;
+        let token = self.peek_token()?.clone();
+        match token.kind {
+            TokenKind::Eof => Ok(None),
+            TokenKind::Import(_) => Err(Error::new(
+                Code::Parse,
+                "imports must have a label (e.g. `printf: @printf`)",
+                token.span,
+            )),
+            _ => {
+                let item = self.parse_block_item()?;
+                let item_span = item.span();
+                let is_import = matches!(&item, BlockItem::Import { .. });
+                if is_import {
+                    if !self.allow_top_imports {
+                        return Err(Error::new(
+                            Code::Parse,
+                            "@ imports must appear before any other items",
+                            item_span,
+                        ));
                     }
-                    self.consume_block_item_separators()?;
-                    return Ok(Some(item));
+                } else {
+                    self.allow_top_imports = false;
                 }
+                self.consume_block_item_separators()?;
+                Ok(Some(item))
             }
         }
     }

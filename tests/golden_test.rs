@@ -13,6 +13,7 @@ use compiler::compiler::{
 use compiler::debug_tools::test_helpers::generate_air_functions;
 
 const GENERATED_DIR: &str = "tests/generated";
+const TEST_TARGET: &str = "main";
 
 #[test]
 fn golden_test() {
@@ -51,11 +52,66 @@ fn process_snapshot_directory(src_dir: &Path, out_dir: &Path, kind: SnapshotKind
         return;
     }
 
-    let mut rgo_paths: Vec<PathBuf> = fs::read_dir(src_dir)
+    for test in collect_test_cases(src_dir) {
+        let test_out_dir = out_dir.join(&test.name);
+        fs::create_dir_all(&test_out_dir).expect("failed to create generated test directory");
+        if let Err(err) = build_reference_for_path(&test.source, &test_out_dir, kind) {
+            panic!("{}: {err}", test.source.display());
+        }
+    }
+}
+
+struct TestCase {
+    name: String,
+    dir: PathBuf,
+    source: PathBuf,
+}
+
+fn collect_test_cases(tests_dir: &Path) -> Vec<TestCase> {
+    let mut cases: Vec<TestCase> = fs::read_dir(tests_dir)
         .expect("tests directory should exist")
         .filter_map(|entry| {
             let entry = entry.ok()?;
-            let path = entry.path();
+            let dir = entry.path();
+            if !dir.is_dir() {
+                return None;
+            }
+            let name = dir.file_name()?.to_str()?.to_string();
+            let source = entry_source_path(&dir)?;
+            assert_complexity_prefix(&name, &dir);
+            Some(TestCase { name, dir, source })
+        })
+        .collect();
+    cases.sort_by(|a, b| a.name.cmp(&b.name));
+    cases
+}
+
+fn assert_complexity_prefix(name: &str, dir: &Path) {
+    let Some((prefix, _)) = name.split_once('-') else {
+        panic!(
+            "{} must start with a complexity prefix like 1-hello",
+            dir.display()
+        );
+    };
+    match prefix {
+        "1" | "2" | "3" | "4" | "5" => {}
+        _ => panic!(
+            "{} has invalid complexity prefix {prefix:?}; use 1 through 5",
+            dir.display()
+        ),
+    }
+}
+
+fn entry_source_path(dir: &Path) -> Option<PathBuf> {
+    let main_path = dir.join("main.rgo");
+    if main_path.exists() {
+        return Some(main_path);
+    }
+
+    let mut rgo_paths: Vec<PathBuf> = fs::read_dir(dir)
+        .expect("test directory should exist")
+        .filter_map(|entry| {
+            let path = entry.ok()?.path();
             if path.is_file() && path.extension().and_then(|ext| ext.to_str()) == Some("rgo") {
                 Some(path)
             } else {
@@ -63,20 +119,21 @@ fn process_snapshot_directory(src_dir: &Path, out_dir: &Path, kind: SnapshotKind
             }
         })
         .collect();
-
     rgo_paths.sort();
-
-    for path in rgo_paths {
-        if let Err(err) = build_reference_for_path(&path, out_dir, kind) {
-            panic!("{}: {err}", path.display());
-        }
+    match rgo_paths.as_slice() {
+        [] => None,
+        [path] => Some(path.clone()),
+        _ => panic!(
+            "{} contains multiple .rgo files; add main.rgo to choose the entrypoint",
+            dir.display()
+        ),
     }
 }
 
-fn compile_source(source: &str) -> Result<String, Error> {
+fn compile_source(source: &str, target: &str) -> Result<String, Error> {
     let mut output = Vec::new();
     let cursor = Cursor::new(source.as_bytes());
-    compile(cursor, &mut output)?;
+    compile(cursor, target, &mut output)?;
     let asm = String::from_utf8(output).map_err(|err| {
         error::new(
             Code::Codegen,
@@ -101,7 +158,7 @@ fn build_reference_for_path(path: &Path, out_dir: &Path, kind: SnapshotKind) -> 
     let source = fs::read_to_string(path)?;
     match kind {
         SnapshotKind::Success => {
-            let artifacts = generate_artifacts(&source)?;
+            let artifacts = generate_artifacts(&source, TEST_TARGET)?;
             let actual_err_path = out_dir.join(format!("{stem}.actual.err"));
             if actual_err_path.exists() {
                 fs::remove_file(&actual_err_path)?;
@@ -109,7 +166,7 @@ fn build_reference_for_path(path: &Path, out_dir: &Path, kind: SnapshotKind) -> 
             write_artifacts(out_dir, stem, &artifacts)?;
             Ok(())
         }
-        SnapshotKind::Failure => match generate_artifacts(&source) {
+        SnapshotKind::Failure => match generate_artifacts(&source, TEST_TARGET) {
             Ok(_) => Err(error::new(
                 Code::Internal,
                 "expected compilation failure but succeeded",
@@ -137,7 +194,7 @@ enum SnapshotKind {
     Failure,
 }
 
-fn generate_artifacts(source: &str) -> Result<GeneratedArtifacts, Error> {
+fn generate_artifacts(source: &str, target: &str) -> Result<GeneratedArtifacts, Error> {
     let cursor = Cursor::new(source.as_bytes());
     let lexer = Lexer::new(cursor);
     let mut parser = Parser::new(lexer);
@@ -148,11 +205,19 @@ fn generate_artifacts(source: &str) -> Result<GeneratedArtifacts, Error> {
     let mut hir_block_items = Vec::new();
 
     while let Some(item) = parser.next()? {
+        reject_root_execution(&item)?;
         block_items.push(item.clone());
         lowerer.consume(&mut ctx, item)?;
         while let Some(lowered) = lowerer.produce() {
             hir_block_items.push(lowered.clone());
         }
+    }
+
+    let target_item = target_exec(target);
+    block_items.push(target_item.clone());
+    lowerer.consume(&mut ctx, target_item)?;
+    while let Some(lowered) = lowerer.produce() {
+        hir_block_items.push(lowered.clone());
     }
 
     let normalized_hir = render_normalized_rgo(&hir_block_items);
@@ -161,7 +226,7 @@ fn generate_artifacts(source: &str) -> Result<GeneratedArtifacts, Error> {
     let air_functions = generate_air_functions(&hir_block_items)?;
     let air = render_air_functions(&air_functions);
 
-    let asm = compile_source(source)?;
+    let asm = compile_source(source, target)?;
     Ok(GeneratedArtifacts {
         parser_output,
         normalized_hir,
@@ -189,38 +254,16 @@ fn write_artifacts(
 }
 
 fn verify_expected_runtime_outputs(tests_dir: &Path, bin_dir: &Path) {
-    let mut expected_paths: Vec<PathBuf> = fs::read_dir(tests_dir)
-        .expect("tests directory should exist")
-        .filter_map(|entry| {
-            let entry = entry.ok()?;
-            let path = entry.path();
-            let name = path.file_name()?.to_str()?;
-            if path.is_file() && name.ends_with(".expected.out") {
-                Some(path)
-            } else {
-                None
-            }
-        })
-        .collect();
-    expected_paths.sort();
-
-    for expected_path in expected_paths {
-        let expected_name = expected_path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .expect("filename should be valid UTF-8");
-        let base = expected_name
-            .strip_suffix(".expected.out")
-            .expect("expected output files should end with .expected.out");
-        let rgo_path = tests_dir.join(format!("{base}.rgo"));
-        if !rgo_path.exists() {
+    for test in collect_test_cases(tests_dir) {
+        let expected_path = test.dir.join("expected.out");
+        if !expected_path.exists() {
             continue;
         }
 
-        let asm_path = bin_dir.join(format!("{base}.asm"));
-        compile_rgo_source(&rgo_path, &asm_path);
+        let asm_path = bin_dir.join(format!("{}.asm", test.name));
+        compile_rgo_source(&test.source, &asm_path);
 
-        let obj_path = bin_dir.join(format!("{base}.o"));
+        let obj_path = bin_dir.join(format!("{}.o", test.name));
         let mut nasm_cmd = Command::new("nasm");
         nasm_cmd
             .arg("-felf64")
@@ -236,7 +279,7 @@ fn verify_expected_runtime_outputs(tests_dir: &Path, bin_dir: &Path) {
             ),
         );
 
-        let bin_path = bin_dir.join(base);
+        let bin_path = bin_dir.join(&test.name);
         let mut ld_cmd = Command::new("ld");
         ld_cmd
             .arg("-dynamic-linker")
@@ -264,7 +307,7 @@ fn verify_expected_runtime_outputs(tests_dir: &Path, bin_dir: &Path) {
         assert_eq!(
             actual_output, expected_output,
             "unexpected runtime output for {}",
-            expected_name
+            test.name
         );
     }
 }
@@ -274,31 +317,9 @@ fn verify_expected_compile_errors(tests_dir: &Path, bin_dir: &Path) {
         return;
     }
 
-    let mut expected_paths: Vec<PathBuf> = fs::read_dir(tests_dir)
-        .expect("tests directory should exist")
-        .filter_map(|entry| {
-            let entry = entry.ok()?;
-            let path = entry.path();
-            let name = path.file_name()?.to_str()?;
-            if path.is_file() && name.ends_with(".expected.err") {
-                Some(path)
-            } else {
-                None
-            }
-        })
-        .collect();
-    expected_paths.sort();
-
-    for expected_path in expected_paths {
-        let expected_name = expected_path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .expect("filename should be valid UTF-8");
-        let base = expected_name
-            .strip_suffix(".expected.err")
-            .expect("expected error files should end with .expected.err");
-        let rgo_path = tests_dir.join(format!("{base}.rgo"));
-        if !rgo_path.exists() {
+    for test in collect_test_cases(tests_dir) {
+        let expected_path = test.dir.join("expected.err");
+        if !expected_path.exists() {
             continue;
         }
 
@@ -306,19 +327,28 @@ fn verify_expected_compile_errors(tests_dir: &Path, bin_dir: &Path) {
             .expect("expected error file should be readable")
             .trim_end()
             .to_string();
-        let asm_path = bin_dir.join(format!("{base}.err.asm"));
+        let asm_path = bin_dir.join(format!("{}.err.asm", test.name));
         let mut cmd = Command::new("cargo");
-        cmd.arg("run").arg("--").arg(&rgo_path).arg(&asm_path);
+        cmd.arg("run")
+            .arg("--")
+            .arg(&test.source)
+            .arg(TEST_TARGET)
+            .arg(&asm_path);
         let actual_error = capture_compile_failure_output(
             &mut cmd,
-            &format!("cargo run -- {}", rgo_path.display()),
+            &format!(
+                "cargo run -- {} {} {}",
+                test.source.display(),
+                TEST_TARGET,
+                asm_path.display()
+            ),
         );
 
         assert!(
             actual_error.contains(&expected_error),
             "expected error substring \"{}\" not found for {}: actual error:\n{}",
             expected_error,
-            expected_name,
+            test.name,
             actual_error
         );
     }
@@ -326,11 +356,41 @@ fn verify_expected_compile_errors(tests_dir: &Path, bin_dir: &Path) {
 
 fn compile_rgo_source(rgo_path: &Path, asm_path: &Path) {
     let mut cmd = Command::new("cargo");
-    cmd.arg("run").arg("--").arg(rgo_path).arg(asm_path);
+    cmd.arg("run")
+        .arg("--")
+        .arg(rgo_path)
+        .arg(TEST_TARGET)
+        .arg(asm_path);
     run_command(
         &mut cmd,
-        &format!("cargo run -- {} {}", rgo_path.display(), asm_path.display()),
+        &format!(
+            "cargo run -- {} {} {}",
+            rgo_path.display(),
+            TEST_TARGET,
+            asm_path.display()
+        ),
     );
+}
+
+fn target_exec(target: &str) -> compiler::compiler::ast::BlockItem {
+    compiler::compiler::ast::BlockItem::Ident(compiler::compiler::ast::Ident {
+        name: target.to_string(),
+        args: Vec::new(),
+        span: Span::unknown(),
+    })
+}
+
+fn reject_root_execution(item: &compiler::compiler::ast::BlockItem) -> Result<(), Error> {
+    match item {
+        compiler::compiler::ast::BlockItem::Ident(_)
+        | compiler::compiler::ast::BlockItem::Lambda(_)
+        | compiler::compiler::ast::BlockItem::ScopeCapture { .. } => Err(error::new(
+            Code::Parse,
+            "root-level invocation is not supported; choose a target function",
+            item.span(),
+        )),
+        _ => Ok(()),
+    }
 }
 
 fn run_command(cmd: &mut Command, description: &str) {

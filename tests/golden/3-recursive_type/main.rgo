@@ -1,0 +1,18 @@
+int: @int
+printf: @printf
+str: @str
+exit: @exit
+
+tail: (x: int, rest: tail)
+
+identity: (node: tail) {
+    printf("unused\n", exit(0))
+}
+
+hello: () {
+    printf("hi\n", exit(0))
+}
+
+main: () {
+    hello()
+}

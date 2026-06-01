@@ -1,0 +1,54 @@
+exit: @exit
+str: @str
+int: @int
+printf: @printf
+eqi: @eq
+sub: @sub
+add: @add
+_3_fib_iter: (k:(int), a: int){
+    k(a)
+}
+
+_11_fib_iter: (fib_iter:(int, int, int, (int)), n1: int, b: int, k:(int), ab: int){
+    fib_iter(n1, b, ab, k)
+}
+
+_9_fib_iter: (a: int, b: int, fib_iter:(int, int, int, (int)), k:(int), n1: int){
+    _12_fib_iter: _11_fib_iter(fib_iter, n1, b, k)
+    add(a, b, _12_fib_iter)
+}
+
+_6_fib_iter: (n: int, a: int, b: int, fib_iter:(int, int, int, (int)), k:(int)){
+    _7: 1
+    _13_fib_iter: _9_fib_iter(a, b, fib_iter, k)
+    sub(n, _7, _13_fib_iter)
+}
+
+fib_iter: (n: int, a: int, b: int, k:(int)){
+    _1: 0
+    _4_fib_iter: _3_fib_iter(k, a)
+    _14_fib_iter: _6_fib_iter(n, a, b, fib_iter, k)
+    eqi(n, _1, _4_fib_iter, _14_fib_iter)
+}
+
+fib: (n: int, k:(int)){
+    _16: 0
+    _17: 1
+    fib_iter(n, _16, _17, k)
+}
+
+_23_main: (){
+    _24: 0
+    exit(_24)
+}
+
+_20_main: (result: int){
+    _21: "fib(7) = %d\n"
+    printf(_21, result, _23_main)
+}
+
+main: (){
+    _18: 7
+    fib(_18, _20_main)
+}
+main()

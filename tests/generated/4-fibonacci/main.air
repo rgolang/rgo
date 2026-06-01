@@ -1,0 +1,304 @@
+_23_main():
+    @exit($_24: int = 0)
+
+
+_23_main_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_23_main)
+
+
+_23_main_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_23_main_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_20_main($result: int):
+    $_23_main = @newclosure<>(_23_main)
+    @printf($_21: str! = "fib(7) = %d\n", $result: int, $_23_main)
+
+
+_20_main_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $result = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_20_main, $result: int)
+
+
+_20_main_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_20_main_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_3_fib_iter($k: (), $a: int):
+    @jumpclosure($k, $a: int)
+
+
+_3_fib_iter_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $k = @field($__env_end, -2)
+    $a = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_3_fib_iter, $k: (), $a: int)
+
+
+_3_fib_iter_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_3_fib_iter_release_skip_0, $__num_remaining, 1)
+    $_3_fib_iter_release_field_0 = @field($__env_end, -2)
+    @callptr($_3_fib_iter_release_field_0)
+_3_fib_iter_release_skip_0:
+    @release($__env_end)
+    @return()
+
+
+_3_fib_iter_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_3_fib_iter_deepcopy_skip_0, $num_remaining, 1)
+    @deepcopy($_3_fib_iter_deepcopy_field_0, $__env_end, -2)
+_3_fib_iter_deepcopy_skip_0:
+    @return()
+
+
+_11_fib_iter($fib_iter: (), $n1: int, $b: int, $k: (), $ab: int):
+    @jumpclosure($fib_iter, $n1: int, $b: int, $ab: int, $k: int)
+
+
+_11_fib_iter_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $fib_iter = @field($__env_end, -5)
+    $n1 = @field($__env_end, -4)
+    $b = @field($__env_end, -3)
+    $k = @field($__env_end, -2)
+    $ab = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_11_fib_iter, $fib_iter: (), $n1: int, $b: int, $k: (), $ab: int)
+
+
+_11_fib_iter_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_11_fib_iter_release_skip_0, $__num_remaining, 4)
+    $_11_fib_iter_release_field_0 = @field($__env_end, -5)
+    @callptr($_11_fib_iter_release_field_0)
+_11_fib_iter_release_skip_0:
+    @gt(_11_fib_iter_release_skip_3, $__num_remaining, 1)
+    $_11_fib_iter_release_field_3 = @field($__env_end, -2)
+    @callptr($_11_fib_iter_release_field_3)
+_11_fib_iter_release_skip_3:
+    @release($__env_end)
+    @return()
+
+
+_11_fib_iter_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_11_fib_iter_deepcopy_skip_0, $num_remaining, 4)
+    @deepcopy($_11_fib_iter_deepcopy_field_0, $__env_end, -5)
+_11_fib_iter_deepcopy_skip_0:
+    @gt(_11_fib_iter_deepcopy_skip_3, $num_remaining, 1)
+    @deepcopy($_11_fib_iter_deepcopy_field_3, $__env_end, -2)
+_11_fib_iter_deepcopy_skip_3:
+    @return()
+
+
+_9_fib_iter($a: int, $b: int, $fib_iter: (), $k: (), $n1: int):
+    $_12_fib_iter = @newclosure<($n: int, $a: int, $b: int, $k: ()), int, int, ($_0_fib_iter: int), int>(_11_fib_iter, $fib_iter: (), $n1: int, $b: int, $k: ())
+    @add($a: int, $b: int, $_12_fib_iter)
+
+
+_9_fib_iter_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $a = @field($__env_end, -5)
+    $b = @field($__env_end, -4)
+    $fib_iter = @field($__env_end, -3)
+    $k = @field($__env_end, -2)
+    $n1 = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_9_fib_iter, $a: int, $b: int, $fib_iter: (), $k: (), $n1: int)
+
+
+_9_fib_iter_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_9_fib_iter_release_skip_2, $__num_remaining, 2)
+    $_9_fib_iter_release_field_2 = @field($__env_end, -3)
+    @callptr($_9_fib_iter_release_field_2)
+_9_fib_iter_release_skip_2:
+    @gt(_9_fib_iter_release_skip_3, $__num_remaining, 1)
+    $_9_fib_iter_release_field_3 = @field($__env_end, -2)
+    @callptr($_9_fib_iter_release_field_3)
+_9_fib_iter_release_skip_3:
+    @release($__env_end)
+    @return()
+
+
+_9_fib_iter_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_9_fib_iter_deepcopy_skip_2, $num_remaining, 2)
+    @deepcopy($_9_fib_iter_deepcopy_field_2, $__env_end, -3)
+_9_fib_iter_deepcopy_skip_2:
+    @gt(_9_fib_iter_deepcopy_skip_3, $num_remaining, 1)
+    @deepcopy($_9_fib_iter_deepcopy_field_3, $__env_end, -2)
+_9_fib_iter_deepcopy_skip_3:
+    @return()
+
+
+_6_fib_iter($n: int, $a: int, $b: int, $fib_iter: (), $k: ()):
+    $_13_fib_iter = @newclosure<int, int, ($n: int, $a: int, $b: int, $k: ()), ($_0_fib_iter: int), int>(_9_fib_iter, $a: int, $b: int, $fib_iter: (), $k: ())
+    @sub($n: int, $_7: int = 1, $_13_fib_iter)
+
+
+_6_fib_iter_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $n = @field($__env_end, -5)
+    $a = @field($__env_end, -4)
+    $b = @field($__env_end, -3)
+    $fib_iter = @field($__env_end, -2)
+    $k = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_6_fib_iter, $n: int, $a: int, $b: int, $fib_iter: (), $k: ())
+
+
+_6_fib_iter_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_6_fib_iter_release_skip_3, $__num_remaining, 1)
+    $_6_fib_iter_release_field_3 = @field($__env_end, -2)
+    @callptr($_6_fib_iter_release_field_3)
+_6_fib_iter_release_skip_3:
+    @gt(_6_fib_iter_release_skip_4, $__num_remaining, 0)
+    $_6_fib_iter_release_field_4 = @field($__env_end, -1)
+    @callptr($_6_fib_iter_release_field_4)
+_6_fib_iter_release_skip_4:
+    @release($__env_end)
+    @return()
+
+
+_6_fib_iter_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_6_fib_iter_deepcopy_skip_3, $num_remaining, 1)
+    @deepcopy($_6_fib_iter_deepcopy_field_3, $__env_end, -2)
+_6_fib_iter_deepcopy_skip_3:
+    @gt(_6_fib_iter_deepcopy_skip_4, $num_remaining, 0)
+    @deepcopy($_6_fib_iter_deepcopy_field_4, $__env_end, -1)
+_6_fib_iter_deepcopy_skip_4:
+    @return()
+
+
+fib_iter($n: int, $a: int, $b: int, $k: ()):
+    $_4_fib_iter = @newclosure<($_0_fib_iter: int), int>(_3_fib_iter, $k: (), $a: int)
+    $fib_iter = @newclosure<int, int, int, ($_0_fib_iter: int)>(fib_iter)
+    $_14_fib_iter = @newclosure<int, int, int, ($n: int, $a: int, $b: int, $k: ()), ($_0_fib_iter: int)>(_6_fib_iter, $n: int, $a: int, $b: int, $fib_iter: (), $k: ())
+    @eq(eq__4_fib_iter_true_0_0, $n: int, $_1: int = 0)
+eq__14_fib_iter_false_0_0:
+    @release($_4_fib_iter)
+    @jumpclosure($_14_fib_iter)
+eq__4_fib_iter_true_0_0:
+    @release($_14_fib_iter)
+    @jumpclosure($_4_fib_iter)
+
+
+fib_iter_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $n = @field($__env_end, -4)
+    $a = @field($__env_end, -3)
+    $b = @field($__env_end, -2)
+    $k = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(fib_iter, $n: int, $a: int, $b: int, $k: ())
+
+
+fib_iter_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(fib_iter_release_skip_3, $__num_remaining, 0)
+    $fib_iter_release_field_3 = @field($__env_end, -1)
+    @callptr($fib_iter_release_field_3)
+fib_iter_release_skip_3:
+    @release($__env_end)
+    @return()
+
+
+fib_iter_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(fib_iter_deepcopy_skip_3, $num_remaining, 0)
+    @deepcopy($fib_iter_deepcopy_field_3, $__env_end, -1)
+fib_iter_deepcopy_skip_3:
+    @return()
+
+
+fib($n: int, $k: ()):
+    @jumpargs(fib_iter, $n: int, $_16: int = 0, $_17: int = 1, $k: ())
+
+
+fib_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $n = @field($__env_end, -2)
+    $k = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(fib, $n: int, $k: ())
+
+
+fib_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(fib_release_skip_1, $__num_remaining, 0)
+    $fib_release_field_1 = @field($__env_end, -1)
+    @callptr($fib_release_field_1)
+fib_release_skip_1:
+    @release($__env_end)
+    @return()
+
+
+fib_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(fib_deepcopy_skip_1, $num_remaining, 0)
+    @deepcopy($fib_deepcopy_field_1, $__env_end, -1)
+fib_deepcopy_skip_1:
+    @return()
+
+
+main():
+    $_20_main = @newclosure<int>(_20_main)
+    @jumpargs(fib, $_18: int = 7, $_20_main: ())
+
+
+main_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(main)
+
+
+main_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+main_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    @jumpargs(main)
+

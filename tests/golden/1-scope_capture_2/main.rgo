@@ -1,0 +1,9 @@
+str: @str
+int: @int
+printf: @printf
+add: @add
+exit: @exit
+main: () {
+    () = printf("hello world")
+    exit(0)
+}

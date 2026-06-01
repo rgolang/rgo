@@ -1,5 +1,0 @@
-int: @/int
-printf: @/printf
-exit: @/exit
-
-printf("hello\n", exit(0))

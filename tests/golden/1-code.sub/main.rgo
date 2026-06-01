@@ -1,0 +1,10 @@
+sub: @sub
+int: @int
+printf: @printf
+exit: @exit
+
+main: () {
+    sub(9, 4, (n: int) {
+        printf("sub: %d", n, exit(0))
+    })
+}

@@ -1,0 +1,21 @@
+str: @str
+int: @int
+printf: @printf
+add: @add
+exit: @exit
+_6_main: (){
+    _7: 0
+    exit(_7)
+}
+
+_3_main: (x: int){
+    _4: "result: %d"
+    printf(_4, x, _6_main)
+}
+
+main: (){
+    _0: 1
+    _1: 2
+    add(_0, _1, _3_main)
+}
+main()

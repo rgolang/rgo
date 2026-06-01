@@ -1,9 +1,0 @@
-int: @/int
-write: @/write
-exit: @/exit
-x: "Hello world!\n"
-_1_lambda: (){
-    _2: 0
-    exit(_2)
-}
-write(x, _1_lambda)

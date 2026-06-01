@@ -1,0 +1,11 @@
+eqs: @eqs
+write: @write
+exit: @exit
+
+main: () {
+    eqs("aaa", "aaa", (){
+        write("true", exit(0))
+    }, (){
+        write("false", exit(0))
+    })
+}

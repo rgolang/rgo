@@ -1,0 +1,28 @@
+exit: @exit
+str: @str
+int: @int
+printf: @printf
+eqi: @eq
+sub: @sub
+add: @add
+fib_iter: (n: int, a: int, b: int, k: (int)){
+    eqi(n, 0, {
+        k(a)
+    }, {
+        sub(n, 1, (n1: int){
+            add(a, b, (ab: int){
+                fib_iter(n1, b, ab, k)
+            })
+        })
+    })
+}
+
+fib: (n: int, k: (int)){
+    fib_iter(n, 0, 1, k)
+}
+
+main: () {
+    (result: int) = fib(7)
+    () = printf("fib(7) = %d\n", result)
+    exit(0)
+}

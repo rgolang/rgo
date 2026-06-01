@@ -1,0 +1,78 @@
+_3_main():
+    @exit($_4: int = 0)
+
+
+_3_main_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_3_main)
+
+
+_3_main_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_3_main_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+write($n: int, $ok: ()):
+    @printf($_0: str! = "Gotcha: %d", $n: int, $ok)
+
+
+write_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $n = @field($__env_end, -2)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(write, $n: int, $ok: ())
+
+
+write_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(write_release_skip_1, $__num_remaining, 0)
+    $write_release_field_1 = @field($__env_end, -1)
+    @callptr($write_release_field_1)
+write_release_skip_1:
+    @release($__env_end)
+    @return()
+
+
+write_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(write_deepcopy_skip_1, $num_remaining, 0)
+    @deepcopy($write_deepcopy_field_1, $__env_end, -1)
+write_deepcopy_skip_1:
+    @return()
+
+
+main():
+    $_3_main = @newclosure<>(_3_main)
+    @jumpargs(write, $_1: int = 1, $_3_main: ())
+
+
+main_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(main)
+
+
+main_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+main_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_start():
+    @jumpargs(main)
+

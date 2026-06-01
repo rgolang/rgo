@@ -1,0 +1,14 @@
+int: @int
+str: @str
+printf: @printf
+exit: @exit
+
+bar: (m1:str, m2:str, ok:()) {
+    printf("msg1: %s, msg2: %s\n", m1, m2, ok)
+}
+foo: (cb:(str, ()), ok:()){
+    cb("bye", ok)
+}
+main: () {
+    foo(bar("hi"), exit(0))
+}

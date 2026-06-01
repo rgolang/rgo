@@ -1,0 +1,210 @@
+[
+    Import {
+        label: "int",
+        path: "int",
+        span: ,
+    },
+    Import {
+        label: "str",
+        path: "str",
+        span: ,
+    },
+    Import {
+        label: "exit",
+        path: "exit",
+        span: ,
+    },
+    SigDef {
+        name: "arr",
+        sig: Signature {
+            items: [
+                SigItem {
+                    name: "",
+                    kind: Sig(
+                        Signature {
+                            items: [
+                                SigItem {
+                                    name: "len",
+                                    kind: Ident(
+                                        SigIdent {
+                                            name: "int",
+                                            span: ,
+                                        },
+                                    ),
+                                    has_bang: false,
+                                    span: ,
+                                },
+                                SigItem {
+                                    name: "nth",
+                                    kind: Sig(
+                                        Signature {
+                                            items: [
+                                                SigItem {
+                                                    name: "idx",
+                                                    kind: Ident(
+                                                        SigIdent {
+                                                            name: "int",
+                                                            span: ,
+                                                        },
+                                                    ),
+                                                    has_bang: false,
+                                                    span: ,
+                                                },
+                                                SigItem {
+                                                    name: "none",
+                                                    kind: Sig(
+                                                        Signature {
+                                                            items: [],
+                                                            span: ,
+                                                            generics: {},
+                                                        },
+                                                    ),
+                                                    has_bang: false,
+                                                    span: ,
+                                                },
+                                                SigItem {
+                                                    name: "one",
+                                                    kind: Sig(
+                                                        Signature {
+                                                            items: [
+                                                                SigItem {
+                                                                    name: "",
+                                                                    kind: Generic(
+                                                                        "T",
+                                                                    ),
+                                                                    has_bang: false,
+                                                                    span: ,
+                                                                },
+                                                            ],
+                                                            span: ,
+                                                            generics: {},
+                                                        },
+                                                    ),
+                                                    has_bang: false,
+                                                    span: ,
+                                                },
+                                            ],
+                                            span: ,
+                                            generics: {},
+                                        },
+                                    ),
+                                    has_bang: false,
+                                    span: ,
+                                },
+                            ],
+                            span: ,
+                            generics: {},
+                        },
+                    ),
+                    has_bang: false,
+                    span: ,
+                },
+            ],
+            span: ,
+            generics: {
+                "T",
+            },
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "foo",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "items",
+                        kind: GenericInst {
+                            name: "arr",
+                            args: [
+                                Ident(
+                                    SigIdent {
+                                        name: "str",
+                                        span: ,
+                                    },
+                                ),
+                            ],
+                        },
+                        has_bang: false,
+                        span: ,
+                    },
+                ],
+                span: ,
+                generics: {},
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "exit",
+                            args: [
+                                Arg {
+                                    name: None,
+                                    term: Lit(
+                                        Literal {
+                                            value: Int(
+                                                0,
+                                            ),
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                            ],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "main",
+        lambda: Lambda {
+            params: Signature {
+                items: [],
+                span: ,
+                generics: {},
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "exit",
+                            args: [
+                                Arg {
+                                    name: None,
+                                    term: Lit(
+                                        Literal {
+                                            value: Int(
+                                                0,
+                                            ),
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                            ],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    Ident(
+        Ident {
+            name: "main",
+            args: [],
+            span: ,
+        },
+    ),
+]

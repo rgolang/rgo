@@ -1,0 +1,9 @@
+int: @int
+printf: @printf
+exit: @exit
+
+x: 41
+main: () {
+    () = printf("the answer is: %d", 42)
+    exit(0)
+}

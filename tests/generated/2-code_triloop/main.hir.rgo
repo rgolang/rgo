@@ -1,0 +1,22 @@
+write: @write
+bar: (ok:()){
+    _0: "bar,"
+    write(_0, ok)
+}
+
+baz: (ok:()){
+    _1: "baz,"
+    write(_1, ok)
+}
+
+foo: (){
+    _2: "foo,"
+    _3_baz: baz(foo)
+    _4_bar: bar(_3_baz)
+    write(_2, _4_bar)
+}
+
+main: (){
+    foo()
+}
+main()
