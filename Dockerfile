@@ -1,4 +1,4 @@
-FROM rust:1.91-trixie
+FROM rust:1.96-trixie
 
 WORKDIR /rgo
 

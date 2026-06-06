@@ -141,7 +141,7 @@ Programs are then lowered directly into tail-jump CPS and compiled straight to a
 
 The project toolchain is pinned in [.tool-versions](./.tool-versions):
 
-- Rust: `stable`
+- Rust: `1.96.0`
 - NASM: `3.01`
 
 Install the host packages needed to download and build the pinned tools. On Debian:
@@ -157,7 +157,7 @@ Install [asdf](https://asdf-vm.com/guide/getting-started.html), then from the re
 make install
 ```
 
-`make install` is idempotent. It installs the required asdf plugins if missing, installs the pinned Rust toolchain, builds NASM `3.01` into the asdf install directory if it is not already present, writes the local tool versions, and refreshes shims.
+`make install` is idempotent. It installs the required asdf plugins if missing, installs the pinned Rust toolchain (`1.96.0`), builds NASM `3.01` into the asdf install directory if it is not already present, writes the local tool versions, and refreshes shims.
 
 Verify the setup with:
 
