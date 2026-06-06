@@ -17,9 +17,9 @@ run: (ok:()){
     k: (x:int){
         printf("number: %d", x, ok) 
     }
-    eqi(1, 1, {
+    eqi(1, 1, () {
         a(k)
-    }, {
+    }, () {
         a(k)
     })
 }

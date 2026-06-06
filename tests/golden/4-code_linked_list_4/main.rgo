@@ -25,7 +25,7 @@ mylist: cons(1, cons(2, cons(3, cons(4, nil))))
 handler: (n: int, ok: ()){
     printf("%d, ", n, ok)
 }
-end: {printf("end\n", exit(0))}
+end: () {printf("end\n", exit(0))}
 main: () {
     iterate(handler, mylist, end)
 }

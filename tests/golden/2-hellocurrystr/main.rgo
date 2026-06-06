@@ -12,7 +12,7 @@ foo: (n:str, s:str, ok:()){
 bar: foo("42")
 baz: foo("43", "Bob")
 main: () {
-    bar("Alice", {
+    bar("Alice", () {
     	baz(exit(0))
     })
 }

@@ -6,7 +6,7 @@ foo: (ok:()) {
 
 // 2. Bar is defined later. It execs Foo.
 // But it passes ITSELF as the argument.
-bar: {
+bar: () {
    foo(bar)
 }
 

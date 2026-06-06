@@ -88,7 +88,7 @@ false: (x: (), y: ()){
 if: (cond: ((),()), ok:()){
     cond(printf("does not work\n", exit(0)), ok)
 }
-next: {printf("works\n", exit(0))}
+next: (){printf("works\n", exit(0))}
 main: () {
     if(true, next)
 }

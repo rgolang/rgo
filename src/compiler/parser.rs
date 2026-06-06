@@ -106,7 +106,6 @@ impl<R: BufRead> Parser<R> {
             TokenKind::LParen => {
                 return self.parse_lambda_or_scope_capture();
             }
-            TokenKind::LBrace => {} // allow lambda exec (possibly without args)
             TokenKind::Newline => {}
             _ => return Err(Error::new(Code::Parse, "expected a top-level item", span)),
         }
@@ -132,27 +131,18 @@ impl<R: BufRead> Parser<R> {
         let has_head = matches!(next_token.kind, TokenKind::LParen);
         let has_brace = matches!(next_token.kind, TokenKind::LBrace);
 
-        if has_brace && !generics.is_empty() {
+        if has_brace {
             return Err(Error::new(
                 Code::Parse,
-                "generics are only supported on type aliases",
+                "function definitions require a parameter list before the body block",
                 next_token.span,
-            )
-            .into());
+            ));
         }
 
-        if has_head || has_brace {
-            let mut params = if has_head {
-                self.with_generic_scope(&generics, |parser| {
-                    parser.parse_params(ParamContext::Params)
-                })?
-            } else {
-                Signature {
-                    items: Vec::new(),
-                    span: params_span,
-                    generics: BTreeSet::new(),
-                }
-            };
+        if has_head {
+            let mut params = self.with_generic_scope(&generics, |parser| {
+                parser.parse_params(ParamContext::Params)
+            })?;
 
             if matches!(self.peek_token()?.kind, TokenKind::LBrace) {
                 // FUNCTION CASE
@@ -175,16 +165,14 @@ impl<R: BufRead> Parser<R> {
                 });
             }
 
-            if has_head {
-                let param_types = Self::collect_param_kinds(&params.items)?;
-                let mut target = Signature::from_kinds(param_types, params_span);
-                target.generics = generics.clone();
-                return Ok(BlockItem::SigDef {
-                    name,
-                    sig: target,
-                    span: name_span,
-                });
-            }
+            let param_types = Self::collect_param_kinds(&params.items)?;
+            let mut target = Signature::from_kinds(param_types, params_span);
+            target.generics = generics.clone();
+            return Ok(BlockItem::SigDef {
+                name,
+                sig: target,
+                span: name_span,
+            });
         }
 
         // Case 2: alias or literal (no params or body block)
@@ -228,22 +216,20 @@ impl<R: BufRead> Parser<R> {
                 })
             }
             TokenKind::LBrace => {
-                // Parse lambda body as a term
-                let mut term = self.parse_term()?;
-
-                match &mut term {
-                    Term::Lambda(lambda) => {
-                        // attach params parsed earlier
-                        lambda.params = params;
-
-                        Ok(BlockItem::Lambda(lambda.clone()))
-                    }
-                    _ => Err(Error::new(
-                        Code::Parse,
-                        "expected lambda body after parameter list",
-                        params.span,
-                    )),
+                let brace = self.expect_token("{", |kind| matches!(kind, TokenKind::LBrace))?;
+                let body = self.parse_body(brace.span)?;
+                self.expect_token("}", |kind| matches!(kind, TokenKind::RBrace))?;
+                let mut args = Vec::new();
+                while matches!(self.peek_token()?.kind, TokenKind::LParen) {
+                    self.bump()?;
+                    args.extend(self.parse_argument_list()?);
                 }
+                Ok(BlockItem::Lambda(Lambda {
+                    params,
+                    body,
+                    args,
+                    span: brace.span,
+                }))
             }
 
             _ => Err(Error::new(
@@ -315,22 +301,6 @@ impl<R: BufRead> Parser<R> {
                 let params = self.parse_params(ParamContext::Lambda)?;
                 let brace = self.expect_token("{", |kind| matches!(kind, TokenKind::LBrace))?;
                 let body = self.parse_body(brace.span)?;
-                self.expect_token("}", |k| matches!(k, TokenKind::RBrace))?;
-                Ok(Term::Lambda(Lambda {
-                    params,
-                    body,
-                    args: Vec::new(),
-                    span: token.span,
-                }))
-            }
-            TokenKind::LBrace => {
-                // { ... } → lambda without explicit params
-                let params = Signature {
-                    items: Vec::new(),
-                    span: token.span,
-                    generics: BTreeSet::new(),
-                };
-                let body = self.parse_body(token.span)?;
                 self.expect_token("}", |k| matches!(k, TokenKind::RBrace))?;
                 Ok(Term::Lambda(Lambda {
                     params,
@@ -759,6 +729,29 @@ mod tests {
         assert!(
             err.to_string()
                 .contains("block must contain at least one item"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn parse_rejects_bare_empty_param_function_body() {
+        let mut parser = Parser::new(Lexer::new(Cursor::new("foo: { bar }")));
+        let err = parser
+            .next()
+            .expect_err("bare function body must require ()");
+        assert!(
+            err.to_string()
+                .contains("function definitions require a parameter list before the body block"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn parse_rejects_bare_empty_param_lambda() {
+        let mut parser = Parser::new(Lexer::new(Cursor::new("foo: () { bar({ baz }) }")));
+        let err = parser.next().expect_err("bare lambda must require ()");
+        assert!(
+            err.to_string().contains("unexpected token: LBrace"),
             "unexpected error: {err}"
         );
     }

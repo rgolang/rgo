@@ -8,9 +8,9 @@ printf: (fmt: str!, args: ..., ok:()) {
 eqi: @eq
 array3: (a:str, b:str, c:str, ok:(len:int, nth:(index:int, one:(str), none:()))){
     ok(3, (index:int, one:(str), none:()){
-        eqi(index, 0, {one(a)}, {
-            eqi(index, 1, {one(b)}, {
-                eqi(index, 2, {one(c)}, none)
+        eqi(index, 0, () {one(a)}, () {
+            eqi(index, 1, () {one(b)}, () {
+                eqi(index, 2, () {one(c)}, none)
             })
         })
     })
@@ -20,7 +20,7 @@ main: () {
         () = printf("array has %d elements\n", len)
         nth(1, (s:str){
             printf("element at index 1 is %s\n", s, exit(0))
-        }, {
+        }, () {
             printf("index out of bounds\n", exit(0))
         })
     })
