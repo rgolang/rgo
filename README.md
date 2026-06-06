@@ -181,6 +181,7 @@ docker run --rm -i rgo-compiler code/hello.rgo main
 ```
 
 This compiles and runs the `main` target in `code/hello.rgo`.
+The resulting executable is written next to the source file on your host machine when you mount a working directory into the container.
 
 This is what happens inside the container (or on your linux machine)
 ```sh
