@@ -1,5 +1,38 @@
+_9_print($ok: (), $s: str):
+    @write($s: str, $ok)
+
+
+_9_print_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $ok = @field($__env_end, -2)
+    $s = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_9_print, $ok: (), $s: str)
+
+
+_9_print_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_9_print_release_skip_0, $__num_remaining, 1)
+    $_9_print_release_field_0 = @field($__env_end, -2)
+    @callptr($_9_print_release_field_0)
+_9_print_release_skip_0:
+    @release($__env_end)
+    @return()
+
+
+_9_print_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_9_print_deepcopy_skip_0, $num_remaining, 1)
+    @deepcopy($_9_print_deepcopy_field_0, $__env_end, -2)
+_9_print_deepcopy_skip_0:
+    @return()
+
+
 print($n: str, $ok: ()):
-    @printf($_3: str! = "The winning number is %s\n", $n: int, $ok)
+    $_10_print = @newclosure<(), str>(_9_print, $ok: ())
+    @sprintf($_7: str! = "The winning number is %s\n", $n: int, $_10_print)
 
 
 print_unwrapper($env_end: int):
@@ -30,29 +63,29 @@ print_deepcopy_skip_1:
     @return()
 
 
-_5_main():
-    @exit($_6: int = 0)
+_12_main():
+    @exit($_13: int = 0)
 
 
-_5_main_unwrapper($env_end: int):
+_12_main_unwrapper($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
-    @jumpargs(_5_main)
+    @jumpargs(_12_main)
 
 
-_5_main_deep_release($env_end: int):
+_12_main_deep_release($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
     @return()
 
 
-_5_main_deepcopy($env_end: int):
+_12_main_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
     @return()
 
 
 foo($f: (), $ok: ()):
-    @jumpclosure($f, $_2: int = "42", $ok: int)
+    @jumpclosure($f, $_6: int = "42", $ok: int)
 
 
 foo_unwrapper($env_end: int):
@@ -92,8 +125,8 @@ foo_deepcopy_skip_1:
 
 main():
     $print = @newclosure<str, ()>(print)
-    $_5_main = @newclosure<>(_5_main)
-    @jumpargs(foo, $print: (), $_5_main: ())
+    $_12_main = @newclosure<>(_12_main)
+    @jumpargs(foo, $print: (), $_12_main: ())
 
 
 main_unwrapper($env_end: int):

@@ -1,9 +1,12 @@
+str: @str
 exit: @exit
 int: @int
 add: @add
 sub: @sub
-printf: @printf
-
+printf: (fmt: str!, args: ..., ok:()) {
+    (s: str) = @sprintf(fmt, args)
+    @write(s, ok)
+}
 bar: (){
     printf("outer bar", exit(0))
 }

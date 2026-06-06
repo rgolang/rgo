@@ -1,6 +1,9 @@
-exit: @exit
 str: @str
-printf: @printf
+exit: @exit
+printf: (fmt: str!, args: ..., ok:()) {
+    (s: str) = @sprintf(fmt, args)
+    @write(s, ok)
+}
 foo: (a: str, b: str, c:str){
     printf("%s %s and %s", a, b, c, exit(0))
 }

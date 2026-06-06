@@ -1,17 +1,29 @@
 [
-    Import {
-        label: "str",
-        path: "str",
+    IdentDef {
+        name: "str",
+        ident: Ident {
+            name: "@str",
+            args: [],
+            span: ,
+        },
         span: ,
     },
-    Import {
-        label: "itoa",
-        path: "itoa",
+    IdentDef {
+        name: "itoa",
+        ident: Ident {
+            name: "@itoa",
+            args: [],
+            span: ,
+        },
         span: ,
     },
-    Import {
-        label: "exit",
-        path: "exit",
+    IdentDef {
+        name: "exit",
+        ident: Ident {
+            name: "@exit",
+            args: [],
+            span: ,
+        },
         span: ,
     },
     FunctionDef {

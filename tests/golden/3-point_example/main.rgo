@@ -1,6 +1,10 @@
+str: @str
 int: @int
 exit: @exit
-printf: @printf
+printf: (fmt: str!, args: ..., ok:()) {
+    (s: str) = @sprintf(fmt, args)
+    @write(s, ok)
+}
 point: (x:int, y:int)
 // This is a struct function
 new_point: (x:int, y:int, ok:point){

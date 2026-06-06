@@ -1,7 +1,9 @@
-// Double curried continuation
 str: @str
-printf: @printf
-
+// Double curried continuation
+printf: (fmt: str!, args: ..., ok:()) {
+    (s: str) = @sprintf(fmt, args)
+    @write(s, ok)
+}
 foo: (ok:(str)){
     ok("charlie")
 }

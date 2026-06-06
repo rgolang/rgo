@@ -1,4 +1,5 @@
 use crate::compiler::ast;
+use crate::compiler::builtins;
 use crate::compiler::error;
 use crate::compiler::error::{Code, Error};
 use crate::compiler::format_hir;
@@ -10,12 +11,14 @@ use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 
 pub struct Lowerer {
     ready: VecDeque<BlockItem>,
+    variadic_functions: HashMap<String, ast::Lambda>,
 }
 
 impl Lowerer {
     pub fn new() -> Self {
         Self {
             ready: VecDeque::new(),
+            variadic_functions: HashMap::new(),
         }
     }
 
@@ -34,11 +37,23 @@ impl Lowerer {
                 ctx::register_import(ctx, &label, &path, Span::unknown())?;
             }
             ast::BlockItem::FunctionDef { name, lambda, .. } => {
+                if lambda.params.is_variadic() {
+                    self.variadic_functions.insert(name.clone(), lambda.clone());
+                }
                 let display_name = name.clone();
-                lower_function(ctx, name, Some(display_name), lambda, &mut self.ready, true)?;
+                lower_function(
+                    ctx,
+                    name,
+                    Some(display_name),
+                    lambda,
+                    &mut self.ready,
+                    true,
+                    &self.variadic_functions,
+                )?;
             }
             other => {
-                let lowered_items = lower_block_item(ctx, other, &mut self.ready)?;
+                let lowered_items =
+                    lower_block_item(ctx, other, &mut self.ready, &self.variadic_functions)?;
                 for item in lowered_items {
                     self.ready.push_back(item);
                 }
@@ -56,6 +71,7 @@ fn lower_function(
     lambda: ast::Lambda,
     hoisted: &mut VecDeque<BlockItem>,
     is_root_def: bool,
+    variadic_functions: &HashMap<String, ast::Lambda>,
 ) -> Result<(), Error> {
     let span = Span::unknown();
 
@@ -82,10 +98,18 @@ fn lower_function(
             }
             ast::BlockItem::FunctionDef { name, lambda, .. } => {
                 let display_name = name.clone();
-                lower_function(&mut ctx, name, Some(display_name), lambda, hoisted, false)?;
+                lower_function(
+                    &mut ctx,
+                    name,
+                    Some(display_name),
+                    lambda,
+                    hoisted,
+                    false,
+                    variadic_functions,
+                )?;
             }
             other => {
-                for item in lower_block_item(&mut ctx, other, hoisted)? {
+                for item in lower_block_item(&mut ctx, other, hoisted, variadic_functions)? {
                     lowered_items.push(item);
                 }
             }
@@ -205,6 +229,7 @@ fn lower_block_item(
     ctx: &mut ctx::Context,
     item: ast::BlockItem,
     hoisted: &mut VecDeque<BlockItem>,
+    variadic_functions: &HashMap<String, ast::Lambda>,
 ) -> Result<Vec<BlockItem>, Error> {
     let lowered_items = match item {
         ast::BlockItem::ScopeCapture {
@@ -221,10 +246,14 @@ fn lower_block_item(
             };
             let callback_term = ast::Term::Lambda(lambda);
             let exec_term = append_scope_capture_arg(term, callback_term)?;
-            lower_exec(ctx, exec_term, hoisted)
+            lower_exec(ctx, exec_term, hoisted, variadic_functions)
         }
-        ast::BlockItem::Ident(term) => lower_exec(ctx, ast::Term::Ident(term), hoisted),
-        ast::BlockItem::Lambda(lambda) => lower_exec(ctx, ast::Term::Lambda(lambda), hoisted),
+        ast::BlockItem::Ident(term) => {
+            lower_exec(ctx, ast::Term::Ident(term), hoisted, variadic_functions)
+        }
+        ast::BlockItem::Lambda(lambda) => {
+            lower_exec(ctx, ast::Term::Lambda(lambda), hoisted, variadic_functions)
+        }
         ast::BlockItem::LitDef { name, literal, .. } => {
             let literal = lower_lit(literal.value);
             let kind = match &literal {
@@ -260,6 +289,15 @@ fn lower_block_item(
         }
         ast::BlockItem::IdentDef { name, ident, .. } => {
             if ident.args.is_empty() {
+                if let Some(builtin_name) = builtin_reference_name(&ident.name) {
+                    ctx::register_import(ctx, &name, builtin_name, Span::unknown())?;
+                    return Ok(vec![BlockItem::Import {
+                        label: name,
+                        path: builtin_name.to_string(),
+                    }]);
+                }
+            }
+            if ident.args.is_empty() {
                 if let Some(target) = ctx.get(&ident.name) {
                     ctx.add(&name, target.clone())?;
                     Ok(Vec::new())
@@ -272,7 +310,14 @@ fn lower_block_item(
                 }
             } else {
                 let mut lowered_items = Vec::new();
-                let closure = lower_closure(ctx, name.clone(), ident, hoisted, &mut lowered_items)?;
+                let closure = lower_closure(
+                    ctx,
+                    name.clone(),
+                    ident,
+                    hoisted,
+                    &mut lowered_items,
+                    variadic_functions,
+                )?;
                 let result_type = if let Some(signature) =
                     signature::resolve_target_signature(&closure.of, ctx)
                 {
@@ -331,18 +376,223 @@ fn append_scope_capture_arg(term: ast::Term, callback: ast::Term) -> Result<ast:
     }
 }
 
+fn lower_variadic_inline_call(
+    ctx: &mut ctx::Context,
+    lambda: ast::Lambda,
+    args: Vec<ast::Arg>,
+    hoisted: &mut VecDeque<BlockItem>,
+    variadic_functions: &HashMap<String, ast::Lambda>,
+) -> Result<Vec<BlockItem>, Error> {
+    let Some(expansion) = expand_variadic_lambda(lambda, args)? else {
+        return Err(error::new(
+            Code::HIR,
+            "cannot execute variadic function: not all fixed args have been provided",
+            Span::unknown(),
+        ));
+    };
+
+    let mut lowered_items = Vec::new();
+    for item in expansion.items {
+        lowered_items.extend(lower_block_item(ctx, item, hoisted, variadic_functions)?);
+    }
+    Ok(lowered_items)
+}
+
+struct VariadicExpansion {
+    fixed: HashMap<String, ast::Term>,
+    variadic_name: String,
+    variadic_terms: Vec<ast::Term>,
+}
+
+fn expand_variadic_lambda(
+    lambda: ast::Lambda,
+    args: Vec<ast::Arg>,
+) -> Result<Option<ast::Block>, Error> {
+    let Some(variadic_index) = lambda
+        .params
+        .items
+        .iter()
+        .position(|item| matches!(item.kind, ast::SigKind::Variadic))
+    else {
+        return Ok(None);
+    };
+    let fixed_count = lambda.params.items.len().saturating_sub(1);
+    if args.len() < fixed_count {
+        return Ok(None);
+    }
+
+    let suffix_count = lambda.params.items.len().saturating_sub(variadic_index + 1);
+    let variadic_count = args.len() - fixed_count;
+    let mut fixed = HashMap::new();
+
+    for (param, arg) in lambda
+        .params
+        .items
+        .iter()
+        .take(variadic_index)
+        .zip(args.iter())
+    {
+        fixed.insert(param.name.clone(), arg.term.clone());
+    }
+
+    let suffix_arg_start = args.len() - suffix_count;
+    for (param, arg) in lambda
+        .params
+        .items
+        .iter()
+        .skip(variadic_index + 1)
+        .zip(args.iter().skip(suffix_arg_start))
+    {
+        fixed.insert(param.name.clone(), arg.term.clone());
+    }
+
+    let variadic_name = lambda.params.items[variadic_index].name.clone();
+    let variadic_terms = args
+        .iter()
+        .skip(variadic_index)
+        .take(variadic_count)
+        .map(|arg| arg.term.clone())
+        .collect();
+    let expansion = VariadicExpansion {
+        fixed,
+        variadic_name,
+        variadic_terms,
+    };
+
+    Ok(Some(substitute_block(lambda.body, &expansion)))
+}
+
+fn substitute_block(block: ast::Block, expansion: &VariadicExpansion) -> ast::Block {
+    ast::Block {
+        items: block
+            .items
+            .into_iter()
+            .map(|item| substitute_block_item(item, expansion))
+            .collect(),
+        span: block.span,
+    }
+}
+
+fn substitute_block_item(item: ast::BlockItem, expansion: &VariadicExpansion) -> ast::BlockItem {
+    match item {
+        ast::BlockItem::Ident(ident) => ast::BlockItem::Ident(substitute_ident(ident, expansion)),
+        ast::BlockItem::Lambda(lambda) => {
+            ast::BlockItem::Lambda(substitute_lambda(lambda, expansion))
+        }
+        ast::BlockItem::ScopeCapture {
+            params,
+            continuation,
+            term,
+            span,
+        } => ast::BlockItem::ScopeCapture {
+            params,
+            continuation: substitute_block(continuation, expansion),
+            term: substitute_term(term, expansion),
+            span,
+        },
+        ast::BlockItem::IdentDef { name, ident, span } => ast::BlockItem::IdentDef {
+            name,
+            ident: substitute_ident(ident, expansion),
+            span,
+        },
+        ast::BlockItem::FunctionDef { name, lambda, span } => ast::BlockItem::FunctionDef {
+            name,
+            lambda: substitute_lambda(lambda, expansion),
+            span,
+        },
+        other => other,
+    }
+}
+
+fn substitute_lambda(lambda: ast::Lambda, expansion: &VariadicExpansion) -> ast::Lambda {
+    ast::Lambda {
+        params: lambda.params,
+        body: substitute_block(lambda.body, expansion),
+        args: substitute_args(lambda.args, expansion),
+        span: lambda.span,
+    }
+}
+
+fn substitute_term(term: ast::Term, expansion: &VariadicExpansion) -> ast::Term {
+    match term {
+        ast::Term::Ident(ident) if ident.args.is_empty() => expansion
+            .fixed
+            .get(&ident.name)
+            .cloned()
+            .unwrap_or(ast::Term::Ident(ident)),
+        ast::Term::Ident(ident) => ast::Term::Ident(substitute_ident(ident, expansion)),
+        ast::Term::Lambda(lambda) => ast::Term::Lambda(substitute_lambda(lambda, expansion)),
+        other => other,
+    }
+}
+
+fn substitute_ident(ident: ast::Ident, expansion: &VariadicExpansion) -> ast::Ident {
+    ast::Ident {
+        name: ident.name,
+        args: substitute_args(ident.args, expansion),
+        span: ident.span,
+    }
+}
+
+fn substitute_args(args: Vec<ast::Arg>, expansion: &VariadicExpansion) -> Vec<ast::Arg> {
+    let mut substituted = Vec::new();
+    for arg in args {
+        if arg.name.is_none() {
+            if let ast::Term::Ident(ident) = &arg.term {
+                if ident.args.is_empty() && ident.name == expansion.variadic_name {
+                    substituted.extend(expansion.variadic_terms.iter().cloned().map(|term| {
+                        ast::Arg {
+                            name: None,
+                            span: term.span(),
+                            term,
+                        }
+                    }));
+                    continue;
+                }
+            }
+        }
+        substituted.push(ast::Arg {
+            name: arg.name,
+            term: substitute_term(arg.term, expansion),
+            span: arg.span,
+        });
+    }
+    substituted
+}
+
 fn lower_exec(
     ctx: &mut ctx::Context,
     term: ast::Term,
     hoisted: &mut VecDeque<BlockItem>,
+    variadic_functions: &HashMap<String, ast::Lambda>,
 ) -> Result<Vec<BlockItem>, Error> {
+    if let ast::Term::Ident(ident) = &term {
+        if let Some(lambda) = variadic_functions.get(&ident.name) {
+            return lower_variadic_inline_call(
+                ctx,
+                lambda.clone(),
+                ident.args.clone(),
+                hoisted,
+                variadic_functions,
+            );
+        }
+    }
+
     let mut emitted = HashSet::new(); // TODO: Should not be needed
     let mut lowered_items: Vec<BlockItem> = Vec::new();
     let exec = match term {
         ast::Term::Ident(ast_ident) => {
             let ast::Ident { name, args, .. } = ast_ident;
+            ensure_builtin_reference(ctx, &name, hoisted)?;
             maybe_capture_name(ctx, &name)?;
-            let (target, args) = resolve_target(ctx, &name, args, hoisted, &mut lowered_items)?;
+            let (target, args) = resolve_target(
+                ctx,
+                &name,
+                args,
+                hoisted,
+                &mut lowered_items,
+                variadic_functions,
+            )?;
             ensure_exec_args_complete(ctx, &target, args.len())?;
             let of = emit_closure_for_term(ctx, &target.name, &mut lowered_items, &mut emitted);
             let args = args
@@ -352,7 +602,8 @@ fn lower_exec(
             Exec { of, args }
         }
         ast::Term::Lambda(lambda) => {
-            let target_name = lower_lambda_term(ctx, lambda, hoisted, &mut lowered_items)?;
+            let target_name =
+                lower_lambda_term(ctx, lambda, hoisted, &mut lowered_items, variadic_functions)?;
             let of = emit_closure_for_term(ctx, &target_name, &mut lowered_items, &mut emitted);
             Exec { of, args: vec![] }
         }
@@ -370,14 +621,23 @@ fn lower_closure(
     ident: ast::Ident,
     hoisted: &mut VecDeque<BlockItem>,
     lowered_items: &mut Vec<BlockItem>,
+    variadic_functions: &HashMap<String, ast::Lambda>,
 ) -> Result<Closure, Error> {
+    ensure_builtin_reference(ctx, &ident.name, hoisted)?;
     maybe_capture_name(ctx, &ident.name)?;
     let ast::Ident {
         name: target_name,
         args: ast_args,
         ..
     } = ident;
-    let (target, args) = resolve_target(ctx, &target_name, ast_args, hoisted, lowered_items)?;
+    let (target, args) = resolve_target(
+        ctx,
+        &target_name,
+        ast_args,
+        hoisted,
+        lowered_items,
+        variadic_functions,
+    )?;
 
     Ok(Closure {
         name,
@@ -391,13 +651,29 @@ fn lower_lambda_term(
     lambda: ast::Lambda,
     hoisted: &mut VecDeque<BlockItem>,
     lowered_items: &mut Vec<BlockItem>,
+    variadic_functions: &HashMap<String, ast::Lambda>,
 ) -> Result<String, Error> {
     let ast_args = lambda.args.clone(); // This is because I cheated to keep the AST simpler and made the lambda contain the args...
 
     let contextual_name = ctx.new_name();
-    lower_function(ctx, contextual_name.clone(), None, lambda, hoisted, false)?;
+    lower_function(
+        ctx,
+        contextual_name.clone(),
+        None,
+        lambda,
+        hoisted,
+        false,
+        variadic_functions,
+    )?;
 
-    let (target, args) = resolve_target(ctx, &contextual_name, ast_args, hoisted, lowered_items)?;
+    let (target, args) = resolve_target(
+        ctx,
+        &contextual_name,
+        ast_args,
+        hoisted,
+        lowered_items,
+        variadic_functions,
+    )?;
 
     let target_name = target.name.clone();
 
@@ -419,6 +695,7 @@ fn lower_arg(
     generic_bindings: &mut HashMap<String, SigKind>,
     hoisted: &mut VecDeque<BlockItem>,
     lowered_items: &mut Vec<BlockItem>,
+    variadic_functions: &HashMap<String, ast::Lambda>,
 ) -> Result<String, Error> {
     let term = maybe_wrap_builtin(ctx, term, expected_param)?;
     validate_input_type(
@@ -430,10 +707,17 @@ fn lower_arg(
     )?;
     let arg = match term {
         ast::Term::Ident(ast_ident) => {
+            ensure_builtin_reference(ctx, &ast_ident.name, hoisted)?;
             maybe_capture_name(ctx, &ast_ident.name)?;
 
-            let (target, args) =
-                resolve_target(ctx, &ast_ident.name, ast_ident.args, hoisted, lowered_items)?;
+            let (target, args) = resolve_target(
+                ctx,
+                &ast_ident.name,
+                ast_ident.args,
+                hoisted,
+                lowered_items,
+                variadic_functions,
+            )?;
 
             if args.is_empty() {
                 target.name
@@ -457,7 +741,8 @@ fn lower_arg(
             new_name
         }
         ast::Term::Lambda(lambda) => {
-            let apply_name = lower_lambda_term(ctx, lambda, hoisted, lowered_items)?;
+            let apply_name =
+                lower_lambda_term(ctx, lambda, hoisted, lowered_items, variadic_functions)?;
             apply_name
         }
     };
@@ -466,12 +751,37 @@ fn lower_arg(
     Ok(emit_closure_for_term(ctx, &arg, lowered_items, &mut seen))
 }
 
+fn builtin_reference_name(name: &str) -> Option<&str> {
+    let builtin_name = name.strip_prefix('@')?;
+    builtins::get_spec(builtin_name).map(|_| builtin_name)
+}
+
+fn ensure_builtin_reference(
+    ctx: &mut ctx::Context,
+    name: &str,
+    hoisted: &mut VecDeque<BlockItem>,
+) -> Result<(), Error> {
+    let Some(builtin_name) = builtin_reference_name(name) else {
+        return Ok(());
+    };
+    if ctx.get(name).is_some() {
+        return Ok(());
+    }
+    ctx::register_import(ctx, name, builtin_name, Span::unknown())?;
+    hoisted.push_back(BlockItem::Import {
+        label: name.to_string(),
+        path: builtin_name.to_string(),
+    });
+    Ok(())
+}
+
 fn resolve_target(
     ctx: &mut ctx::Context,
     name: &str,
     ast_args: Vec<ast::Arg>,
     hoisted: &mut VecDeque<BlockItem>,
     lowered_items: &mut Vec<BlockItem>,
+    variadic_functions: &HashMap<String, ast::Lambda>,
 ) -> Result<(ContextEntry, Vec<String>), Error> {
     let target: ContextEntry = ctx.get(name).cloned().ok_or_else(|| {
         error::new(
@@ -523,6 +833,7 @@ fn resolve_target(
             &mut generic_bindings,
             hoisted,
             lowered_items,
+            variadic_functions,
         )?);
     }
 
@@ -836,10 +1147,6 @@ fn maybe_wrap_builtin(
         return Ok(ast::Term::Ident(ident));
     };
 
-    if !entry.is_builtin {
-        return Ok(ast::Term::Ident(ident));
-    }
-
     let Some(sig_item) = expected_param else {
         return Ok(ast::Term::Ident(ident));
     };
@@ -848,7 +1155,17 @@ fn maybe_wrap_builtin(
         return Ok(ast::Term::Ident(ident));
     };
 
-    new_builtin_wrapper(ctx, ident, signature)
+    if entry.is_builtin || entry_signature_is_variadic(&entry.kind, ctx) {
+        return new_builtin_wrapper(ctx, ident, signature);
+    }
+
+    Ok(ast::Term::Ident(ident))
+}
+
+fn entry_signature_is_variadic(kind: &SigKind, ctx: &ctx::Context) -> bool {
+    let mut seen = HashSet::new();
+    signature::signature_from_kind(kind, ctx, &mut seen)
+        .is_some_and(|signature| signature.is_variadic())
 }
 
 fn new_builtin_wrapper(

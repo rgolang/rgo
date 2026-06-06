@@ -1,33 +1,53 @@
-int: @int
 str: @str
-printf: @printf
+int: @int
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
 div: @div
 exit: @exit
-_2_error: (){
-    _3: 1
-    exit(_3)
+@sprintf: @sprintf
+@write: @write
+_8_error: (){
+    _9: 1
+    exit(_9)
+}
+
+_6_error: (s: str){
+    @write(s, _8_error)
 }
 
 error: (msg: str){
-    _0: "Error: %s\n"
-    printf(_0, msg, _2_error)
+    _4: "Error: %s\n"
+    @sprintf(_4, msg, _6_error)
+}
+@sprintf: @sprintf
+@write: @write
+_22_main: (){
+    _23: 0
+    exit(_23)
 }
 
-_13_main: (){
-    _14: 0
-    exit(_14)
+_20_main: (s: str){
+    @write(s, _22_main)
 }
 
-_10_main: (result: int){
-    _11: "result: %d\n"
-    printf(_11, result, _13_main)
+_17_main: (result: int){
+    _18: "result: %d\n"
+    @sprintf(_18, result, _20_main)
 }
 
 main: (){
-    _5: 10
-    _6: 5
-    _7: "division by zero"
-    _8_error: error(_7)
-    div(_5, _6, _8_error, _10_main)
+    _12: 10
+    _13: 5
+    _14: "division by zero"
+    _15_error: error(_14)
+    div(_12, _13, _15_error, _17_main)
 }
 main()

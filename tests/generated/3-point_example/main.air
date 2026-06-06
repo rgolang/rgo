@@ -31,54 +31,77 @@ new_point_deepcopy_skip_2:
     @return()
 
 
-_7_bar():
-    @exit($_8: int = 0)
+_13_bar():
+    @exit($_14: int = 0)
 
 
-_7_bar_unwrapper($env_end: int):
+_13_bar_unwrapper($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
-    @jumpargs(_7_bar)
+    @jumpargs(_13_bar)
 
 
-_7_bar_deep_release($env_end: int):
+_13_bar_deep_release($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
     @return()
 
 
-_7_bar_deepcopy($env_end: int):
+_13_bar_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
     @return()
 
 
-_4_bar($x: int, $y: int):
-    $_7_bar = @newclosure<>(_7_bar)
-    @printf($_5: str! = "x: %d, y: %d", $x: int, $y: int, $_7_bar)
+_11_bar($s: str):
+    $_13_bar = @newclosure<>(_13_bar)
+    @write($s: str, $_13_bar)
 
 
-_4_bar_unwrapper($env_end: int):
+_11_bar_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $s = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_11_bar, $s: str)
+
+
+_11_bar_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_11_bar_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_8_bar($x: int, $y: int):
+    $_11_bar = @newclosure<str>(_11_bar)
+    @sprintf($_9: str! = "x: %d, y: %d", $x: int, $y: int, $_11_bar)
+
+
+_8_bar_unwrapper($env_end: int):
     $__env_end = @pin($env_end)
     $x = @field($__env_end, -2)
     $y = @field($__env_end, -1)
     @release($__env_end)
-    @jumpargs(_4_bar, $x: int, $y: int)
+    @jumpargs(_8_bar, $x: int, $y: int)
 
 
-_4_bar_deep_release($env_end: int):
+_8_bar_deep_release($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
     @return()
 
 
-_4_bar_deepcopy($env_end: int):
+_8_bar_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
     @return()
 
 
 bar($p: ()):
-    $_4_bar = @newclosure<int, int>(_4_bar)
-    @jumpclosure($p, $_4_bar: int)
+    $_8_bar = @newclosure<int, int>(_8_bar)
+    @jumpclosure($p, $_8_bar: int)
 
 
 bar_unwrapper($env_end: int):
@@ -109,7 +132,7 @@ bar_deepcopy_skip_0:
 
 
 foo():
-    $p = @newclosure<int, int, ($_0_: int, $_1_: int)>(new_point, $_11: int = 1, $_12: int = 2)
+    $p = @newclosure<int, int, ($_4_: int, $_5_: int)>(new_point, $_18: int = 1, $_19: int = 2)
     @jumpargs(bar, $p: ())
 
 

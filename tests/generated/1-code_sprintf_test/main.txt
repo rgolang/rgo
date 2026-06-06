@@ -1,27 +1,47 @@
 [
-    Import {
-        label: "int",
-        path: "int",
+    IdentDef {
+        name: "int",
+        ident: Ident {
+            name: "@int",
+            args: [],
+            span: ,
+        },
         span: ,
     },
-    Import {
-        label: "str",
-        path: "str",
+    IdentDef {
+        name: "str",
+        ident: Ident {
+            name: "@str",
+            args: [],
+            span: ,
+        },
         span: ,
     },
-    Import {
-        label: "sprintf",
-        path: "sprintf",
+    IdentDef {
+        name: "sprintf",
+        ident: Ident {
+            name: "@sprintf",
+            args: [],
+            span: ,
+        },
         span: ,
     },
-    Import {
-        label: "write",
-        path: "write",
+    IdentDef {
+        name: "write",
+        ident: Ident {
+            name: "@write",
+            args: [],
+            span: ,
+        },
         span: ,
     },
-    Import {
-        label: "exit",
-        path: "exit",
+    IdentDef {
+        name: "exit",
+        ident: Ident {
+            name: "@exit",
+            args: [],
+            span: ,
+        },
         span: ,
     },
     FunctionDef {

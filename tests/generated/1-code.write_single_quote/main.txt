@@ -1,12 +1,20 @@
 [
-    Import {
-        label: "write",
-        path: "write",
+    IdentDef {
+        name: "write",
+        ident: Ident {
+            name: "@write",
+            args: [],
+            span: ,
+        },
         span: ,
     },
-    Import {
-        label: "exit",
-        path: "exit",
+    IdentDef {
+        name: "exit",
+        ident: Ident {
+            name: "@exit",
+            args: [],
+            span: ,
+        },
         span: ,
     },
     FunctionDef {

@@ -1,7 +1,10 @@
 str: @str
 int: @int
 exit: @exit
-printf: @printf
+printf: (fmt: str!, args: ..., ok:()) {
+    (s: str) = @sprintf(fmt, args)
+    @write(s, ok)
+}
 add: @add
 eqi: @eq
 

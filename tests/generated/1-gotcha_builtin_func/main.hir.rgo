@@ -1,18 +1,35 @@
-printf: @printf
-exit: @exit
-int: @int
-write: (n: int, ok:()){
-    _0: "Gotcha: %d"
-    printf(_0, n, ok)
+str: @str
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
 }
 
-_3_main: (){
-    _4: 0
-    exit(_4)
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
+exit: @exit
+int: @int
+@sprintf: @sprintf
+@write: @write
+_7_write: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_4_write: (n: int, ok:()){
+    _5: "Gotcha: %d"
+    _8_write: _7_write(ok)
+    @sprintf(_5, n, _8_write)
+}
+
+_11_main: (){
+    _12: 0
+    exit(_12)
 }
 
 main: (){
-    _1: 1
-    write(_1, _3_main)
+    _9: 1
+    _4_write(_9, _11_main)
 }
 main()

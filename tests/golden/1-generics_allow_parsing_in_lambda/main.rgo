@@ -1,6 +1,10 @@
+str: @str
 exit: @exit
 int: @int
-printf: @printf
+printf: (fmt: str!, args: ..., ok:()) {
+    (s: str) = @sprintf(fmt, args)
+    @write(s, ok)
+}
 foo: <T>(x: int){
     printf("%d", x, exit(0))
 }

@@ -1,6 +1,15 @@
 str: @str
 int: @int
-printf: @printf
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
 exit: @exit
 list: ((int, list), ())
 nil: (next:(int, ((int, list), ())), end:()){
@@ -16,39 +25,51 @@ iterate_inner: (iterate:((int, ()), ((int, list), ()), ()), handler:(int, ()), e
     handler(head, next_iterate)
 }
 
-_32_iterate: (iterate:((int, ()), ((int, list), ()), ()), handler:(int, ()), end:(), head: int, tail:((int, list), ())){
+_36_iterate: (iterate:((int, ()), ((int, list), ()), ()), handler:(int, ()), end:(), head: int, tail:((int, list), ())){
     next_iterate: iterate(handler, tail, end)
     handler(head, next_iterate)
 }
 
 iterate: (handler:(int, ()), arr:((int, list), ()), end:()){
-    _33_iterate: _32_iterate(iterate, handler, end)
-    arr(_33_iterate, end)
+    _37_iterate: _36_iterate(iterate, handler, end)
+    arr(_37_iterate, end)
 }
-_34: 1
-_35: 2
-_36: 3
-_37: 4
-_38_cons: cons(_37, nil)
-_39_cons: cons(_36, _38_cons)
-_40_cons: cons(_35, _39_cons)
-handler: (n: int, ok:()){
-    _41: "%d, "
-    printf(_41, n, ok)
+_38: 1
+_39: 2
+_40: 3
+_41: 4
+_42_cons: cons(_41, nil)
+_43_cons: cons(_40, _42_cons)
+_44_cons: cons(_39, _43_cons)
+@sprintf: @sprintf
+@write: @write
+_47_handler: (ok:(), s: str){
+    @write(s, ok)
 }
 
-_44_end: (){
-    _45: 0
-    exit(_45)
+handler: (n: int, ok:()){
+    _45: "%d, "
+    _48_handler: _47_handler(ok)
+    @sprintf(_45, n, _48_handler)
+}
+@sprintf: @sprintf
+@write: @write
+_53_end: (){
+    _54: 0
+    exit(_54)
+}
+
+_51_end: (s: str){
+    @write(s, _53_end)
 }
 
 end: (){
-    _42: "end\n"
-    printf(_42, _44_end)
+    _49: "end\n"
+    @sprintf(_49, _51_end)
 }
 
 main: (mylist:((int, ((int, ((int, list), ())), ())), ())){
     iterate(handler, mylist, end)
 }
-mylist: cons(_34, _40_cons)
+mylist: cons(_38, _44_cons)
 main(mylist)

@@ -1,39 +1,53 @@
 str: @str
 int: @int
 add: @add
-printf: @printf
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
 exit: @exit
-_7_three: (f:(int, (int)), ok:(int), z: int){
+_11_three: (f:(int, (int)), ok:(int), z: int){
     f(z, ok)
 }
 
-_5_three: (f:(int, (int)), ok:(int), y: int){
-    _8_three: _7_three(f, ok)
-    f(y, _8_three)
+_9_three: (f:(int, (int)), ok:(int), y: int){
+    _12_three: _11_three(f, ok)
+    f(y, _12_three)
 }
 
 three: (f:(int, (int)), x: int, ok:(int)){
-    _9_three: _5_three(f, ok)
-    f(x, _9_three)
+    _13_three: _9_three(f, ok)
+    f(x, _13_three)
 }
 
-_13_main: (x: int, ok:(int)){
-    _14: 10
-    add(x, _14, ok)
+_17_main: (x: int, ok:(int)){
+    _18: 10
+    add(x, _18, ok)
+}
+@sprintf: @sprintf
+@write: @write
+_27_main: (){
+    _28: 0
+    exit(_28)
 }
 
-_21_main: (){
-    _22: 0
-    exit(_22)
+_25_main: (s: str){
+    @write(s, _27_main)
 }
 
-_18_main: (x: int){
-    _19: "result: %d"
-    printf(_19, x, _21_main)
+_22_main: (x: int){
+    _23: "result: %d"
+    @sprintf(_23, x, _25_main)
 }
 
 main: (){
-    _16: 0
-    three(_13_main, _16, _18_main)
+    _20: 0
+    three(_17_main, _20, _22_main)
 }
 main()

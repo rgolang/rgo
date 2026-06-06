@@ -1,6 +1,15 @@
 str: @str
 int: @int
-printf: @printf
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
 exit: @exit
 list: ((int, list), ())
 nil: (cb:(int, ((int, list), ())), end:()){
@@ -12,7 +21,7 @@ cons: (h: int, t:((int, list), ()), cb:(int, ((int, list), ())), end:()){
 }
 
 main: (){
-    _4: 0
-    exit(_4)
+    _8: 0
+    exit(_8)
 }
 main()

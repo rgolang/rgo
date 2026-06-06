@@ -1,6 +1,15 @@
 str: @str
 int: @int
-printf: @printf
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
 exit: @exit
 list: ((int, list), ())
 nil: (next:(int, ((int, list), ())), end:()){
@@ -11,39 +20,51 @@ cons: (head: int, tail:((int, list), ()), next:(int, ((int, list), ())), end:())
     next(head, tail)
 }
 
-_10_iterate_iterate_inner: (iterate:((int, ()), ((int, ((int, list), ())), ()), ()), handler:(int, ()), end:(), head: int, tail:((int, list), ())){
+_14_iterate_iterate_inner: (iterate:((int, ()), ((int, ((int, list), ())), ()), ()), handler:(int, ()), end:(), head: int, tail:((int, list), ())){
     next_iterate: iterate(handler, tail, end)
     handler(head, next_iterate)
 }
 
 iterate: (handler:(int, ()), arr:((int, list), ()), end:()){
-    _11_iterate_inner: _10_iterate_iterate_inner(iterate, handler, end)
-    arr(_11_iterate_inner, end)
+    _15_iterate_inner: _14_iterate_iterate_inner(iterate, handler, end)
+    arr(_15_iterate_inner, end)
 }
-_12: 1
-_13: 2
-_14: 3
-_15: 4
-_16_cons: cons(_15, nil)
-_17_cons: cons(_14, _16_cons)
-_18_cons: cons(_13, _17_cons)
-handler: (n: int, ok:()){
-    _19: "%d, "
-    printf(_19, n, ok)
+_16: 1
+_17: 2
+_18: 3
+_19: 4
+_20_cons: cons(_19, nil)
+_21_cons: cons(_18, _20_cons)
+_22_cons: cons(_17, _21_cons)
+@sprintf: @sprintf
+@write: @write
+_25_handler: (ok:(), s: str){
+    @write(s, ok)
 }
 
-_22_end: (){
-    _23: 0
-    exit(_23)
+handler: (n: int, ok:()){
+    _23: "%d, "
+    _26_handler: _25_handler(ok)
+    @sprintf(_23, n, _26_handler)
+}
+@sprintf: @sprintf
+@write: @write
+_31_end: (){
+    _32: 0
+    exit(_32)
+}
+
+_29_end: (s: str){
+    @write(s, _31_end)
 }
 
 end: (){
-    _20: "end\n"
-    printf(_20, _22_end)
+    _27: "end\n"
+    @sprintf(_27, _29_end)
 }
 
 main: (mylist:((int, ((int, ((int, list), ())), ())), ())){
     iterate(handler, mylist, end)
 }
-mylist: cons(_12, _18_cons)
+mylist: cons(_16, _22_cons)
 main(mylist)

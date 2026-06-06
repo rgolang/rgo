@@ -112,4 +112,23 @@ main: () {
         assert!(asm.contains("global _start"));
         assert!(asm.contains("global add_five"));
     }
+
+    #[test]
+    fn compile_direct_builtin_references() {
+        let source = r#"
+main: () {
+    @add(5, 0, (res: @int) {
+        (s: @str) = @sprintf("%d", res)
+        @write(s, @exit(0))
+    })
+}
+        "#;
+        let mut output = Vec::new();
+        compile(Cursor::new(source.as_bytes()), "main", &mut output)
+            .expect("compiler produced asm");
+        let asm = String::from_utf8(output).expect("valid utf8");
+        assert!(asm.contains("global _start"));
+        assert!(asm.contains("extern sprintf"));
+        assert!(asm.contains("extern write"));
+    }
 }

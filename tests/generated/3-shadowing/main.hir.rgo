@@ -1,25 +1,47 @@
+str: @str
 exit: @exit
 int: @int
 add: @add
 sub: @sub
-printf: @printf
-_2_bar: (){
-    _3: 0
-    exit(_3)
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
+@sprintf: @sprintf
+@write: @write
+_8_bar: (){
+    _9: 0
+    exit(_9)
+}
+
+_6_bar: (s: str){
+    @write(s, _8_bar)
 }
 
 bar: (){
-    _0: "outer bar"
-    printf(_0, _2_bar)
+    _4: "outer bar"
+    @sprintf(_4, _6_bar)
+}
+@sprintf: @sprintf
+@write: @write
+_15_foo_bar: (ok:(), s: str){
+    @write(s, ok)
 }
 
-_5_foo_bar: (ok:()){
-    _6: "inner bar\n"
-    printf(_6, ok)
+_12_foo_bar: (ok:()){
+    _13: "inner bar\n"
+    _16_foo_bar: _15_foo_bar(ok)
+    @sprintf(_13, _16_foo_bar)
 }
 
 foo: (ok:()){
-    _5_foo_bar(ok)
+    _12_foo_bar(ok)
 }
 
 main: (){

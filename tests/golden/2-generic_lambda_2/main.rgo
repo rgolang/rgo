@@ -1,6 +1,9 @@
-int: @int
 str: @str
-printf: @printf
+int: @int
+printf: (fmt: str!, args: ..., ok:()) {
+    (s: str) = @sprintf(fmt, args)
+    @write(s, ok)
+}
 exit: @exit
 
 foo: <T, U>(x:T, y:U, ok:(T, U)){

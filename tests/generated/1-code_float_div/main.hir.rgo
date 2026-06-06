@@ -1,21 +1,37 @@
+str: @str
 float: @f64
 div: @divf64
-printf: @printf
-exit: @exit
-x: 1.5
-_5_main: (){
-    _6: 0
-    exit(_6)
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
 }
 
-_2_main: (x: f64, y: f64){
-    _3: "result: %f"
-    printf(_3, x, _5_main)
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
+exit: @exit
+x: 1.5
+@sprintf: @sprintf
+@write: @write
+_11_main: (){
+    _12: 0
+    exit(_12)
+}
+
+_9_main: (s: str){
+    @write(s, _11_main)
+}
+
+_6_main: (x: f64, y: f64){
+    _7: "result: %f"
+    @sprintf(_7, x, _9_main)
 }
 
 main: (x: f64){
-    _0: 2
-    _8_main: _2_main(x)
-    div(x, _0, _8_main)
+    _4: 2
+    _15_main: _6_main(x)
+    div(x, _4, _15_main)
 }
 main(x)

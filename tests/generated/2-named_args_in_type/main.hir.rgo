@@ -1,38 +1,53 @@
-exit: @exit
 str: @str
-printf: @printf
-_2_foo: (){
-    _3: 0
-    exit(_3)
+exit: @exit
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
+@sprintf: @sprintf
+@write: @write
+_8_foo: (){
+    _9: 0
+    exit(_9)
+}
+
+_6_foo: (s: str){
+    @write(s, _8_foo)
 }
 
 foo: (a: str, b: str, c: str){
-    _0: "%s %s and %s"
-    printf(_0, a, b, c, _2_foo)
+    _4: "%s %s and %s"
+    @sprintf(_4, a, b, c, _6_foo)
 }
 
 baz: (ok:(str)){
-    _6: "hello"
-    ok(_6)
+    _13: "hello"
+    ok(_13)
 }
 
-_7_bar: (ok:(str, str), y: str, x: str){
+_14_bar: (ok:(str, str), y: str, x: str){
     ok(x, y)
 }
 
 bar: (ok:(str, str)){
-    _8: "bob"
-    _9_ok: _7_bar(ok, _8)
-    baz(_9_ok)
+    _15: "bob"
+    _16_ok: _14_bar(ok, _15)
+    baz(_16_ok)
 }
 
-_10_main: (b: str, a: str, c: str){
+_17_main: (b: str, a: str, c: str){
     foo(a, b, c)
 }
 
 main: (){
-    _11: "world"
-    _12_foo: _10_main(_11)
-    bar(_12_foo)
+    _18: "world"
+    _19_foo: _17_main(_18)
+    bar(_19_foo)
 }
 main()

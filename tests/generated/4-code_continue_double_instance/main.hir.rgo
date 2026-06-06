@@ -1,47 +1,62 @@
 str: @str
 int: @int
 exit: @exit
-printf: @printf
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
 add: @add
 eqi: @eq
 foo: (x: int, y: int, ok:(int)){
     add(x, y, ok)
 }
-
-_4_run_k: (ok:(), x: int){
-    _5: "number: %d"
-    printf(_5, x, ok)
+@sprintf: @sprintf
+@write: @write
+_11_run_k: (ok:(), s: str){
+    @write(s, ok)
 }
 
-_9_run: (a:((int)), ok:()){
-    _10_k: _4_run_k(ok)
-    a(_10_k)
+_8_run_k: (ok:(), x: int){
+    _9: "number: %d"
+    _12_run_k: _11_run_k(ok)
+    @sprintf(_9, x, _12_run_k)
 }
 
-_13_run: (b:((int)), ok:()){
-    _14_k: _4_run_k(ok)
-    b(_14_k)
+_16_run: (a:((int)), ok:()){
+    _17_k: _8_run_k(ok)
+    a(_17_k)
+}
+
+_20_run: (b:((int)), ok:()){
+    _21_k: _8_run_k(ok)
+    b(_21_k)
 }
 
 run: (ok:()){
-    _1: 1
-    _2: 2
-    _3: 3
-    _6: 1
-    _7: 1
-    a: foo(_1, _2)
-    _11_run: _9_run(a, ok)
-    b: foo(_1, _3)
-    _15_run: _13_run(b, ok)
-    eqi(_6, _7, _11_run, _15_run)
+    _5: 1
+    _6: 2
+    _7: 3
+    _13: 1
+    _14: 1
+    a: foo(_5, _6)
+    _18_run: _16_run(a, ok)
+    b: foo(_5, _7)
+    _22_run: _20_run(b, ok)
+    eqi(_13, _14, _18_run, _22_run)
 }
 
-_17_main: (){
-    _18: 0
-    exit(_18)
+_24_main: (){
+    _25: 0
+    exit(_25)
 }
 
 main: (){
-    run(_17_main)
+    run(_24_main)
 }
 main()

@@ -1,54 +1,68 @@
-exit: @exit
 str: @str
+exit: @exit
 int: @int
-printf: @printf
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
 eqi: @eq
 sub: @sub
 add: @add
-_3_fib_iter: (k:(int), a: int){
+_7_fib_iter: (k:(int), a: int){
     k(a)
 }
 
-_11_fib_iter: (fib_iter:(int, int, int, (int)), n1: int, b: int, k:(int), ab: int){
+_15_fib_iter: (fib_iter:(int, int, int, (int)), n1: int, b: int, k:(int), ab: int){
     fib_iter(n1, b, ab, k)
 }
 
-_9_fib_iter: (a: int, b: int, fib_iter:(int, int, int, (int)), k:(int), n1: int){
-    _12_fib_iter: _11_fib_iter(fib_iter, n1, b, k)
-    add(a, b, _12_fib_iter)
+_13_fib_iter: (a: int, b: int, fib_iter:(int, int, int, (int)), k:(int), n1: int){
+    _16_fib_iter: _15_fib_iter(fib_iter, n1, b, k)
+    add(a, b, _16_fib_iter)
 }
 
-_6_fib_iter: (n: int, a: int, b: int, fib_iter:(int, int, int, (int)), k:(int)){
-    _7: 1
-    _13_fib_iter: _9_fib_iter(a, b, fib_iter, k)
-    sub(n, _7, _13_fib_iter)
+_10_fib_iter: (n: int, a: int, b: int, fib_iter:(int, int, int, (int)), k:(int)){
+    _11: 1
+    _17_fib_iter: _13_fib_iter(a, b, fib_iter, k)
+    sub(n, _11, _17_fib_iter)
 }
 
 fib_iter: (n: int, a: int, b: int, k:(int)){
-    _1: 0
-    _4_fib_iter: _3_fib_iter(k, a)
-    _14_fib_iter: _6_fib_iter(n, a, b, fib_iter, k)
-    eqi(n, _1, _4_fib_iter, _14_fib_iter)
+    _5: 0
+    _8_fib_iter: _7_fib_iter(k, a)
+    _18_fib_iter: _10_fib_iter(n, a, b, fib_iter, k)
+    eqi(n, _5, _8_fib_iter, _18_fib_iter)
 }
 
 fib: (n: int, k:(int)){
-    _16: 0
-    _17: 1
-    fib_iter(n, _16, _17, k)
+    _20: 0
+    _21: 1
+    fib_iter(n, _20, _21, k)
+}
+@sprintf: @sprintf
+@write: @write
+_29_main: (){
+    _30: 0
+    exit(_30)
 }
 
-_23_main: (){
-    _24: 0
-    exit(_24)
+_27_main: (s: str){
+    @write(s, _29_main)
 }
 
-_20_main: (result: int){
-    _21: "fib(7) = %d\n"
-    printf(_21, result, _23_main)
+_24_main: (result: int){
+    _25: "fib(7) = %d\n"
+    @sprintf(_25, result, _27_main)
 }
 
 main: (){
-    _18: 7
-    fib(_18, _20_main)
+    _22: 7
+    fib(_22, _24_main)
 }
 main()

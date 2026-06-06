@@ -1,5 +1,38 @@
+_6_bar($ok: (), $s: str):
+    @write($s: str, $ok)
+
+
+_6_bar_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $ok = @field($__env_end, -2)
+    $s = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_6_bar, $ok: (), $s: str)
+
+
+_6_bar_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_6_bar_release_skip_0, $__num_remaining, 1)
+    $_6_bar_release_field_0 = @field($__env_end, -2)
+    @callptr($_6_bar_release_field_0)
+_6_bar_release_skip_0:
+    @release($__env_end)
+    @return()
+
+
+_6_bar_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_6_bar_deepcopy_skip_0, $num_remaining, 1)
+    @deepcopy($_6_bar_deepcopy_field_0, $__env_end, -2)
+_6_bar_deepcopy_skip_0:
+    @return()
+
+
 bar($m1: str, $m2: str, $ok: ()):
-    @printf($_0: str! = "msg1: %s, msg2: %s\n", $m1: int, $m2: int, $ok)
+    $_7_bar = @newclosure<(), str>(_6_bar, $ok: ())
+    @sprintf($_4: str! = "msg1: %s, msg2: %s\n", $m1: int, $m2: int, $_7_bar)
 
 
 bar_unwrapper($env_end: int):
@@ -31,29 +64,29 @@ bar_deepcopy_skip_2:
     @return()
 
 
-_7_main():
-    @exit($_8: int = 0)
+_14_main():
+    @exit($_15: int = 0)
 
 
-_7_main_unwrapper($env_end: int):
+_14_main_unwrapper($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
-    @jumpargs(_7_main)
+    @jumpargs(_14_main)
 
 
-_7_main_deep_release($env_end: int):
+_14_main_deep_release($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
     @return()
 
 
-_7_main_deepcopy($env_end: int):
+_14_main_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
     @return()
 
 
 foo($cb: (), $ok: ()):
-    @jumpclosure($cb, $_3: int = "bye", $ok: int)
+    @jumpclosure($cb, $_10: int = "bye", $ok: int)
 
 
 foo_unwrapper($env_end: int):
@@ -92,9 +125,9 @@ foo_deepcopy_skip_1:
 
 
 main():
-    $_5_bar = @newclosure<str, str, ()>(bar, $_4: str = "hi")
-    $_7_main = @newclosure<>(_7_main)
-    @jumpargs(foo, $_5_bar: (), $_7_main: ())
+    $_12_bar = @newclosure<str, str, ()>(bar, $_11: str = "hi")
+    $_14_main = @newclosure<>(_14_main)
+    @jumpargs(foo, $_12_bar: (), $_14_main: ())
 
 
 main_unwrapper($env_end: int):

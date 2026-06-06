@@ -1,4 +1,8 @@
-printf: @printf
+str: @str
+printf: (fmt: str!, args: ..., ok:()) {
+    (s: str) = @sprintf(fmt, args)
+    @write(s, ok)
+}
 exit: @exit
 foo: (n: int) {  // Error: forgot to import int
     printf("Number\n", exit(0))

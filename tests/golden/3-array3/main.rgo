@@ -1,7 +1,10 @@
-exit: @exit
 str: @str
+exit: @exit
 int: @int
-printf: @printf
+printf: (fmt: str!, args: ..., ok:()) {
+    (s: str) = @sprintf(fmt, args)
+    @write(s, ok)
+}
 eqi: @eq
 array3: (a:str, b:str, c:str, ok:(len:int, nth:(index:int, one:(str), none:()))){
     ok(3, (index:int, one:(str), none:()){

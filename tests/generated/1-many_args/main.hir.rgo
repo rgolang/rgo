@@ -1,39 +1,56 @@
+str: @str
 int: @int
-printf: @printf
-exit: @exit
-foo: (a1: int, a2: int, a3: int, a4: int, a5: int, a6: int, a7: int, a8: int, a9: int, a10: int, a11: int, a12: int, a13: int, a14: int, a15: int, a16: int, a17: int, a18: int, a19: int, a20: int, a21: int, a22: int, ok:()){
-    _0: "a1: %d, a11: %d, a21: %d\n"
-    printf(_0, a1, a11, a21, ok)
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
 }
 
-_24_main: (){
-    _25: 0
-    exit(_25)
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
+exit: @exit
+@sprintf: @sprintf
+@write: @write
+_6_foo: (ok:(), s: str){
+    @write(s, ok)
+}
+
+foo: (a1: int, a2: int, a3: int, a4: int, a5: int, a6: int, a7: int, a8: int, a9: int, a10: int, a11: int, a12: int, a13: int, a14: int, a15: int, a16: int, a17: int, a18: int, a19: int, a20: int, a21: int, a22: int, ok:()){
+    _4: "a1: %d, a11: %d, a21: %d\n"
+    _7_foo: _6_foo(ok)
+    @sprintf(_4, a1, a11, a21, _7_foo)
+}
+
+_31_main: (){
+    _32: 0
+    exit(_32)
 }
 
 main: (){
-    _1: 1
-    _2: 2
-    _3: 3
-    _4: 4
-    _5: 5
-    _6: 6
-    _7: 7
-    _8: 8
-    _9: 9
-    _10: 10
-    _11: 11
-    _12: 12
-    _13: 13
-    _14: 14
-    _15: 15
-    _16: 16
-    _17: 17
-    _18: 18
-    _19: 19
-    _20: 20
-    _21: 21
-    _22: 22
-    foo(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _24_main)
+    _8: 1
+    _9: 2
+    _10: 3
+    _11: 4
+    _12: 5
+    _13: 6
+    _14: 7
+    _15: 8
+    _16: 9
+    _17: 10
+    _18: 11
+    _19: 12
+    _20: 13
+    _21: 14
+    _22: 15
+    _23: 16
+    _24: 17
+    _25: 18
+    _26: 19
+    _27: 20
+    _28: 21
+    _29: 22
+    foo(_8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, _25, _26, _27, _28, _29, _31_main)
 }
 main()

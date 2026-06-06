@@ -1,51 +1,74 @@
-_5_main():
-    @exit($_6: int = 0)
+_11_main():
+    @exit($_12: int = 0)
 
 
-_5_main_unwrapper($env_end: int):
+_11_main_unwrapper($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
-    @jumpargs(_5_main)
+    @jumpargs(_11_main)
 
 
-_5_main_deep_release($env_end: int):
+_11_main_deep_release($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
     @return()
 
 
-_5_main_deepcopy($env_end: int):
+_11_main_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
     @return()
 
 
-_2_main($x: f64, $y: f64):
-    $_5_main = @newclosure<>(_5_main)
-    @printf($_3: str! = "result: %f", $x: int, $_5_main)
+_9_main($s: str):
+    $_11_main = @newclosure<>(_11_main)
+    @write($s: str, $_11_main)
 
 
-_2_main_unwrapper($env_end: int):
+_9_main_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $s = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_9_main, $s: str)
+
+
+_9_main_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_9_main_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_6_main($x: f64, $y: f64):
+    $_9_main = @newclosure<str>(_9_main)
+    @sprintf($_7: str! = "result: %f", $x: int, $_9_main)
+
+
+_6_main_unwrapper($env_end: int):
     $__env_end = @pin($env_end)
     $x = @field($__env_end, -2)
     $y = @field($__env_end, -1)
     @release($__env_end)
-    @jumpargs(_2_main, $x: f64, $y: f64)
+    @jumpargs(_6_main, $x: f64, $y: f64)
 
 
-_2_main_deep_release($env_end: int):
+_6_main_deep_release($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
     @return()
 
 
-_2_main_deepcopy($env_end: int):
+_6_main_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
     @return()
 
 
 main($x: f64):
-    $_8_main = @newclosure<f64, f64>(_2_main, $x: f64)
-    @divf64($x: f64, $_0: f64 = 2, $_8_main)
+    $_15_main = @newclosure<f64, f64>(_6_main, $x: f64)
+    @divf64($x: f64, $_4: f64 = 2, $_15_main)
 
 
 main_unwrapper($env_end: int):

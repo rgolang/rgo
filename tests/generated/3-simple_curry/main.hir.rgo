@@ -1,27 +1,43 @@
+str: @str
 int: @int
 exit: @exit
-printf: @printf
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
+
 new_point: (x: int, y: int, ok:(int, int)){
     ok(x, y)
 }
 
 ok_exit: (){
-    _2: 0
-    exit(_2)
+    _6: 0
+    exit(_6)
+}
+@sprintf: @sprintf
+@write: @write
+_9_p_handle: (s: str){
+    @write(s, ok_exit)
 }
 
 p_handle: (x: int, y: int){
-    _3: "got: %d, %d\n"
-    printf(_3, x, y, ok_exit)
+    _7: "got: %d, %d\n"
+    @sprintf(_7, x, y, _9_p_handle)
 }
 
 foo: (p:((int, int))){
     p(p_handle)
 }
-_7: 1
-_8: 2
+_14: 1
+_15: 2
 main: (p:((int, int))){
     foo(p)
 }
-p: new_point(_7, _8)
+p: new_point(_14, _15)
 main(p)

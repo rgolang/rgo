@@ -336,12 +336,7 @@ fn verify_expected_compile_errors(tests_dir: &Path, bin_dir: &Path) {
             .arg(&asm_path);
         let actual_error = capture_compile_failure_output(
             &mut cmd,
-            &format!(
-                "cargo run -- {} {} {}",
-                test.source.display(),
-                TEST_TARGET,
-                asm_path.display()
-            ),
+            &format!("cargo run -- {}", test.source.display()),
         );
 
         assert!(

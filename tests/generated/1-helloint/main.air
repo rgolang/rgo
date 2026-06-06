@@ -1,27 +1,50 @@
-_3_main():
-    @exit($_4: int = 0)
+_9_main():
+    @exit($_10: int = 0)
 
 
-_3_main_unwrapper($env_end: int):
+_9_main_unwrapper($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
-    @jumpargs(_3_main)
+    @jumpargs(_9_main)
 
 
-_3_main_deep_release($env_end: int):
+_9_main_deep_release($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
     @return()
 
 
-_3_main_deepcopy($env_end: int):
+_9_main_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_7_main($s: str):
+    $_9_main = @newclosure<>(_9_main)
+    @write($s: str, $_9_main)
+
+
+_7_main_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $s = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_7_main, $s: str)
+
+
+_7_main_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_7_main_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
     @return()
 
 
 main():
-    $_3_main = @newclosure<>(_3_main)
-    @printf($_0: str! = "Hello %d!", $_1: int = 42, $_3_main)
+    $_7_main = @newclosure<str>(_7_main)
+    @sprintf($_4: str! = "Hello %d!", $_5: int = 42, $_7_main)
 
 
 main_unwrapper($env_end: int):

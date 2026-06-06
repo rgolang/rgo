@@ -1,26 +1,46 @@
-int: @int
-printf: @printf
 str: @str
+int: @int
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
 exit: @exit
 tail: (int, tail)
-_4_identity: (){
-    _5: 0
-    exit(_5)
+@sprintf: @sprintf
+@write: @write
+_10_identity: (){
+    _11: 0
+    exit(_11)
+}
+
+_8_identity: (s: str){
+    @write(s, _10_identity)
 }
 
 identity: (node:(int, tail)){
-    _2: "unused\n"
-    printf(_2, _4_identity)
+    _6: "unused\n"
+    @sprintf(_6, _8_identity)
+}
+@sprintf: @sprintf
+@write: @write
+_18_hello: (){
+    _19: 0
+    exit(_19)
 }
 
-_9_hello: (){
-    _10: 0
-    exit(_10)
+_16_hello: (s: str){
+    @write(s, _18_hello)
 }
 
 hello: (){
-    _7: "hi\n"
-    printf(_7, _9_hello)
+    _14: "hi\n"
+    @sprintf(_14, _16_hello)
 }
 
 main: (){

@@ -120,7 +120,9 @@ impl Context {
         if self.scope_stack.is_empty() {
             if let Some(name) = display_name {
                 if !name.is_empty() {
-                    return name.into();
+                    if !is_reserved_external_symbol(name) {
+                        return name.into();
+                    }
                 }
             }
         }
@@ -341,6 +343,10 @@ impl Context {
             args,
         }
     }
+}
+
+fn is_reserved_external_symbol(name: &str) -> bool {
+    matches!(name, "exit" | "printf" | "puts" | "sprintf" | "write")
 }
 
 pub fn register_import(

@@ -1,27 +1,50 @@
-_6_bar():
-    @exit($_7: int = 0)
+_12_bar():
+    @exit($_13: int = 0)
 
 
-_6_bar_unwrapper($env_end: int):
+_12_bar_unwrapper($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
-    @jumpargs(_6_bar)
+    @jumpargs(_12_bar)
 
 
-_6_bar_deep_release($env_end: int):
+_12_bar_deep_release($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
     @return()
 
 
-_6_bar_deepcopy($env_end: int):
+_12_bar_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_10_bar($s: str):
+    $_12_bar = @newclosure<>(_12_bar)
+    @write($s: str, $_12_bar)
+
+
+_10_bar_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $s = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_10_bar, $s: str)
+
+
+_10_bar_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_10_bar_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
     @return()
 
 
 bar($x: int):
-    $_6_bar = @newclosure<>(_6_bar)
-    @printf($_4: str! = "%d", $x: int, $_6_bar)
+    $_10_bar = @newclosure<str>(_10_bar)
+    @sprintf($_8: str! = "%d", $x: int, $_10_bar)
 
 
 bar_unwrapper($env_end: int):
@@ -83,7 +106,7 @@ foo_deepcopy_skip_1:
 
 main():
     $bar = @newclosure<int>(bar)
-    @jumpargs(foo, $_9: () = 42, $bar: ())
+    @jumpargs(foo, $_16: () = 42, $bar: ())
 
 
 main_unwrapper($env_end: int):

@@ -1,25 +1,42 @@
+str: @str
 int: @int
-printf: @printf
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
 add: @add
 exit: @exit
-_3_print_sum: (ok:(), total: int){
-    _4: "sum is %d\n"
-    printf(_4, total, ok)
+@sprintf: @sprintf
+@write: @write
+_10_print_sum: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_7_print_sum: (ok:(), total: int){
+    _8: "sum is %d\n"
+    _11_print_sum: _10_print_sum(ok)
+    @sprintf(_8, total, _11_print_sum)
 }
 
 print_sum: (ok:()){
-    _0: 3
-    _1: 4
-    _5_print_sum: _3_print_sum(ok)
-    add(_0, _1, _5_print_sum)
+    _4: 3
+    _5: 4
+    _12_print_sum: _7_print_sum(ok)
+    add(_4, _5, _12_print_sum)
 }
 
-_7_main: (){
-    _8: 0
-    exit(_8)
+_14_main: (){
+    _15: 0
+    exit(_15)
 }
 
 main: (){
-    print_sum(_7_main)
+    print_sum(_14_main)
 }
 main()

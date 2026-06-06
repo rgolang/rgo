@@ -1,81 +1,104 @@
-exit: @exit
 str: @str
+exit: @exit
 int: @int
-printf: @printf
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
 eqi: @eq
-_8_array3: (one:(str), a: str){
+_12_array3: (one:(str), a: str){
     one(a)
 }
 
-_14_array3: (one:(str), b: str){
+_18_array3: (one:(str), b: str){
     one(b)
 }
 
-_20_array3: (one:(str), c: str){
+_24_array3: (one:(str), c: str){
     one(c)
 }
 
-_17_array3: (index: int, one:(str), c: str, none:()){
-    _18: 2
-    _21_array3: _20_array3(one, c)
-    eqi(index, _18, _21_array3, none)
+_21_array3: (index: int, one:(str), c: str, none:()){
+    _22: 2
+    _25_array3: _24_array3(one, c)
+    eqi(index, _22, _25_array3, none)
 }
 
-_11_array3: (index: int, one:(str), b: str, c: str, none:()){
-    _12: 1
-    _15_array3: _14_array3(one, b)
-    _22_array3: _17_array3(index, one, c, none)
-    eqi(index, _12, _15_array3, _22_array3)
+_15_array3: (index: int, one:(str), b: str, c: str, none:()){
+    _16: 1
+    _19_array3: _18_array3(one, b)
+    _26_array3: _21_array3(index, one, c, none)
+    eqi(index, _16, _19_array3, _26_array3)
 }
 
-_5_array3: (a: str, b: str, c: str, index: int, one:(str), none:()){
-    _6: 0
-    _9_array3: _8_array3(one, a)
-    _23_array3: _11_array3(index, one, b, c, none)
-    eqi(index, _6, _9_array3, _23_array3)
+_9_array3: (a: str, b: str, c: str, index: int, one:(str), none:()){
+    _10: 0
+    _13_array3: _12_array3(one, a)
+    _27_array3: _15_array3(index, one, b, c, none)
+    eqi(index, _10, _13_array3, _27_array3)
 }
 
 array3: (a: str, b: str, c: str, ok:(int, (int, (str), ()))){
-    _1: 3
-    _24_array3: _5_array3(a, b, c)
-    ok(_1, _24_array3)
+    _5: 3
+    _28_array3: _9_array3(a, b, c)
+    ok(_5, _28_array3)
 }
-
-_40_main: (){
-    _41: 0
-    exit(_41)
-}
-
-_37_main: (s: str){
-    _38: "element at index 1 is %s\n"
-    printf(_38, s, _40_main)
-}
-
+@sprintf: @sprintf
+@write: @write
 _48_main: (){
     _49: 0
     exit(_49)
 }
 
-_45_main: (){
-    _46: "index out of bounds\n"
-    printf(_46, _48_main)
+_46_main: (s: str){
+    @write(s, _48_main)
 }
 
-_34_main: (nth:(int, (str), ())){
-    _35: 1
-    nth(_35, _37_main, _45_main)
+_43_main: (s: str){
+    _44: "element at index 1 is %s\n"
+    @sprintf(_44, s, _46_main)
 }
 
-_31_main: (len: int, nth:(int, (str), ())){
-    _32: "array has %d elements\n"
-    _52_main: _34_main(nth)
-    printf(_32, len, _52_main)
+_59_main: (){
+    _60: 0
+    exit(_60)
+}
+
+_57_main: (s: str){
+    @write(s, _59_main)
+}
+
+_54_main: (){
+    _55: "index out of bounds\n"
+    @sprintf(_55, _57_main)
+}
+
+_40_main: (nth:(int, (str), ())){
+    _41: 1
+    nth(_41, _43_main, _54_main)
+}
+
+_38_main: (nth:(int, (str), ()), s: str){
+    _64_main: _40_main(nth)
+    @write(s, _64_main)
+}
+
+_35_main: (len: int, nth:(int, (str), ())){
+    _36: "array has %d elements\n"
+    _65_main: _38_main(nth)
+    @sprintf(_36, len, _65_main)
 }
 
 main: (){
-    _25: "alice"
-    _26: "bob"
-    _27: "charlie"
-    array3(_25, _26, _27, _31_main)
+    _29: "alice"
+    _30: "bob"
+    _31: "charlie"
+    array3(_29, _30, _31, _35_main)
 }
 main()

@@ -1,26 +1,59 @@
-_3_main():
-    @exit($_4: int = 0)
+_10_main():
+    @exit($_11: int = 0)
 
 
-_3_main_unwrapper($env_end: int):
+_10_main_unwrapper($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
-    @jumpargs(_3_main)
+    @jumpargs(_10_main)
 
 
-_3_main_deep_release($env_end: int):
+_10_main_deep_release($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
     @return()
 
 
-_3_main_deepcopy($env_end: int):
+_10_main_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
+    @return()
+
+
+_6_w($ok: (), $s: str):
+    @write($s: str, $ok)
+
+
+_6_w_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $ok = @field($__env_end, -2)
+    $s = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_6_w, $ok: (), $s: str)
+
+
+_6_w_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(_6_w_release_skip_0, $__num_remaining, 1)
+    $_6_w_release_field_0 = @field($__env_end, -2)
+    @callptr($_6_w_release_field_0)
+_6_w_release_skip_0:
+    @release($__env_end)
+    @return()
+
+
+_6_w_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(_6_w_deepcopy_skip_0, $num_remaining, 1)
+    @deepcopy($_6_w_deepcopy_field_0, $__env_end, -2)
+_6_w_deepcopy_skip_0:
     @return()
 
 
 w($s: str, $ok: ()):
-    @printf($_0: str! = "Gotcha: %s", $s: int, $ok)
+    $_7_w = @newclosure<(), str>(_6_w, $ok: ())
+    @sprintf($_4: str! = "Gotcha: %s", $s: int, $_7_w)
 
 
 w_unwrapper($env_end: int):
@@ -52,8 +85,8 @@ w_deepcopy_skip_1:
 
 
 main():
-    $_3_main = @newclosure<>(_3_main)
-    @jumpargs(w, $_1: str = "one", $_3_main: ())
+    $_10_main = @newclosure<>(_10_main)
+    @jumpargs(w, $_8: str = "one", $_10_main: ())
 
 
 main_unwrapper($env_end: int):

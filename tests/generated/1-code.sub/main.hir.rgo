@@ -1,20 +1,36 @@
+str: @str
 sub: @sub
 int: @int
-printf: @printf
-exit: @exit
-_6_main: (){
-    _7: 0
-    exit(_7)
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
 }
 
-_3_main: (n: int){
-    _4: "sub: %d"
-    printf(_4, n, _6_main)
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
+exit: @exit
+@sprintf: @sprintf
+@write: @write
+_12_main: (){
+    _13: 0
+    exit(_13)
+}
+
+_10_main: (s: str){
+    @write(s, _12_main)
+}
+
+_7_main: (n: int){
+    _8: "sub: %d"
+    @sprintf(_8, n, _10_main)
 }
 
 main: (){
-    _0: 9
-    _1: 4
-    sub(_0, _1, _3_main)
+    _4: 9
+    _5: 4
+    sub(_4, _5, _7_main)
 }
 main()

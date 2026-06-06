@@ -1,27 +1,50 @@
-_2_foo():
-    @exit($_3: int = 0)
+_8_foo():
+    @exit($_9: int = 0)
 
 
-_2_foo_unwrapper($env_end: int):
+_8_foo_unwrapper($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
-    @jumpargs(_2_foo)
+    @jumpargs(_8_foo)
 
 
-_2_foo_deep_release($env_end: int):
+_8_foo_deep_release($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
     @return()
 
 
-_2_foo_deepcopy($env_end: int):
+_8_foo_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_6_foo($s: str):
+    $_8_foo = @newclosure<>(_8_foo)
+    @write($s: str, $_8_foo)
+
+
+_6_foo_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $s = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_6_foo, $s: str)
+
+
+_6_foo_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_6_foo_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
     @return()
 
 
 foo($a: str, $b: str):
-    $_2_foo = @newclosure<>(_2_foo)
-    @printf($_0: str! = "%s %s", $a: int, $b: int, $_2_foo)
+    $_6_foo = @newclosure<str>(_6_foo)
+    @sprintf($_4: str! = "%s %s", $a: int, $b: int, $_6_foo)
 
 
 foo_unwrapper($env_end: int):
@@ -43,31 +66,31 @@ foo_deepcopy($env_end: int):
     @return()
 
 
-_5_main($b: str, $a: str):
+_12_main($b: str, $a: str):
     @jumpargs(foo, $a: str, $b: str)
 
 
-_5_main_unwrapper($env_end: int):
+_12_main_unwrapper($env_end: int):
     $__env_end = @pin($env_end)
     $b = @field($__env_end, -2)
     $a = @field($__env_end, -1)
     @release($__env_end)
-    @jumpargs(_5_main, $b: str, $a: str)
+    @jumpargs(_12_main, $b: str, $a: str)
 
 
-_5_main_deep_release($env_end: int):
+_12_main_deep_release($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
     @return()
 
 
-_5_main_deepcopy($env_end: int):
+_12_main_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
     @return()
 
 
 main():
-    @jumpargs(_5_main, $_6: str = "world", $_7: str = "hello")
+    @jumpargs(_12_main, $_13: str = "world", $_14: str = "hello")
 
 
 main_unwrapper($env_end: int):

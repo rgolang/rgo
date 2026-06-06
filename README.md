@@ -2,6 +2,8 @@
 
 This is a small experimental programming language focused on simplicity, predictability, and explicit semantics. The compiler is written in Rust and lowers Rgo programs directly to NASM AMD64 assembly, producing ELF binaries that run on any AMD64 Linux system with hooks to standard libc (no LLVM, no JIT, and no garbage collector but with automatic garbage collection).
 
+It is statically typed, compiled, single static assignment, explicit continuation passing, declaration before use, automatically memory managed using linear types (No garbage collector) and with no runtime errors.
+
 The grammar file lives in: [grammar.peg](./grammar.peg)
 
 ## Highlights
@@ -17,12 +19,14 @@ The grammar file lives in: [grammar.peg](./grammar.peg)
 
 # Example
 ```
-printf: @printf
-exit: @exit
-
+str: @str
 name: "Alice"
-main: () {
-    printf("hello %s", name, exit(0))
+printf: (fmt: str!, args: ..., ok:()) {
+   (s: str) = @sprintf(fmt, args)
+   @write(s, ok)
+}
+hello: (){
+   printf("hello %s", name, @exit(0))
 }
 ```
 
@@ -40,9 +44,12 @@ There are no expressions, operators or return values, all computation is a seque
 
 A definition introduces a name for a value inside the current scope:
 ```
-printf: @printf
-
+str: @str
 name: "Bob"
+printf: (fmt: str!, args: ..., ok:()) {
+   (s: str) = @sprintf(fmt, args)
+   @write(s, ok)
+}
 foo: (ok:()){
    printf("hello %s", name, ok)
 }
@@ -51,17 +58,17 @@ foo: (ok:()){
 ### Execution
 
 ```
-exit: @exit
-printf: @printf
-
+str: @str
 name: "Bob"
+printf: (fmt: str!, args: ..., ok:()) {
+   (s: str) = @sprintf(fmt, args)
+   @write(s, ok)
+}
 foo: (ok:()){
    printf("hello %s", name, ok)
 }
-end: exit(0)
-main: () {
-    foo(end)
-}
+end: @exit(0)
+foo(end)
 ```
 
 This syntax `foo(end)` does **not** imply a C-style function call.  
@@ -130,16 +137,50 @@ The idea was to make this operational structure explicit and statically checked,
 
 Programs are then lowered directly into tail-jump CPS and compiled straight to assembly.
 
+## Local install
+
+The project toolchain is pinned in [.tool-versions](./.tool-versions):
+
+- Rust: `stable`
+- NASM: `3.01`
+
+Install the host packages needed to download and build the pinned tools. On Debian:
+
+```sh
+sudo apt-get update
+sudo apt-get install -y build-essential binutils curl git tar zlib1g-dev
+```
+
+Install [asdf](https://asdf-vm.com/guide/getting-started.html), then from the repo root run:
+
+```sh
+make install
+```
+
+`make install` is idempotent. It installs the required asdf plugins if missing, installs the pinned Rust toolchain, builds NASM `3.01` into the asdf install directory if it is not already present, writes the local tool versions, and refreshes shims.
+
+Verify the setup with:
+
+```sh
+cargo test
+```
+
+Run the sample program with:
+
+```sh
+make run
+```
+
 ## Quick start (Using Docker)
 
 ```sh
 git clone https://github.com/rgolang/rgo.git
 cd rgo
 docker build -t rgo-compiler .
-docker run --rm -i rgo-compiler - main < code/hello.rgo
+docker run --rm -i rgo-compiler code/hello.rgo main
 ```
 
-This compiles and runs `code/hello.rgo` by invoking its `main` target.
+This compiles and runs the `main` target in `code/hello.rgo`.
 
 This is what happens inside the container (or on your linux machine)
 ```sh
@@ -150,9 +191,15 @@ ld -dynamic-linker /lib64/ld-linux-x86-64.so.2 -lc bin/hello.o -o bin/hello
 ./bin/hello
 ```
 
+## Development Workflow
+
+1. **Code Changes**: Make changes to the compiler's source code.
+2. **Testing**: Run Rust tests using `cargo test`.
+3. **Snapshot Updates**: If changes require new snapshots, manually copy `.actual` files to `.expected`.
+
 ## Building and testing
 
-- Rebuild the compiler or run the golden snapshot suite with `cargo test`. This also executes `tests/golden_test.rs`, which regenerates snapshots under `tests/generated/`:
+- Rebuild the compiler or run the golden snapshot suite with `cargo test`. This also executes `tests/golden_test.rs`, which reads each fixture from its own numbered complexity folder under `tests/golden/` or `tests/failing/` and regenerates matching snapshots under `tests/generated/`:
   - `*.asm` contains the final NASM output.
   - `*.air` records the pseudo-assembly that feeds the final backend.
   - `*.hir.rgo` is the normalized high-level IR after parsing.
@@ -163,9 +210,10 @@ ld -dynamic-linker /lib64/ld-linux-x86-64.so.2 -lc bin/hello.o -o bin/hello
 ## Project structure
 
 - `src/`: Rust implementation of the lexer, parser, HIR, and back-end code generator.
-- `code/`: sample Rgo programs (`hello.rgo` is a friendly starting point with Makefile shortcuts).
+- `code/`: sample Rgo workspace files (`hello.rgo` contains the `main` target used by Makefile shortcuts).
 - `tests/`: integration and golden snapshot tests; `golden_test.rs` is the automated snapshot generator.
-- [SEMANTICS.md](SEMANTICS.md) describes runtime expectations and language rules.
+- [SEMANTICS.md](SEMANTICS.md) describes source-language rules and
+  user-visible behavior.
 
 ## Compilation
 The compilation process flows as follows:
@@ -190,7 +238,7 @@ Functions such as sin, cos, sqrt, and friends are not yet exposed. Interfacing t
 - No arrays or slices  
 Aggregate data structures are not yet supported. There is no syntax or type-level encoding for contiguous memory layouts, indexing, or bounds semantics.
 - Minimal runtime surface  
-At present, the only “standard library” consists of write, printf, sprintf, and arbitrary native NASM instructions. Everything else must be built manually.
+At present, the only “standard library” consists of write, sprintf, and arbitrary native NASM instructions. Everything else must be built manually.
 
 Despite that, functionality is slowly expanding, and the compiler architecture is structured so these features can be added piece by piece while keeping the language’s core goals (simplicity, explicitness, and predictability) intact.
 

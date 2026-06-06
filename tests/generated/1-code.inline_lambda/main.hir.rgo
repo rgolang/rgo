@@ -1,19 +1,35 @@
+str: @str
 int: @int
-printf: @printf
-exit: @exit
-_4_main: (){
-    _5: 0
-    exit(_5)
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
 }
 
-_1_main: (x: int){
-    _2: "the answer is: %d"
-    printf(_2, x, _4_main)
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
+exit: @exit
+@sprintf: @sprintf
+@write: @write
+_10_main: (){
+    _11: 0
+    exit(_11)
+}
+
+_8_main: (s: str){
+    @write(s, _10_main)
+}
+
+_5_main: (x: int){
+    _6: "the answer is: %d"
+    @sprintf(_6, x, _8_main)
 }
 
 main: (){
-    _7: 42
-    _8_main: _1_main(_7)
-    _8_main()
+    _14: 42
+    _15_main: _5_main(_14)
+    _15_main()
 }
 main()

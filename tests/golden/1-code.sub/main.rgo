@@ -1,6 +1,10 @@
+str: @str
 sub: @sub
 int: @int
-printf: @printf
+printf: (fmt: str!, args: ..., ok:()) {
+    (s: str) = @sprintf(fmt, args)
+    @write(s, ok)
+}
 exit: @exit
 
 main: () {

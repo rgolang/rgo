@@ -1,23 +1,38 @@
-int: @int
 str: @str
-printf: @printf
+int: @int
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
 exit: @exit
 foo: (f:(str, ()), ok:()){
-    _2: "42"
-    f(_2, ok)
+    _6: "42"
+    f(_6, ok)
+}
+@sprintf: @sprintf
+@write: @write
+_9_print: (ok:(), s: str){
+    @write(s, ok)
 }
 
 print: (n: str, ok:()){
-    _3: "The winning number is %s\n"
-    printf(_3, n, ok)
+    _7: "The winning number is %s\n"
+    _10_print: _9_print(ok)
+    @sprintf(_7, n, _10_print)
 }
 
-_5_main: (){
-    _6: 0
-    exit(_6)
+_12_main: (){
+    _13: 0
+    exit(_13)
 }
 
 main: (){
-    foo(print, _5_main)
+    foo(print, _12_main)
 }
 main()

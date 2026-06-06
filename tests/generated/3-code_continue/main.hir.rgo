@@ -1,31 +1,46 @@
 str: @str
 int: @int
 exit: @exit
-printf: @printf
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
 add: @add
 foo: (x: int, y: int, ok:(int)){
     add(x, y, ok)
 }
+@sprintf: @sprintf
+@write: @write
+_10_run_k: (ok:(), s: str){
+    @write(s, ok)
+}
 
-_3_run_k: (ok:(), x: int){
-    _4: "number: %d"
-    printf(_4, x, ok)
+_7_run_k: (ok:(), x: int){
+    _8: "number: %d"
+    _11_run_k: _10_run_k(ok)
+    @sprintf(_8, x, _11_run_k)
 }
 
 run: (ok:()){
-    _1: 1
-    _2: 2
-    _5_k: _3_run_k(ok)
-    a: foo(_1, _2)
-    a(_5_k)
+    _5: 1
+    _6: 2
+    _12_k: _7_run_k(ok)
+    a: foo(_5, _6)
+    a(_12_k)
 }
 
-_7_main: (){
-    _8: 0
-    exit(_8)
+_14_main: (){
+    _15: 0
+    exit(_15)
 }
 
 main: (){
-    run(_7_main)
+    run(_14_main)
 }
 main()

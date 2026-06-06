@@ -1,27 +1,50 @@
-_8_bar():
-    @exit($_9: int = 0)
+_14_bar():
+    @exit($_15: int = 0)
 
 
-_8_bar_unwrapper($env_end: int):
+_14_bar_unwrapper($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
-    @jumpargs(_8_bar)
+    @jumpargs(_14_bar)
 
 
-_8_bar_deep_release($env_end: int):
+_14_bar_deep_release($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
     @return()
 
 
-_8_bar_deepcopy($env_end: int):
+_14_bar_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_12_bar($s: str):
+    $_14_bar = @newclosure<>(_14_bar)
+    @write($s: str, $_14_bar)
+
+
+_12_bar_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $s = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_12_bar, $s: str)
+
+
+_12_bar_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_12_bar_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
     @return()
 
 
 bar($name0: str, $name1: str, $name2: str):
-    $_8_bar = @newclosure<>(_8_bar)
-    @printf($_6: str! = "hello %s, %s and %s\n", $name0: int, $name1: int, $name2: int, $_8_bar)
+    $_12_bar = @newclosure<str>(_12_bar)
+    @sprintf($_10: str! = "hello %s, %s and %s\n", $name0: int, $name1: int, $name2: int, $_12_bar)
 
 
 bar_unwrapper($env_end: int):
@@ -45,7 +68,7 @@ bar_deepcopy($env_end: int):
 
 
 foo($ok: ()):
-    @jumpclosure($ok, $_1: int = "charlie")
+    @jumpclosure($ok, $_5: int = "charlie")
 
 
 foo_unwrapper($env_end: int):
@@ -76,11 +99,11 @@ foo_deepcopy_skip_0:
 
 
 baz($ok: ()):
-    $_5_ok = @cloneclosure($ok, str, str)
-    $___5_ok_env_end = @pin($_5_ok)
-    @setfield($___5_ok_env_end, -2, $_4: str = "bob")
-    @setfield($___5_ok_env_end, 5, $___5_ok_num_remaining_value: int = 1)
-    @jumpargs(foo, $_5_ok: ())
+    $_9_ok = @cloneclosure($ok, str, str)
+    $___9_ok_env_end = @pin($_9_ok)
+    @setfield($___9_ok_env_end, -2, $_8: str = "bob")
+    @setfield($___9_ok_env_end, 5, $___9_ok_num_remaining_value: int = 1)
+    @jumpargs(foo, $_9_ok: ())
 
 
 baz_unwrapper($env_end: int):
@@ -111,8 +134,8 @@ baz_deepcopy_skip_0:
 
 
 main():
-    $_12_bar = @newclosure<str, str, str>(bar, $_11: str = "alice")
-    @jumpargs(baz, $_12_bar: ())
+    $_19_bar = @newclosure<str, str, str>(bar, $_18: str = "alice")
+    @jumpargs(baz, $_19_bar: ())
 
 
 main_unwrapper($env_end: int):

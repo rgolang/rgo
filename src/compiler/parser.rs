@@ -5,6 +5,7 @@ use crate::compiler::ast;
 use crate::compiler::ast::{
     Block, BlockItem, Ident, Lambda, Literal, SigIdent, SigItem, SigKind, Signature, Term,
 };
+use crate::compiler::builtins;
 use crate::compiler::error::{Code, Error};
 use crate::compiler::lexer::Lexer;
 use crate::compiler::span::Span;
@@ -50,24 +51,9 @@ impl<R: BufRead> Parser<R> {
         let token = self.peek_token()?.clone();
         match token.kind {
             TokenKind::Eof => Ok(None),
-            TokenKind::Import(_) => Err(Error::new(
-                Code::Parse,
-                "imports must have a label (e.g. `printf: @printf`)",
-                token.span,
-            )),
             _ => {
                 let item = self.parse_block_item()?;
-                let item_span = item.span();
-                let is_import = matches!(&item, BlockItem::Import { .. });
-                if is_import {
-                    if !self.allow_top_imports {
-                        return Err(Error::new(
-                            Code::Parse,
-                            "@ imports must appear before any other items",
-                            item_span,
-                        ));
-                    }
-                } else {
+                if !matches!(&item, BlockItem::Import { .. }) {
                     self.allow_top_imports = false;
                 }
                 self.consume_block_item_separators()?;
@@ -96,9 +82,13 @@ impl<R: BufRead> Parser<R> {
                     let next = self.peek_token()?.clone();
                     if let TokenKind::Import(path) = next.kind {
                         self.bump()?; // consume import token
-                        return Ok(BlockItem::Import {
-                            label: name.clone(),
-                            path,
+                        return Ok(BlockItem::IdentDef {
+                            name,
+                            ident: Ident {
+                                name: format!("@{path}"),
+                                args: Vec::new(),
+                                span: next.span,
+                            },
                             span,
                         });
                     }
@@ -108,6 +98,10 @@ impl<R: BufRead> Parser<R> {
 
                 // Must be an exec
                 self.peeked.push_front(ident); // restore token to attempt exec parse
+            }
+            TokenKind::Import(_) => {
+                let ident = self.bump()?;
+                self.peeked.push_front(ident);
             }
             TokenKind::LParen => {
                 return self.parse_lambda_or_scope_capture();
@@ -307,6 +301,11 @@ impl<R: BufRead> Parser<R> {
             })),
             TokenKind::Ident(name) => Ok(Term::Ident(Ident {
                 name,
+                args: Vec::new(),
+                span: token.span,
+            })),
+            TokenKind::Import(name) => Ok(Term::Ident(Ident {
+                name: format!("@{name}"),
                 args: Vec::new(),
                 span: token.span,
             })),
@@ -591,6 +590,23 @@ impl<R: BufRead> Parser<R> {
                 // return Err(CompileError::new(CompileErrorCode::Parse, format!("unknown type '{}'", name), span).into());
                 Ok(SigKind::Ident(SigIdent { name, span }))
             }
+            TokenKind::Import(name) => match builtins::get_spec(&name) {
+                Some(builtins::BuiltinSpec::Type(_)) => Ok(SigKind::Ident(SigIdent {
+                    name: format!("@{name}"),
+                    span,
+                })),
+                Some(builtins::BuiltinSpec::Function(_)) => Err(Error::new(
+                    Code::Parse,
+                    format!("@{name} is a builtin function, not a type"),
+                    span,
+                )),
+                None => Err(Error::new(
+                    Code::Parse,
+                    format!("unknown builtin type '@{name}'"),
+                    span,
+                )),
+            },
+            TokenKind::Ellipsis => Ok(SigKind::Variadic),
             _ => return Err(Error::new(Code::Parse, "expected a type", span)),
         }
     }

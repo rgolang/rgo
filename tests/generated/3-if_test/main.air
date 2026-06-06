@@ -38,88 +38,134 @@ true_deepcopy_skip_1:
     @return()
 
 
-_6_main():
-    @exit($_7: int = 0)
+_12_main():
+    @exit($_13: int = 0)
 
 
-_6_main_unwrapper($env_end: int):
+_12_main_unwrapper($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
-    @jumpargs(_6_main)
+    @jumpargs(_12_main)
 
 
-_6_main_deep_release($env_end: int):
-    $__env_end = @pin($env_end)
-    @release($__env_end)
-    @return()
-
-
-_6_main_deepcopy($env_end: int):
-    $__env_end = @pin($env_end)
-    @return()
-
-
-_3_main():
-    $_6_main = @newclosure<>(_6_main)
-    @printf($_4: str! = "works", $_6_main)
-
-
-_3_main_unwrapper($env_end: int):
-    $__env_end = @pin($env_end)
-    @release($__env_end)
-    @jumpargs(_3_main)
-
-
-_3_main_deep_release($env_end: int):
+_12_main_deep_release($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
     @return()
 
 
-_3_main_deepcopy($env_end: int):
+_12_main_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
     @return()
 
 
-_14_main():
-    @exit($_15: int = 0)
+_10_main($s: str):
+    $_12_main = @newclosure<>(_12_main)
+    @write($s: str, $_12_main)
 
 
-_14_main_unwrapper($env_end: int):
+_10_main_unwrapper($env_end: int):
     $__env_end = @pin($env_end)
+    $s = @field($__env_end, -1)
     @release($__env_end)
-    @jumpargs(_14_main)
+    @jumpargs(_10_main, $s: str)
 
 
-_14_main_deep_release($env_end: int):
-    $__env_end = @pin($env_end)
-    @release($__env_end)
-    @return()
-
-
-_14_main_deepcopy($env_end: int):
-    $__env_end = @pin($env_end)
-    @return()
-
-
-_11_main():
-    $_14_main = @newclosure<>(_14_main)
-    @printf($_12: str! = "doesn't work", $_14_main)
-
-
-_11_main_unwrapper($env_end: int):
-    $__env_end = @pin($env_end)
-    @release($__env_end)
-    @jumpargs(_11_main)
-
-
-_11_main_deep_release($env_end: int):
+_10_main_deep_release($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
     @return()
 
 
-_11_main_deepcopy($env_end: int):
+_10_main_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_7_main():
+    $_10_main = @newclosure<str>(_10_main)
+    @sprintf($_8: str! = "works", $_10_main)
+
+
+_7_main_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_7_main)
+
+
+_7_main_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_7_main_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_23_main():
+    @exit($_24: int = 0)
+
+
+_23_main_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_23_main)
+
+
+_23_main_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_23_main_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_21_main($s: str):
+    $_23_main = @newclosure<>(_23_main)
+    @write($s: str, $_23_main)
+
+
+_21_main_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $s = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_21_main, $s: str)
+
+
+_21_main_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_21_main_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_18_main():
+    $_21_main = @newclosure<str>(_21_main)
+    @sprintf($_19: str! = "doesn't work", $_21_main)
+
+
+_18_main_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @jumpargs(_18_main)
+
+
+_18_main_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_18_main_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
     @return()
 
@@ -173,9 +219,9 @@ if_deepcopy_skip_2:
 
 main():
     $true = @newclosure<(), ()>(true)
-    $_3_main = @newclosure<>(_3_main)
-    $_11_main = @newclosure<>(_11_main)
-    @jumpargs(if, $true: (), $_3_main: (), $_11_main: ())
+    $_7_main = @newclosure<>(_7_main)
+    $_18_main = @newclosure<>(_18_main)
+    @jumpargs(if, $true: (), $_7_main: (), $_18_main: ())
 
 
 main_unwrapper($env_end: int):

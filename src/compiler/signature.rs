@@ -1,4 +1,5 @@
 use crate::compiler::ast;
+use crate::compiler::builtins;
 use crate::compiler::hir;
 use crate::compiler::hir_context as ctx;
 use crate::compiler::span::Span;
@@ -182,6 +183,11 @@ pub fn expected_params_for_args<'a>(
 }
 
 fn resolve_ident(ident: &hir::SigIdent, ctx: &ctx::Context) -> hir::SigKind {
+    if let Some(builtin_name) = ident.name.strip_prefix('@') {
+        if let Some(builtins::BuiltinSpec::Type(kind)) = builtins::get_spec(builtin_name) {
+            return kind;
+        }
+    }
     if let Some(entry) = ctx.get(&ident.name) {
         if entry.is_builtin || matches!(entry.kind, hir::SigKind::Generic(_)) {
             return entry.kind.clone();

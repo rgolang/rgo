@@ -32,7 +32,7 @@ new_point_deepcopy_skip_2:
 
 
 ok_exit():
-    @exit($_2: int = 0)
+    @exit($_6: int = 0)
 
 
 ok_exit_unwrapper($env_end: int):
@@ -52,9 +52,32 @@ ok_exit_deepcopy($env_end: int):
     @return()
 
 
-p_handle($x: int, $y: int):
+_9_p_handle($s: str):
     $ok_exit = @newclosure<>(ok_exit)
-    @printf($_3: str! = "got: %d, %d\n", $x: int, $y: int, $ok_exit)
+    @write($s: str, $ok_exit)
+
+
+_9_p_handle_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $s = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_9_p_handle, $s: str)
+
+
+_9_p_handle_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_9_p_handle_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+p_handle($x: int, $y: int):
+    $_9_p_handle = @newclosure<str>(_9_p_handle)
+    @sprintf($_7: str! = "got: %d, %d\n", $x: int, $y: int, $_9_p_handle)
 
 
 p_handle_unwrapper($env_end: int):
@@ -140,6 +163,6 @@ main_deepcopy_skip_0:
 
 
 _start():
-    $p = @newclosure<int, int, ($_0_new_point: int, $_1_new_point: int)>(new_point, $_7: int = 1, $_8: int = 2)
+    $p = @newclosure<int, int, ($_4_new_point: int, $_5_new_point: int)>(new_point, $_14: int = 1, $_15: int = 2)
     @jumpargs(main, $p: ())
 

@@ -1,29 +1,44 @@
+str: @str
 int: @int
 exit: @exit
-printf: @printf
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
 point: (int, int)
 new_point: (x: int, y: int, ok:(int, int)){
     ok(x, y)
 }
-
-_7_bar: (){
-    _8: 0
-    exit(_8)
+@sprintf: @sprintf
+@write: @write
+_13_bar: (){
+    _14: 0
+    exit(_14)
 }
 
-_4_bar: (x: int, y: int){
-    _5: "x: %d, y: %d"
-    printf(_5, x, y, _7_bar)
+_11_bar: (s: str){
+    @write(s, _13_bar)
+}
+
+_8_bar: (x: int, y: int){
+    _9: "x: %d, y: %d"
+    @sprintf(_9, x, y, _11_bar)
 }
 
 bar: (p:((int, int))){
-    p(_4_bar)
+    p(_8_bar)
 }
 
 foo: (){
-    _11: 1
-    _12: 2
-    p: new_point(_11, _12)
+    _18: 1
+    _19: 2
+    p: new_point(_18, _19)
     bar(p)
 }
 

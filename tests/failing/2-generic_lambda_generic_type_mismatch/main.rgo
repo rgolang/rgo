@@ -1,6 +1,9 @@
-exit: @exit
 str: @str
-printf: @printf
+exit: @exit
+printf: (fmt: str!, args: ..., ok:()) {
+    (s: str) = @sprintf(fmt, args)
+    @write(s, ok)
+}
 receiver: <T>(T)
 foo: <T>(x: T, ok:receiver<T>){
     ok(x)

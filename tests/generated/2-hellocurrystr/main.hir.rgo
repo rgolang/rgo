@@ -1,28 +1,44 @@
 str: @str
 int: @int
-printf: @printf
-exit: @exit
-foo: (n: str, s: str, ok:()){
-    _0: "The winning number for %s is %s\n"
-    printf(_0, s, n, ok)
-}
-_1: "42"
-_2: "43"
-_3: "Bob"
-_8_main: (){
-    _9: 0
-    exit(_9)
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
 }
 
-_6_main: (baz:(())){
-    baz(_8_main)
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
+exit: @exit
+@sprintf: @sprintf
+@write: @write
+_6_foo: (ok:(), s: str){
+    @write(s, ok)
+}
+
+foo: (n: str, s: str, ok:()){
+    _4: "The winning number for %s is %s\n"
+    _7_foo: _6_foo(ok)
+    @sprintf(_4, s, n, _7_foo)
+}
+_8: "42"
+_9: "43"
+_10: "Bob"
+_15_main: (){
+    _16: 0
+    exit(_16)
+}
+
+_13_main: (baz:(())){
+    baz(_15_main)
 }
 
 main: (bar:(str, ()), baz:(())){
-    _4: "Alice"
-    _11_main: _6_main(baz)
-    bar(_4, _11_main)
+    _11: "Alice"
+    _18_main: _13_main(baz)
+    bar(_11, _18_main)
 }
-bar: foo(_1)
-baz: foo(_2, _3)
+bar: foo(_8)
+baz: foo(_9, _10)
 main(bar, baz)

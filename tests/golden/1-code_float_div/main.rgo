@@ -1,6 +1,10 @@
+str: @str
 float: @f64
 div: @divf64
-printf: @printf
+printf: (fmt: str!, args: ..., ok:()) {
+    (s: str) = @sprintf(fmt, args)
+    @write(s, ok)
+}
 exit: @exit
 
 x: 1.5

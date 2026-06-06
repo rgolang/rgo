@@ -1,7 +1,11 @@
 [
-    Import {
-        label: "write",
-        path: "write",
+    IdentDef {
+        name: "write",
+        ident: Ident {
+            name: "@write",
+            args: [],
+            span: ,
+        },
         span: ,
     },
     FunctionDef {

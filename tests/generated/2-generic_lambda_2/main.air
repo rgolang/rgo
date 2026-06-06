@@ -1,27 +1,50 @@
-_4_done():
-    @exit($_5: int = 0)
+_10_done():
+    @exit($_11: int = 0)
 
 
-_4_done_unwrapper($env_end: int):
+_10_done_unwrapper($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
-    @jumpargs(_4_done)
+    @jumpargs(_10_done)
 
 
-_4_done_deep_release($env_end: int):
+_10_done_deep_release($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
     @return()
 
 
-_4_done_deepcopy($env_end: int):
+_10_done_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    @return()
+
+
+_8_done($s: str):
+    $_10_done = @newclosure<>(_10_done)
+    @write($s: str, $_10_done)
+
+
+_8_done_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $s = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(_8_done, $s: str)
+
+
+_8_done_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    @release($__env_end)
+    @return()
+
+
+_8_done_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
     @return()
 
 
 done($a: int, $b: str):
-    $_4_done = @newclosure<>(_4_done)
-    @printf($_2: str! = "a=%d b=%s\n", $a: int, $b: int, $_4_done)
+    $_8_done = @newclosure<str>(_8_done)
+    @sprintf($_6: str! = "a=%d b=%s\n", $a: int, $b: int, $_8_done)
 
 
 done_unwrapper($env_end: int):
@@ -92,7 +115,7 @@ foo_deepcopy_skip_2:
 
 main():
     $done = @newclosure<int, str>(done)
-    @jumpargs(foo, $_7: () = 41, $_8: () = "hi", $done: ())
+    @jumpargs(foo, $_14: () = 41, $_15: () = "hi", $done: ())
 
 
 main_unwrapper($env_end: int):

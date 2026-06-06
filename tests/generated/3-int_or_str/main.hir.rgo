@@ -1,40 +1,62 @@
 str: @str
 int: @int
 exit: @exit
-printf: @printf
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
 add: @add
-as_int: (x: int, ok:(int), _1_as_int:(str)){
+as_int: (x: int, ok:(int), _5_as_int:(str)){
     ok(x)
 }
 
-as_str: (x: str, _3_as_str:(int), ok:(str)){
+as_str: (x: str, _7_as_str:(int), ok:(str)){
     ok(x)
 }
 int_or_str: ((int), (str))
-_11_foo: (ok:(), x: int){
-    _12: "number: %d"
-    printf(_12, x, ok)
+@sprintf: @sprintf
+@write: @write
+_18_foo: (ok:(), s: str){
+    @write(s, ok)
 }
 
-_15_foo: (ok:(), x: str){
-    _16: "string: %s"
-    printf(_16, x, ok)
+_15_foo: (ok:(), x: int){
+    _16: "number: %d"
+    _19_foo: _18_foo(ok)
+    @sprintf(_16, x, _19_foo)
+}
+@sprintf: @sprintf
+@write: @write
+_25_foo: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_22_foo: (ok:(), x: str){
+    _23: "string: %s"
+    _26_foo: _25_foo(ok)
+    @sprintf(_23, x, _26_foo)
 }
 
 foo: (x:((int), (str)), ok:()){
-    _13_foo: _11_foo(ok)
-    _17_foo: _15_foo(ok)
-    x(_13_foo, _17_foo)
+    _20_foo: _15_foo(ok)
+    _27_foo: _22_foo(ok)
+    x(_20_foo, _27_foo)
 }
 
-_21_main: (){
-    _22: 0
-    exit(_22)
+_31_main: (){
+    _32: 0
+    exit(_32)
 }
 
 main: (){
-    _18: 42
-    _19_as_int: as_int(_18)
-    foo(_19_as_int, _21_main)
+    _28: 42
+    _29_as_int: as_int(_28)
+    foo(_29_as_int, _31_main)
 }
 main()

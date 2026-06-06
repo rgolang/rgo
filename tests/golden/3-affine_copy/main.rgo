@@ -1,8 +1,11 @@
+str: @str
 exit: @exit
 int: @int
 add: @add
-printf: @printf
-
+printf: (fmt: str!, args: ..., ok:()) {
+    (s: str) = @sprintf(fmt, args)
+    @write(s, ok)
+}
 bar: (a:int, b:int, ok:(int)){
     add(a, b, ok)
 }
