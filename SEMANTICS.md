@@ -1,4 +1,4 @@
-# Rgo v1 Semantics
+# Rgo Semantics
 
 This document describes what Rgo programs mean: which programs are valid,
 what source constructs do, and what behavior users can rely on.
@@ -363,8 +363,8 @@ Variadic argument flow:
 - match fixed suffix parameters
   - `ok` is the final continuation
 - route every argument between the prefix and suffix through `args`
-  - v1 does not expose `args` as a source-level array value
-  - v1 does not assign a declared element type to those middle arguments
+  - `args` is not exposed as a source-level array value
+  - middle arguments do not have a declared element type
 
 Formatted printing is ordinary source code:
 
@@ -438,7 +438,7 @@ entries are:
 @gt // owner: CPU/backend; primitive integer comparison branch emitted as direct control transfer
 @write // owner: OS/filesystem descriptor API; byte-stream output operation
 @exit // owner: OS process ABI; process-completion operation
-@sprintf // owner: libc variadic ABI and runtime buffer; current v1 builtin exception for formatting to a string
+@sprintf // owner: libc variadic ABI and runtime buffer; current builtin exception for formatting to a string
 ```
 
 The root namespace is flat:
@@ -457,8 +457,7 @@ foo: (x: int){
 }
 ```
 
-Only `@name` names builtins. In v2, source imports use `@/path` and remain
-separate from builtin references.
+Only `@name` names builtins.
 
 Builtin operation signatures:
 
@@ -522,7 +521,6 @@ Rgo uses a repeated punctuation pattern:
 - `{}` separates or contains choice/body structure.
 - `name:` labels code or values.
 - `@name` references compiler-provided builtin types and functions.
-- `@/path` names source imports in v2.
 
 Types are not allowed as arguments in `()` because type arguments can often be
 inferred and would clash with value argument counts. Type arguments use `<>`
