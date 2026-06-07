@@ -22,9 +22,7 @@ pub enum Builtin {
     Eqs,
     Lt,
     Gt,
-    Itoa,
     Write,
-    Puts,
     Exit,
     Printf,
     Sprintf,
@@ -46,9 +44,7 @@ impl Builtin {
             "eqs" => Some(Builtin::Eqs),
             "lt" => Some(Builtin::Lt),
             "gt" => Some(Builtin::Gt),
-            "itoa" => Some(Builtin::Itoa),
             "write" => Some(Builtin::Write),
-            "puts" => Some(Builtin::Puts),
             "exit" => Some(Builtin::Exit),
             "printf" => Some(Builtin::Printf),
             "sprintf" => Some(Builtin::Sprintf),
@@ -70,9 +66,7 @@ impl Builtin {
             Builtin::Eqs => "eqs",
             Builtin::Lt => "lt",
             Builtin::Gt => "gt",
-            Builtin::Itoa => "itoa",
             Builtin::Write => "write",
-            Builtin::Puts => "puts",
             Builtin::Exit => "exit",
             Builtin::Printf => "printf",
             Builtin::Sprintf => "sprintf",
@@ -86,11 +80,7 @@ impl Builtin {
             Builtin::AddF64 | Builtin::MulF64 | Builtin::DivF64 => math_binary_sig(SigKind::F64),
             Builtin::Eq | Builtin::Eqi | Builtin::Lt | Builtin::Gt => comparison_sig(SigKind::Int),
             Builtin::Eqs => comparison_sig(SigKind::Str),
-            Builtin::Itoa => sig_from_items(vec![
-                sig_item("value", SigKind::Int),
-                sig_item("ok", SigKind::tuple([SigKind::Str])),
-            ]),
-            Builtin::Write | Builtin::Puts => sig_from_items(vec![
+            Builtin::Write => sig_from_items(vec![
                 sig_item("value", SigKind::Str),
                 sig_item("ok", SigKind::tuple([])),
             ]),
@@ -109,18 +99,18 @@ impl Builtin {
     }
 
     pub fn is_call(self) -> bool {
-        return matches!(
+        matches!(
             self,
-            Builtin::Printf | Builtin::Sprintf | Builtin::Write | Builtin::Puts | Builtin::Exit
-        );
+            Builtin::Printf | Builtin::Sprintf | Builtin::Write | Builtin::Exit
+        )
     }
 
     pub fn is_conditional(self) -> bool {
-        return matches!(self, Builtin::Eq | Builtin::Eqi | Builtin::Eqs);
+        matches!(self, Builtin::Eq | Builtin::Eqi | Builtin::Eqs)
     }
 
     pub fn is_instruction(self) -> bool {
-        return matches!(
+        matches!(
             self,
             Builtin::Add
                 | Builtin::Sub
@@ -131,14 +121,14 @@ impl Builtin {
                 | Builtin::DivF64
                 | Builtin::Lt
                 | Builtin::Gt
-        );
+        )
     }
 
     pub fn is_libc_call(self) -> bool {
-        return matches!(
+        matches!(
             self,
-            Builtin::Printf | Builtin::Sprintf | Builtin::Write | Builtin::Puts | Builtin::Exit
-        );
+            Builtin::Printf | Builtin::Sprintf | Builtin::Write | Builtin::Exit
+        )
     }
 }
 
@@ -147,6 +137,7 @@ pub fn get_spec(name: &str) -> Option<BuiltinSpec> {
         return Some(BuiltinSpec::Function(builtin.signature()));
     }
     match name {
+        "byte" => Some(BuiltinSpec::Type(hir::SigKind::Byte)),
         "int" => Some(BuiltinSpec::Type(hir::SigKind::Int)),
         "str" => Some(BuiltinSpec::Type(hir::SigKind::Str)),
         "f64" => Some(BuiltinSpec::Type(hir::SigKind::F64)),
@@ -205,6 +196,14 @@ mod tests {
         match get_spec("f64") {
             Some(BuiltinSpec::Type(kind)) => assert_eq!(kind, hir::SigKind::F64),
             other => panic!("expected builtin f64 type, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn byte_type_registration() {
+        match get_spec("byte") {
+            Some(BuiltinSpec::Type(kind)) => assert_eq!(kind, hir::SigKind::Byte),
+            other => panic!("expected builtin byte type, got {:?}", other),
         }
     }
 

@@ -1,0 +1,16 @@
+byte: @byte
+str: @str
+int: @int
+printf: (fmt: str!, args: ..., ok:()) {
+    (s: str) = @sprintf(fmt, args)
+    @write(s, ok)
+}
+exit: @exit
+
+print_byte: (value: byte, ok:()) {
+    printf("byte %d\n", value, ok)
+}
+
+main: () {
+    print_byte(255, exit(0))
+}

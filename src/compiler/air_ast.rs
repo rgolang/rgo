@@ -120,8 +120,21 @@ pub struct AirJumpClosure {
 
 #[derive(Clone)]
 pub enum AirStmt {
-    Op(AirOp),
+    Op(Box<AirOp>),
     Label(AirLabel),
+}
+
+impl AirStmt {
+    pub fn op(op: AirOp) -> Self {
+        Self::Op(Box::new(op))
+    }
+
+    pub fn as_op(&self) -> Option<&AirOp> {
+        match self {
+            Self::Op(op) => Some(op.as_ref()),
+            Self::Label(_) => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -149,7 +162,6 @@ pub enum AirOp {
     Printf(AirPrintf),
     Sprintf(AirSprintf),
     Write(AirWrite),
-    Puts(AirPuts),
 
     CallPtr(AirCallPtr),
     NewClosure(AirNewClosure),
@@ -249,13 +261,6 @@ pub struct AirSprintf {
 
 #[derive(Clone, Debug)]
 pub struct AirWrite {
-    pub args: Vec<AirArg>,
-    pub arg_kinds: Vec<SigKind>,
-    pub target: String,
-}
-
-#[derive(Clone, Debug)]
-pub struct AirPuts {
     pub args: Vec<AirArg>,
     pub arg_kinds: Vec<SigKind>,
     pub target: String,

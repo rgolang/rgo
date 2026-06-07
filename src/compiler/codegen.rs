@@ -52,35 +52,29 @@ impl Artifacts {
 
     fn process_statement(&mut self, stmt: &AirStmt) {
         self.collect_literals_in_stmt(stmt);
-        match stmt {
-            AirStmt::Op(AirOp::Printf(_))
-            | AirStmt::Op(AirOp::Sprintf(_))
-            | AirStmt::Op(AirOp::Write(_))
-            | AirStmt::Op(AirOp::Puts(_)) => {
-                let name = match stmt {
-                    AirStmt::Op(AirOp::Printf(_)) => "printf",
-                    AirStmt::Op(AirOp::Sprintf(_)) => "sprintf",
-                    AirStmt::Op(AirOp::Write(_)) => "write",
-                    AirStmt::Op(AirOp::Puts(_)) => "puts",
-                    _ => "",
-                };
-                if !name.is_empty() {
-                    self.externs.insert(name.to_string());
-                }
+        match stmt.as_op() {
+            Some(AirOp::Printf(_)) => {
+                self.externs.insert("printf".to_string());
             }
-            AirStmt::Op(AirOp::SysExit(_)) => {
+            Some(AirOp::Sprintf(_)) => {
+                self.externs.insert("sprintf".to_string());
+            }
+            Some(AirOp::Write(_)) => {
+                self.externs.insert("write".to_string());
+            }
+            Some(AirOp::SysExit(_)) => {
                 // Call libc exit instead of raw syscall to ensure proper cleanup and flushing
                 self.externs.insert("exit".to_string());
             }
-            AirStmt::Op(AirOp::CallPtr(_)) => {
+            Some(AirOp::CallPtr(_)) => {
                 self.externs
                     .insert(AirRuntimeHelper::ReleaseHeapPtr.name().to_string());
             }
-            AirStmt::Op(AirOp::ReleaseHeap(_)) => {
+            Some(AirOp::ReleaseHeap(_)) => {
                 self.externs
                     .insert(AirRuntimeHelper::ReleaseHeapPtr.name().to_string());
             }
-            AirStmt::Op(AirOp::CopyField(_)) => {
+            Some(AirOp::CopyField(_)) => {
                 self.externs
                     .insert(AirRuntimeHelper::DeepCopyHeapPtr.name().to_string());
             }
@@ -89,9 +83,8 @@ impl Artifacts {
     }
 
     fn collect_literals_in_stmt(&mut self, stmt: &AirStmt) {
-        match stmt {
-            AirStmt::Op(op) => self.collect_literals_in_op(op),
-            _ => {}
+        if let Some(op) = stmt.as_op() {
+            self.collect_literals_in_op(op);
         }
     }
 
@@ -127,7 +120,6 @@ impl Artifacts {
             AirOp::Printf(call) => self.collect_literals_in_args(&call.args),
             AirOp::Sprintf(call) => self.collect_literals_in_args(&call.args),
             AirOp::Write(call) => self.collect_literals_in_args(&call.args),
-            AirOp::Puts(call) => self.collect_literals_in_args(&call.args),
             AirOp::JumpArgs(call) => self.collect_literals_in_args(&call.args),
             AirOp::SysExit(syscall) => self.collect_literals_in_args(&syscall.args),
             _ => {}
@@ -167,7 +159,7 @@ pub fn function<W: Write>(
     if !artifacts.builtins_used.insert(air.sig.name.clone()) {
         return Ok(());
     }
-    if runtime::emit_builtin_function(&air, artifacts, out)? {
+    if runtime::emit_builtin_function(&air, out)? {
         return Ok(());
     }
     let frame = FrameLayout::build(&air)?;
@@ -184,10 +176,10 @@ fn emit_runtime_helpers<W: Write>(
     let mut needs_release = false;
     let mut needs_deepcopy = false;
     for stmt in &air.items {
-        match stmt {
-            AirStmt::Op(AirOp::ReleaseHeap(_)) => needs_release = true,
-            AirStmt::Op(AirOp::CopyField(_)) => needs_deepcopy = true,
-            AirStmt::Op(AirOp::CallPtr(_)) => needs_release = true,
+        match stmt.as_op() {
+            Some(AirOp::ReleaseHeap(_)) => needs_release = true,
+            Some(AirOp::CopyField(_)) => needs_deepcopy = true,
+            Some(AirOp::CallPtr(_)) => needs_release = true,
             _ => {}
         }
     }
@@ -299,15 +291,13 @@ impl FrameLayout {
     }
 }
 
-fn air_statement_binding_info<'a>(stmt: &'a AirStmt) -> Option<&'a str> {
-    match stmt {
-        AirStmt::Op(AirOp::NewClosure(s)) => Some(&s.name),
-        AirStmt::Op(AirOp::CloneClosure(s)) => Some(&s.dst),
-        AirStmt::Op(AirOp::Field(field)) => Some(field.result.as_str()),
-        AirStmt::Op(AirOp::CopyField(field)) => Some(field.result.as_str()),
-        AirStmt::Op(AirOp::ReleaseHeap(..)) => None,
-        AirStmt::Label(_) => None,
-        AirStmt::Op(_) => None,
+fn air_statement_binding_info(stmt: &AirStmt) -> Option<&str> {
+    match stmt.as_op() {
+        Some(AirOp::NewClosure(s)) => Some(&s.name),
+        Some(AirOp::CloneClosure(s)) => Some(&s.dst),
+        Some(AirOp::Field(field)) => Some(field.result.as_str()),
+        Some(AirOp::CopyField(field)) => Some(field.result.as_str()),
+        _ => None,
     }
 }
 
@@ -372,7 +362,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 .ok_or_else(|| Error::new(Code::Codegen, "missing binding", Span::unknown()))?;
             let slot_addr = binding.slot_addr(0);
 
-            if !spilled && slot + 1 <= ARG_REGS.len() {
+            if !spilled && slot < ARG_REGS.len() {
                 let reg = ARG_REGS[slot];
                 writeln!(
                     self.out,
@@ -418,11 +408,11 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
         match stmt {
             AirStmt::Label(label) => {
                 self.emit_label(label)?;
-                return Ok(());
+                Ok(())
             }
             AirStmt::Op(op) => {
-                self.emit_air_op(op)?;
-                return Ok(());
+                self.emit_air_op(op.as_ref())?;
+                Ok(())
             }
         }
     }
@@ -473,9 +463,6 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
                 &op.arg_kinds,
                 &op.target,
             ),
-            AirOp::Puts(op) => {
-                self.emit_libc_op(builtins::Builtin::Puts, &op.args, &op.arg_kinds, &op.target)
-            }
             AirOp::CallPtr(call) => self.emit_call_ptr(call),
             AirOp::SysExit(syscall) => self.emit_exit_syscall(syscall),
             AirOp::JumpArgs(call) => self.emit_jump_args(call),
@@ -850,9 +837,7 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
     }
 
     fn emit_call_ptr(&mut self, call: &AirCallPtr) -> Result<(), Error> {
-        let name = match &call.target {
-            AirCallPtrTarget::Binding(name) => name,
-        };
+        let AirCallPtrTarget::Binding(name) = &call.target;
         self.load_value_into_reg(&AirValue::Binding(name.clone()), "rdi")?;
         writeln!(
             self.out,
@@ -972,17 +957,15 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
     }
 
     fn load_float_into_reg(&mut self, arg: &AirArg, reg: &str) -> Result<(), Error> {
-        if let Some(literal) = &arg.literal {
-            if let Lit::F64(value) = literal {
-                let bits = value.to_bits();
-                writeln!(
-                    self.out,
-                    "    mov {reg}, {bits:#x} ; load literal float bits",
-                    reg = reg,
-                    bits = bits
-                )?;
-                return Ok(());
-            }
+        if let Some(Lit::F64(value)) = &arg.literal {
+            let bits = value.to_bits();
+            writeln!(
+                self.out,
+                "    mov {reg}, {bits:#x} ; load literal float bits",
+                reg = reg,
+                bits = bits
+            )?;
+            return Ok(());
         }
         let binding = self.frame.binding(&arg.name).cloned().ok_or_else(|| {
             Error::new(
@@ -1376,23 +1359,6 @@ impl<'a, W: Write> FunctionEmitter<'a, W> {
 
                 Ok(false)
             }
-            builtins::Builtin::Puts => {
-                if args.is_empty() {
-                    return Err(Error::new(
-                        Code::Codegen,
-                        "puts requires a buffer before the continuation",
-                        Span::unknown(),
-                    ));
-                }
-
-                self.prepare_args(args)?;
-                let arg_split = self.move_args_to_registers(arg_kinds)?;
-
-                writeln!(self.out, "    call puts ; invoke libc puts")?;
-                self.cleanup_libc_stack(arg_split.stack_bytes)?;
-
-                Ok(false)
-            }
             _ => Err(Error::new(
                 Code::Codegen,
                 format!("unsupported libc call '{}'", builtin.name()),
@@ -1618,5 +1584,5 @@ fn align_to(value: usize, align: usize) -> usize {
     if value == 0 {
         return 0;
     }
-    ((value + align - 1) / align) * align
+    value.div_ceil(align) * align
 }

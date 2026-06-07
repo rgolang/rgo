@@ -1,28 +1,60 @@
-_2_main($s: str):
-    @exit($_3: int = 0)
+_4_main($s: str):
+    @exit($_5: int = 0)
 
 
-_2_main_unwrapper($env_end: int):
+_4_main_unwrapper($env_end: int):
     $__env_end = @pin($env_end)
     $s = @field($__env_end, -1)
     @release($__env_end)
-    @jumpargs(_2_main, $s: str)
+    @jumpargs(_4_main, $s: str)
 
 
-_2_main_deep_release($env_end: int):
+_4_main_deep_release($env_end: int):
     $__env_end = @pin($env_end)
     @release($__env_end)
     @return()
 
 
-_2_main_deepcopy($env_end: int):
+_4_main_deepcopy($env_end: int):
     $__env_end = @pin($env_end)
+    @return()
+
+
+itoa($n: int, $ok: ()):
+    @sprintf($_1: str! = "%d", $n: int, $ok)
+
+
+itoa_unwrapper($env_end: int):
+    $__env_end = @pin($env_end)
+    $n = @field($__env_end, -2)
+    $ok = @field($__env_end, -1)
+    @release($__env_end)
+    @jumpargs(itoa, $n: int, $ok: ())
+
+
+itoa_deep_release($env_end: int):
+    $__env_end = @pin($env_end)
+    $__num_remaining = @field($__env_end, 5)
+    @gt(itoa_release_skip_1, $__num_remaining, 0)
+    $itoa_release_field_1 = @field($__env_end, -1)
+    @callptr($itoa_release_field_1)
+itoa_release_skip_1:
+    @release($__env_end)
+    @return()
+
+
+itoa_deepcopy($env_end: int):
+    $__env_end = @pin($env_end)
+    $num_remaining = @field($__env_end, 5)
+    @gt(itoa_deepcopy_skip_1, $num_remaining, 0)
+    @deepcopy($itoa_deepcopy_field_1, $__env_end, -1)
+itoa_deepcopy_skip_1:
     @return()
 
 
 main():
-    $_2_main = @newclosure<str>(_2_main)
-    @jumpargs(@itoa, $_0: int = 1, $_2_main: ())
+    $_4_main = @newclosure<str>(_4_main)
+    @jumpargs(itoa, $_2: int = 1, $_4_main: ())
 
 
 main_unwrapper($env_end: int):

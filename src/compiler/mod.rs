@@ -49,7 +49,7 @@ pub fn compile<R: BufRead, W: Write>(input: R, target: &str, out: &mut W) -> Res
     let mut lowerer = Lowerer::new();
     let mut entry_items: Vec<hir::BlockItem> = Vec::new();
 
-    while let Some(item) = parser.next()? {
+    while let Some(item) = parser.next_block_item()? {
         reject_root_execution(&item)?;
         lowerer.consume(&mut hir_ctx, item)?; // consume one function/item
 

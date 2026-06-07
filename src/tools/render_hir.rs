@@ -41,7 +41,7 @@ fn render_normalized_hir<R: std::io::BufRead>(
     let mut lowerer = hir::Lowerer::new();
     let mut hir_block_items = Vec::new();
 
-    while let Some(item) = parser.next()? {
+    while let Some(item) = parser.next_block_item()? {
         reject_root_execution(&item)?;
         lowerer.consume(&mut ctx, item)?;
         while let Some(lowered) = lowerer.produce() {

@@ -57,6 +57,7 @@ impl BlockItem {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SigKind {
+    Byte,
     Int,
     Str,
     F64,
@@ -127,7 +128,7 @@ impl Signature {
             .collect();
         Signature {
             items: sig_items,
-            span: span,
+            span,
             generics: BTreeSet::new(),
         }
     }

@@ -9,9 +9,18 @@
         span: ,
     },
     IdentDef {
-        name: "itoa",
+        name: "int",
         ident: Ident {
-            name: "@itoa",
+            name: "@int",
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    IdentDef {
+        name: "sprintf",
+        ident: Ident {
+            name: "@sprintf",
             args: [],
             span: ,
         },
@@ -21,6 +30,102 @@
         name: "exit",
         ident: Ident {
             name: "@exit",
+            args: [],
+            span: ,
+        },
+        span: ,
+    },
+    FunctionDef {
+        name: "itoa",
+        lambda: Lambda {
+            params: Signature {
+                items: [
+                    SigItem {
+                        name: "n",
+                        kind: Ident(
+                            SigIdent {
+                                name: "int",
+                                span: ,
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                    SigItem {
+                        name: "ok",
+                        kind: Sig(
+                            Signature {
+                                items: [
+                                    SigItem {
+                                        name: "",
+                                        kind: Ident(
+                                            SigIdent {
+                                                name: "str",
+                                                span: ,
+                                            },
+                                        ),
+                                        has_bang: false,
+                                        span: ,
+                                    },
+                                ],
+                                span: ,
+                                generics: {},
+                            },
+                        ),
+                        has_bang: false,
+                        span: ,
+                    },
+                ],
+                span: ,
+                generics: {},
+            },
+            body: Block {
+                items: [
+                    Ident(
+                        Ident {
+                            name: "sprintf",
+                            args: [
+                                Arg {
+                                    name: None,
+                                    term: Lit(
+                                        Literal {
+                                            value: Str(
+                                                "%d",
+                                            ),
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "n",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                                Arg {
+                                    name: None,
+                                    term: Ident(
+                                        Ident {
+                                            name: "ok",
+                                            args: [],
+                                            span: ,
+                                        },
+                                    ),
+                                    span: ,
+                                },
+                            ],
+                            span: ,
+                        },
+                    ),
+                ],
+                span: ,
+            },
             args: [],
             span: ,
         },

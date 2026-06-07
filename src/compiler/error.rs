@@ -48,11 +48,11 @@ impl Error {
 }
 
 pub fn new(code: Code, message: impl Into<String>, span: Span) -> Error {
-    return Error {
+    Error {
         code,
         message: message.into(),
         span,
-    };
+    }
 }
 
 impl Display for Error {

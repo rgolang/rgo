@@ -1,0 +1,36 @@
+byte: @byte
+str: @str
+int: @int
+@sprintf: @sprintf
+@write: @write
+_2_printf: (ok:(), s: str){
+    @write(s, ok)
+}
+
+_0_printf: (fmt: str!, args: ..., ok:()){
+    _3_printf: _2_printf(ok)
+    @sprintf(fmt, args, _3_printf)
+}
+exit: @exit
+@sprintf: @sprintf
+@write: @write
+_6_print_byte: (ok:(), s: str){
+    @write(s, ok)
+}
+
+print_byte: (value: byte, ok:()){
+    _4: "byte %d\n"
+    _7_print_byte: _6_print_byte(ok)
+    @sprintf(_4, value, _7_print_byte)
+}
+
+_10_main: (){
+    _11: 0
+    exit(_11)
+}
+
+main: (){
+    _8: 255
+    print_byte(_8, _10_main)
+}
+main()

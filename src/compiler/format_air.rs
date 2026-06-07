@@ -51,7 +51,7 @@ impl fmt::Debug for air::AirFunction {
 impl fmt::Debug for air::AirStmt {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            air::AirStmt::Op(op) => match op {
+            air::AirStmt::Op(op) => match op.as_ref() {
                 air::AirOp::NewClosure(closure) => {
                     let layout_values = closure
                         .target
@@ -206,9 +206,6 @@ impl fmt::Debug for air::AirStmt {
                 air::AirOp::Write(call) => {
                     write!(f, "{}", format_call_op("write", &call.args, &call.target))
                 }
-                air::AirOp::Puts(call) => {
-                    write!(f, "{}", format_call_op("puts", &call.args, &call.target))
-                }
                 air::AirOp::JumpArgs(ja) => {
                     let args = format_args_inline(&ja.args);
                     let target = if let Some(builtin) = &ja.target.builtin {
@@ -288,6 +285,7 @@ fn format_sig_kind(kind: &air::SigKind) -> String {
 
 fn format_sig_kind_inner(kind: &air::SigKind, show_names: bool) -> String {
     match kind {
+        air::SigKind::Byte => "byte".to_string(),
         air::SigKind::Int => "int".to_string(),
         air::SigKind::Str => "str".to_string(),
         air::SigKind::F64 => "f64".to_string(),

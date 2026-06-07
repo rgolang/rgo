@@ -139,10 +139,10 @@ pub fn signature_from_kind(
     }
 }
 
-pub fn expected_params_for_args<'a>(
-    params: &'a [hir::SigItem],
+pub fn expected_params_for_args(
+    params: &[hir::SigItem],
     args_len: usize,
-) -> Vec<Option<&'a hir::SigItem>> {
+) -> Vec<Option<&hir::SigItem>> {
     let mut expected = Vec::with_capacity(args_len);
     if args_len == 0 {
         return expected;
@@ -206,6 +206,7 @@ fn ast_sig_item_to_hir(item: ast::SigItem) -> hir::SigItem {
 
 fn ast_sig_kind_to_hir(kind: ast::SigKind) -> hir::SigKind {
     match kind {
+        ast::SigKind::Byte => hir::SigKind::Byte,
         ast::SigKind::Int => hir::SigKind::Int,
         ast::SigKind::Str => hir::SigKind::Str,
         ast::SigKind::F64 => hir::SigKind::F64,
@@ -233,6 +234,7 @@ fn hir_sig_item_to_ast(item: hir::SigItem) -> ast::SigItem {
 
 fn hir_sig_kind_to_ast(kind: hir::SigKind) -> ast::SigKind {
     match kind {
+        hir::SigKind::Byte => ast::SigKind::Byte,
         hir::SigKind::Int => ast::SigKind::Int,
         hir::SigKind::Str => ast::SigKind::Str,
         hir::SigKind::F64 => ast::SigKind::F64,
@@ -293,7 +295,7 @@ fn lower_sig_kind(kind: &hir::SigKind, ctx: &mut ctx::Context, has_bang: bool) -
                 hir::SigKind::Str
             }
         }
-        hir::SigKind::F64 => hir::SigKind::F64,
+        hir::SigKind::Byte | hir::SigKind::F64 => kind.clone(),
         hir::SigKind::Variadic => hir::SigKind::Variadic,
         hir::SigKind::CompileTimeInt => hir::SigKind::CompileTimeInt,
         hir::SigKind::CompileTimeStr => hir::SigKind::CompileTimeStr,

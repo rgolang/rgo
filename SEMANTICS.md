@@ -105,15 +105,6 @@ x: 1
 }()
 ```
 
-The same rule applies when empty arguments and parameters are omitted:
-
-```rgo
-x: 1
-{
-    x: 2
-}
-```
-
 Type aliases obey the same declaration-before-use rule as values. Builtin
 types and functions are available as `@name` references and can be aliased or
 used inside ordinary source definitions, such as `int: @int` or a `@write`.
@@ -166,7 +157,7 @@ mywrite
 
 The final `mywrite` invokes the executable value and writes `hello`.
 
-Likewise, a bare lambda block item executes:
+Likewise, a lambda block item executes:
 
 ```rgo
 write: @write
@@ -429,8 +420,8 @@ The builtin name must match a builtin known by the compiler. Current builtin
 entries are:
 
 ```rgo
-@int // owner: backend/ABI; machine preferred integer layout for the target architecture
 @str // owner: backend/runtime ABI; string literal storage and pointer/length passing
+@int // owner: backend/ABI; machine preferred integer layout for the target architecture
 @f64 // owner: CPU/backend/ABI; floating-point layout and register passing
 @add // owner: CPU/backend; primitive integer instruction exposed with a CPS signature
 @sub // owner: CPU/backend; primitive integer instruction exposed with a CPS signature
@@ -445,9 +436,7 @@ entries are:
 @eqs // owner: backend/runtime; string equality over the runtime string representation
 @lt // owner: CPU/backend; primitive integer comparison branch emitted as direct control transfer
 @gt // owner: CPU/backend; primitive integer comparison branch emitted as direct control transfer
-@itoa // owner: backend/runtime; conversion from primitive integer to runtime string representation
 @write // owner: OS/filesystem descriptor API; byte-stream output operation
-@puts // owner: libc/OS stdout stream; platform-backed string output operation
 @exit // owner: OS process ABI; process-completion operation
 @sprintf // owner: libc variadic ABI and runtime buffer; current v1 builtin exception for formatting to a string
 ```
@@ -483,13 +472,26 @@ Builtin operation signatures:
   than returning booleans
 - integer comparisons: `lt` and `gt` jump to their final continuation when the
   comparison succeeds
-- conversion and output: `itoa`, `write`, `puts`, `sprintf`, and `exit`
+- conversion and output: `write`, `sprintf`, and `exit`
   perform their named effects through continuations where their signatures
   require one
 
 `sprintf` is a current exception to the builtin design rules. It is a
 higher-level formatting facility and should become ordinary Rgo library code or
 platform-backed library code once the language can express its implementation.
+
+`puts` is not a builtin. It is ordinary source code built from `@write`, and a
+libc-style wrapper always appends a newline before continuing:
+
+```rgo
+str: @str
+write: @write
+puts: (s: str, ok:()) {
+    write(s, () {
+        write("\n", ok)
+    })
+}
+```
 
 Higher-level facilities are ordinary Rgo code or platform-backed library
 code rather than core builtins. For example, integer maximum is a library
@@ -500,9 +502,9 @@ int: @int
 lt: @lt
 
 max_int: (x: int, y: int, ok: (int)){
-    lt(x, y, {
+    lt(x, y, (){
         ok(y)
-    }, {
+    }, (){
         ok(x)
     })
 }

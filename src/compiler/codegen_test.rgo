@@ -1,8 +1,11 @@
 int: @int
 add: @add
 write: @write
-itoa: @itoa
 exit: @exit
+
+itoa: (n: int, ok:(str)) {
+    sprintf("%d", n, ok)
+}
 
 foo: (a: int, b: int) {
     add(a, b, (n: int){

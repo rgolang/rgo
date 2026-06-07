@@ -46,7 +46,7 @@ impl<R: BufRead> Parser<R> {
     //     })
     // }
 
-    pub fn next(&mut self) -> Result<Option<BlockItem>, Error> {
+    pub fn next_block_item(&mut self) -> Result<Option<BlockItem>, Error> {
         self.skip_newlines()?;
         let token = self.peek_token()?.clone();
         match token.kind {
@@ -112,13 +112,11 @@ impl<R: BufRead> Parser<R> {
 
         let term = self.parse_term()?;
         match term {
-            Term::Lit(literal) => {
-                return Err(Error::new(
-                    Code::Parse,
-                    "literals cannot be called yet",
-                    literal.span,
-                ));
-            }
+            Term::Lit(literal) => Err(Error::new(
+                Code::Parse,
+                "literals cannot be called yet",
+                literal.span,
+            )),
             Term::Ident(ident) => Ok(BlockItem::Ident(ident)),
             Term::Lambda(lambda) => Ok(BlockItem::Lambda(lambda)),
         }
@@ -178,7 +176,7 @@ impl<R: BufRead> Parser<R> {
         // Case 2: alias or literal (no params or body block)
         let term = self.parse_term()?;
         let term_span = term.span();
-        return match term {
+        match term {
             Term::Lit(literal) => Ok(BlockItem::LitDef {
                 name,
                 literal,
@@ -193,9 +191,8 @@ impl<R: BufRead> Parser<R> {
                 Code::Parse,
                 "expected a literal or identifier alias on the right-hand side",
                 term_span,
-            )
-            .into()),
-        };
+            )),
+        }
     }
 
     fn parse_lambda_or_scope_capture(&mut self) -> Result<BlockItem, Error> {
@@ -259,8 +256,7 @@ impl<R: BufRead> Parser<R> {
                         Code::Parse,
                         "expected identifier or lambda before argument list",
                         lparen.span,
-                    )
-                    .into());
+                    ));
                 }
             }
         }
@@ -503,7 +499,7 @@ impl<R: BufRead> Parser<R> {
                     span: lparen.span,
                     generics: BTreeSet::new(),
                 });
-                return Ok(kind);
+                Ok(kind)
             }
             TokenKind::Ident(name) => {
                 if self.is_generic_param(&name) {
@@ -577,7 +573,7 @@ impl<R: BufRead> Parser<R> {
                 )),
             },
             TokenKind::Ellipsis => Ok(SigKind::Variadic),
-            _ => return Err(Error::new(Code::Parse, "expected a type", span)),
+            _ => Err(Error::new(Code::Parse, "expected a type", span)),
         }
     }
 
@@ -651,12 +647,12 @@ impl<R: BufRead> Parser<R> {
         if let Some(token) = self.peeked.pop_front() {
             return Ok(token);
         }
-        self.lexer.next_token().map_err(Error::from)
+        self.lexer.next_token()
     }
 
     fn peek_token(&mut self) -> Result<&Token, Error> {
         if self.peeked.is_empty() {
-            let token = self.lexer.next_token().map_err(Error::from)?;
+            let token = self.lexer.next_token()?;
             self.peeked.push_back(token);
         }
         Ok(self.peeked.front().expect("peeked token exists"))
@@ -664,7 +660,7 @@ impl<R: BufRead> Parser<R> {
 
     fn peek_nth(&mut self, n: usize) -> Result<&Token, Error> {
         while self.peeked.len() <= n {
-            let token = self.lexer.next_token().map_err(Error::from)?;
+            let token = self.lexer.next_token()?;
             self.peeked.push_back(token);
         }
         Ok(self.peeked.get(n).expect("peeked token exists"))
@@ -737,7 +733,7 @@ mod tests {
     fn parse_rejects_bare_empty_param_function_body() {
         let mut parser = Parser::new(Lexer::new(Cursor::new("foo: { bar }")));
         let err = parser
-            .next()
+            .next_block_item()
             .expect_err("bare function body must require ()");
         assert!(
             err.to_string()
@@ -749,7 +745,9 @@ mod tests {
     #[test]
     fn parse_rejects_bare_empty_param_lambda() {
         let mut parser = Parser::new(Lexer::new(Cursor::new("foo: () { bar({ baz }) }")));
-        let err = parser.next().expect_err("bare lambda must require ()");
+        let err = parser
+            .next_block_item()
+            .expect_err("bare lambda must require ()");
         assert!(
             err.to_string().contains("unexpected token: LBrace"),
             "unexpected error: {err}"

@@ -2,23 +2,17 @@ use std::io::Write;
 
 use crate::compiler::air;
 use crate::compiler::codegen::{
-    Artifacts, CLOSURE_ENV_REG, ENV_METADATA_DEEP_COPY_OFFSET, ENV_METADATA_ENV_SIZE_OFFSET,
-    ENV_METADATA_HEAP_SIZE_OFFSET, MAP_ANONYMOUS, MAP_PRIVATE, PROT_READ, PROT_WRITE, SYSCALL_MMAP,
-    SYSCALL_MUNMAP,
+    ENV_METADATA_DEEP_COPY_OFFSET, ENV_METADATA_ENV_SIZE_OFFSET, ENV_METADATA_HEAP_SIZE_OFFSET,
+    MAP_ANONYMOUS, MAP_PRIVATE, PROT_READ, PROT_WRITE, SYSCALL_MMAP, SYSCALL_MUNMAP,
 };
 use crate::compiler::error;
 
 pub fn emit_builtin_function<W: Write>(
     air: &air::AirFunction,
-    artifacts: &mut Artifacts,
     out: &mut W,
 ) -> Result<bool, error::Error> {
     if air.items.is_empty() {
         match air.sig.name.as_str() {
-            "itoa" => {
-                emit_builtin_itoa(artifacts, out)?;
-                return Ok(true);
-            }
             "release_heap_ptr" => {
                 emit_release_heap_ptr(out)?;
                 return Ok(true);
@@ -146,125 +140,5 @@ pub fn emit_memcpy_helper<W: Write>(out: &mut W) -> Result<(), error::Error> {
     writeln!(out, "internal_memcpy_done:")?;
     writeln!(out, "    pop rbp")?;
     writeln!(out, "    ret")?;
-    Ok(())
-}
-
-pub fn emit_builtin_itoa<W: Write>(
-    artifacts: &mut Artifacts,
-    out: &mut W,
-) -> Result<(), error::Error> {
-    const ITOA_MIN_LABEL: &str = "itoa_min_value";
-    const ITOA_MIN_VALUE: &str = "-9223372036854775808";
-    artifacts.add_string_literal(ITOA_MIN_LABEL, ITOA_MIN_VALUE);
-    writeln!(out, "global itoa")?;
-    writeln!(out, "itoa:")?;
-    writeln!(out, "    push rbp ; save executor frame pointer")?;
-    writeln!(out, "    mov rbp, rsp ; establish new frame")?;
-    writeln!(out, "    push rsi ; preserve continuation code pointer")?;
-    writeln!(
-        out,
-        "    push {} ; preserve continuation env pointer",
-        CLOSURE_ENV_REG
-    )?;
-    writeln!(out, "    mov rax, rdi ; capture integer argument")?;
-    writeln!(out, "    mov r10, 0x8000000000000000 ; i64 min constant")?;
-    writeln!(out, "    cmp rax, r10")?;
-    writeln!(out, "    je itoa_min_value")?;
-    writeln!(out, "    push rdi ; keep integer while mmap runs")?;
-    writeln!(out, "    mov rax, {} ; mmap syscall", SYSCALL_MMAP)?;
-    writeln!(
-        out,
-        "    xor rdi, rdi ; addr hint for kernel base selection"
-    )?;
-    writeln!(out, "    mov rsi, 64 ; allocate buffer for digits")?;
-    writeln!(
-        out,
-        "    mov rdx, {} ; prot = read/write",
-        PROT_READ | PROT_WRITE
-    )?;
-    writeln!(
-        out,
-        "    mov r10, {} ; flags: private & anonymous",
-        MAP_PRIVATE | MAP_ANONYMOUS
-    )?;
-    writeln!(out, "    mov r8, -1 ; fd = -1")?;
-    writeln!(out, "    xor r9, r9 ; offset = 0")?;
-    writeln!(out, "    syscall ; allocate buffer pages")?;
-    writeln!(out, "    pop rdi ; restore integer argument")?;
-    writeln!(out, "    mov r8, rax ; buffer base pointer")?;
-    writeln!(out, "    xor r10, r10 ; reuse r10 as sign flag")?;
-    writeln!(out, "    mov rax, rdi")?;
-    writeln!(out, "    cmp rax, 0")?;
-    writeln!(out, "    jge itoa_abs_done")?;
-    writeln!(out, "    neg rax")?;
-    writeln!(out, "    mov r10, 1")?;
-    writeln!(out, "itoa_abs_done:")?;
-    writeln!(out, "    lea r9, [r8+64] ; pointer past buffer end")?;
-    writeln!(out, "    mov byte [r9-1], 0 ; string terminator")?;
-    writeln!(out, "    mov r11, r9 ; cursor for digits")?;
-    writeln!(out, "    mov rcx, 10")?;
-    writeln!(out, "    cmp rax, 0")?;
-    writeln!(out, "    jne itoa_digit_loop")?;
-    writeln!(out, "    dec r11")?;
-    writeln!(out, "    mov byte [r11], '0'")?;
-    writeln!(out, "    jmp itoa_check_sign")?;
-    writeln!(out, "itoa_digit_loop:")?;
-    writeln!(out, "    xor rdx, rdx")?;
-    writeln!(out, "    div rcx")?;
-    writeln!(out, "    dec r11")?;
-    writeln!(out, "    add dl, '0'")?;
-    writeln!(out, "    mov [r11], dl")?;
-    writeln!(out, "    test rax, rax")?;
-    writeln!(out, "    jne itoa_digit_loop")?;
-    writeln!(out, "itoa_check_sign:")?;
-    writeln!(out, "    cmp r10, 0")?;
-    writeln!(out, "    je itoa_set_pointer")?;
-    writeln!(out, "    dec r11")?;
-    writeln!(out, "    mov byte [r11], '-'")?;
-    writeln!(out, "itoa_set_pointer:")?;
-    writeln!(out, "    mov r8, r11 ; string start")?;
-    writeln!(out, "    jmp itoa_tail")?;
-    writeln!(out, "itoa_min_value:")?;
-    writeln!(
-        out,
-        "    lea r8, [rel {}] ; reuse static string",
-        ITOA_MIN_LABEL
-    )?;
-    writeln!(out, "    jmp itoa_tail")?;
-    writeln!(out, "itoa_tail:")?;
-    writeln!(out, "    mov rsi, [rbp-8] ; continuation code pointer")?;
-    writeln!(
-        out,
-        "    mov {}, [rbp-16] ; continuation env pointer",
-        CLOSURE_ENV_REG
-    )?;
-    writeln!(
-        out,
-        "    sub rsp, 16 ; allocate temp stack for closure state"
-    )?;
-    writeln!(out, "    mov [rsp], rsi ; save code pointer")?;
-    writeln!(
-        out,
-        "    mov [rsp+8], {} ; save env_end cursor",
-        CLOSURE_ENV_REG
-    )?;
-    writeln!(out, "    mov r10, [rsp+8] ; env_end cursor")?;
-    writeln!(out, "    sub r10, 8 ; reserve space for string argument")?;
-    writeln!(out, "    mov [r10], r8 ; store string pointer")?;
-    writeln!(out, "    mov rax, [rsp] ; restore code pointer")?;
-    writeln!(
-        out,
-        "    mov {}, [rsp+8] ; restore env_end pointer",
-        CLOSURE_ENV_REG
-    )?;
-    writeln!(out, "    add rsp, 16 ; pop temp state")?;
-    writeln!(
-        out,
-        "    mov rdi, {} ; pass env_end pointer to continuation",
-        CLOSURE_ENV_REG
-    )?;
-    writeln!(out, "    leave ; unwind before jump")?;
-    writeln!(out, "    jmp rax ; jump into continuation")?;
-    writeln!(out)?;
     Ok(())
 }

@@ -14,6 +14,12 @@ pub struct Lowerer {
     variadic_functions: HashMap<String, ast::Lambda>,
 }
 
+impl Default for Lowerer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Lowerer {
     pub fn new() -> Self {
         Self {
@@ -179,7 +185,7 @@ fn maybe_capture_name(ctx: &mut ctx::Context, name: &str) -> Result<(), Error> {
     if entry.is_root && ctx.is_root_fn {
         return Ok(());
     }
-    let span = entry.span.clone();
+    let span = entry.span;
     let normalized_ty = signature::normalize_sig_kind(&entry.kind, ctx);
     ctx.add_param(&entry.name, normalized_ty, span, true)?; // Prevent infinite recursion, it's been turned into a local param.
     Ok(())
@@ -609,7 +615,7 @@ fn lower_exec(
         }
         other => unreachable!("expected exec term, got {:?}", other),
     };
-    // Builtins like printf, sprintf, write, and puts rely on the AIR-level FFI bridge
+    // Builtins like printf, sprintf, and write rely on the AIR-level FFI bridge
     // so continuations and variadic arguments are resolved consistently later.
     lowered_items.push(BlockItem::Exec(exec));
     Ok(lowered_items)
@@ -687,23 +693,27 @@ fn lower_lambda_term(
     Ok(apply_name)
 }
 
+struct LowerArgTypeContext<'a> {
+    expected_param: Option<&'a SigItem>,
+    active_generics: &'a BTreeSet<String>,
+    generic_bindings: &'a mut HashMap<String, SigKind>,
+}
+
 fn lower_arg(
     ctx: &mut ctx::Context,
     term: ast::Term,
-    expected_param: Option<&SigItem>,
-    active_generics: &BTreeSet<String>,
-    generic_bindings: &mut HashMap<String, SigKind>,
+    type_ctx: LowerArgTypeContext,
     hoisted: &mut VecDeque<BlockItem>,
     lowered_items: &mut Vec<BlockItem>,
     variadic_functions: &HashMap<String, ast::Lambda>,
 ) -> Result<String, Error> {
-    let term = maybe_wrap_builtin(ctx, term, expected_param)?;
+    let term = maybe_wrap_builtin(ctx, term, type_ctx.expected_param)?;
     validate_input_type(
         ctx,
         &term,
-        expected_param,
-        active_generics,
-        generic_bindings,
+        type_ctx.expected_param,
+        type_ctx.active_generics,
+        type_ctx.generic_bindings,
     )?;
     let arg = match term {
         ast::Term::Ident(ast_ident) => {
@@ -741,9 +751,7 @@ fn lower_arg(
             new_name
         }
         ast::Term::Lambda(lambda) => {
-            let apply_name =
-                lower_lambda_term(ctx, lambda, hoisted, lowered_items, variadic_functions)?;
-            apply_name
+            lower_lambda_term(ctx, lambda, hoisted, lowered_items, variadic_functions)?
         }
     };
 
@@ -807,7 +815,7 @@ fn resolve_target(
             error::new(
                 Code::HIR,
                 format!("could not resolve target signature '{}'", name),
-                target.span.clone(),
+                target.span,
             )
         })?;
 
@@ -824,13 +832,16 @@ fn resolve_target(
     let mut active_generics = current_scope_generics(ctx);
     active_generics.extend(resolved.signature.generics.iter().cloned());
     let mut generic_bindings = HashMap::new();
-    for (term, expected_param) in resolved.terms.into_iter().zip(expected_params.into_iter()) {
+    for (term, expected_param) in resolved.terms.into_iter().zip(expected_params) {
+        let type_ctx = LowerArgTypeContext {
+            expected_param,
+            active_generics: &active_generics,
+            generic_bindings: &mut generic_bindings,
+        };
         lowered.push(lower_arg(
             ctx,
             term,
-            expected_param,
-            &active_generics,
-            &mut generic_bindings,
+            type_ctx,
             hoisted,
             lowered_items,
             variadic_functions,
@@ -1255,6 +1266,8 @@ fn validate_input_type(
         return Ok(());
     };
 
+    validate_byte_literal(term, &normalized_expected)?;
+
     let actual_is_compile_time_int = matches!(actual_kind, SigKind::CompileTimeInt);
     let normalized_actual = signature::normalize_sig_kind(&actual_kind, ctx);
 
@@ -1393,6 +1406,7 @@ fn kind_matches(
     }
 
     match expected {
+        SigKind::Byte if actual_is_compile_time_int => true,
         SigKind::CompileTimeInt => actual == &SigKind::CompileTimeInt,
         SigKind::CompileTimeStr => actual == &SigKind::CompileTimeStr,
         SigKind::F64 if actual_is_compile_time_int => true,
@@ -1514,4 +1528,28 @@ fn canonicalize_kind(kind: &SigKind) -> SigKind {
         },
         other => other.clone(),
     }
+}
+
+fn validate_byte_literal(term: &ast::Term, expected: &SigKind) -> Result<(), Error> {
+    if !matches!(expected, SigKind::Byte) {
+        return Ok(());
+    }
+
+    let ast::Term::Lit(ast::Literal {
+        value: ast::Lit::Int(value),
+        ..
+    }) = term
+    else {
+        return Ok(());
+    };
+
+    if (0..=255).contains(value) {
+        return Ok(());
+    }
+
+    Err(error::new(
+        Code::HIR,
+        format!("byte literal must be between 0 and 255, found {}", value),
+        Span::unknown(),
+    ))
 }

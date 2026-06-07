@@ -197,10 +197,7 @@ impl<R: BufRead> Lexer<R> {
     fn skip_whitespace_and_comments(&mut self) -> io::Result<bool> {
         let mut seen_nl = false;
 
-        loop {
-            let Some((ch, _span)) = self.peek_char()? else {
-                break;
-            };
+        while let Some((ch, _span)) = self.peek_char()? {
             match ch {
                 c if c.is_whitespace() => {
                     if c == '\n' || c == '\r' {

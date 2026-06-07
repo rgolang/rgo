@@ -173,7 +173,7 @@ fn take_release_statements(unused: &mut HashSet<String>) -> Vec<AirStmt> {
     }
     names
         .into_iter()
-        .map(|name| AirStmt::Op(AirOp::ReleaseHeap(AirReleaseHeap { name })))
+        .map(|name| AirStmt::op(AirOp::ReleaseHeap(AirReleaseHeap { name })))
         .collect()
 }
 
@@ -192,7 +192,7 @@ fn prepare_args(
         if let Some(closure) = create_closure(ctx, arg, None)? {
             let name = closure.name.clone();
             let remaining = closure.target.param_kinds();
-            statements.push(AirStmt::Op(AirOp::NewClosure(closure)));
+            statements.push(AirStmt::op(AirOp::NewClosure(closure)));
             ctx.locals.insert(name.clone());
             if !remaining.is_empty() {
                 ctx.closure_remaining.insert(name, remaining);
@@ -291,7 +291,7 @@ pub fn lower_function(
     }
 
     let function = AirFunction {
-        sig: sig,
+        sig,
         items: lowered_items,
     };
 
@@ -419,7 +419,7 @@ fn ensure_target(
     } else {
         resolve_target(target_name, ctx.symbols)?
     };
-    let args = extract_closure_sig_info(&mut target, args, &ctx.literals);
+    let args = extract_closure_sig_info(&target, args, &ctx.literals);
     if let AirExecTarget::Function(sig) = &mut target {
         ctx.function_lowerer.ensure(&sig.name, ctx.symbols)?;
         create_closure(ctx, target_name, Some(sig))?;
@@ -468,7 +468,7 @@ fn lower_new_closure(
             ))
         }
     };
-    block_items.push(AirStmt::Op(AirOp::NewClosure(AirNewClosure {
+    block_items.push(AirStmt::op(AirOp::NewClosure(AirNewClosure {
         name: closure.name.clone(),
         target: target_sig.clone(),
         args,
@@ -517,7 +517,7 @@ fn lower_closure_curry(
     mark_args(&mut ctx.unused_params, &args);
 
     ctx.locals.insert(closure.name.clone());
-    block_items.push(AirStmt::Op(AirOp::CloneClosure(AirCloneClosure {
+    block_items.push(AirStmt::op(AirOp::CloneClosure(AirCloneClosure {
         src: closure.of.clone(),
         dst: closure.name.clone(),
         remaining: existing_remaining.clone(),
@@ -540,7 +540,7 @@ fn lower_closure_curry(
                     )
                 })?;
             let clone_name = format!("__{}_arg_clone_{}", closure.name, idx);
-            block_items.push(AirStmt::Op(AirOp::CloneClosure(AirCloneClosure {
+            block_items.push(AirStmt::op(AirOp::CloneClosure(AirCloneClosure {
                 src: arg.name.clone(),
                 dst: clone_name.clone(),
                 remaining: arg_remaining,
@@ -556,7 +556,7 @@ fn lower_closure_curry(
     }
 
     let env_end_binding = format!("__{}_env_end", closure.name);
-    block_items.push(AirStmt::Op(AirOp::Pin(AirPin {
+    block_items.push(AirStmt::op(AirOp::Pin(AirPin {
         result: env_end_binding.clone(),
         value: AirValue::Binding(closure.name.clone()),
     })));
@@ -564,7 +564,7 @@ fn lower_closure_curry(
     let suffix_word_counts = suffix_word_counts(&existing_remaining);
     for (idx, arg) in stored_args.iter().take(applied).enumerate() {
         let offset_words = suffix_word_counts[idx] as isize;
-        block_items.push(AirStmt::Op(AirOp::SetField(AirSetField {
+        block_items.push(AirStmt::op(AirOp::SetField(AirSetField {
             env_end: env_end_binding.clone(),
             offset: -offset_words,
             value: arg.clone(),
@@ -573,7 +573,7 @@ fn lower_closure_curry(
 
     let remaining = existing_remaining[applied..].to_vec();
     let remaining_words = word_count_from_kinds(&remaining) as isize;
-    block_items.push(AirStmt::Op(AirOp::SetField(AirSetField {
+    block_items.push(AirStmt::op(AirOp::SetField(AirSetField {
         env_end: env_end_binding,
         offset: NUM_REMAINING_METADATA_WORD_OFFSET as isize,
         value: AirArg {
@@ -627,13 +627,13 @@ fn lower_exec(exec: &hir::Exec, ctx: &mut AirLowerContext) -> Result<Vec<AirStmt
     block_items.extend(take_release_statements(&mut ctx.unused_params));
     match target {
         AirExecTarget::Function(sig) => {
-            block_items.push(AirStmt::Op(AirOp::JumpArgs(AirJumpArgs {
+            block_items.push(AirStmt::op(AirOp::JumpArgs(AirJumpArgs {
                 target: sig,
                 args,
             })));
         }
         AirExecTarget::Closure { name } => {
-            block_items.push(AirStmt::Op(AirOp::JumpClosure(AirJumpClosure {
+            block_items.push(AirStmt::op(AirOp::JumpClosure(AirJumpClosure {
                 env_end: name,
                 args,
             })));
@@ -663,7 +663,7 @@ fn lower_builtin_call(
     }
 
     stmts.extend(take_release_statements(unused_params));
-    stmts.push(AirStmt::Op(call_op(builtin, args)));
+    stmts.push(AirStmt::op(call_op(builtin, args)));
 
     Ok(stmts)
 }
@@ -716,7 +716,7 @@ fn extract_closure_sig_info(
     fallback_args
 }
 
-fn target_signature<'a>(target: &'a AirExecTarget) -> Option<&'a [SigItem]> {
+fn target_signature(target: &AirExecTarget) -> Option<&[SigItem]> {
     match target {
         AirExecTarget::Function(sig) => Some(&sig.params),
         AirExecTarget::Closure { .. } => None,
@@ -788,14 +788,14 @@ fn build_unwrapper_function(
     let offsets = env_word_offsets_from_params(&field_sig_items);
     let mut items = Vec::with_capacity(field_sig_items.len() + 1);
 
-    items.push(AirStmt::Op(AirOp::Pin(AirPin {
+    items.push(AirStmt::op(AirOp::Pin(AirPin {
         result: env_end_reg.clone(),
         value: AirValue::Binding(env_param.name.clone()),
     })));
 
     for (idx, sig_item) in field_sig_items.iter().enumerate() {
         let offset = offsets[idx] as isize - env_word_count_isize;
-        items.push(AirStmt::Op(AirOp::Field(AirField {
+        items.push(AirStmt::op(AirOp::Field(AirField {
             result: sig_item.name.clone(),
             ptr: env_end_reg.clone(),
             offset,
@@ -803,7 +803,7 @@ fn build_unwrapper_function(
         })));
     }
 
-    items.push(AirStmt::Op(AirOp::ReleaseHeap(AirReleaseHeap {
+    items.push(AirStmt::op(AirOp::ReleaseHeap(AirReleaseHeap {
         name: env_end_reg.clone(),
     })));
 
@@ -820,13 +820,13 @@ fn build_unwrapper_function(
         if builtin.is_call() || is_inline_builtin(builtin) {
             items.extend(build_builtin_statements(&target_sig, builtin, builtin_args));
         } else {
-            items.push(AirStmt::Op(AirOp::JumpArgs(AirJumpArgs {
+            items.push(AirStmt::op(AirOp::JumpArgs(AirJumpArgs {
                 target: target_sig.clone(),
                 args: builtin_args,
             })));
         }
     } else {
-        items.push(AirStmt::Op(AirOp::JumpArgs(AirJumpArgs {
+        items.push(AirStmt::op(AirOp::JumpArgs(AirJumpArgs {
             target: target_sig.clone(),
             args: builtin_args,
         })));
@@ -857,7 +857,7 @@ fn build_deep_release_helper(function: &AirFunction) -> Option<AirFunction> {
     let num_remaining_binding = "__num_remaining".to_string();
     let env_end_reg = "__env_end".to_string();
 
-    items.push(AirStmt::Op(AirOp::Pin(AirPin {
+    items.push(AirStmt::op(AirOp::Pin(AirPin {
         result: env_end_reg.clone(),
         value: AirValue::Binding(env_param.name.clone()),
     })));
@@ -882,7 +882,7 @@ fn build_deep_release_helper(function: &AirFunction) -> Option<AirFunction> {
         .collect::<Vec<_>>();
 
     if !reference_fields.is_empty() {
-        items.push(AirStmt::Op(AirOp::Field(AirField {
+        items.push(AirStmt::op(AirOp::Field(AirField {
             result: num_remaining_binding.clone(),
             ptr: env_end_reg.clone(),
             offset: NUM_REMAINING_METADATA_WORD_OFFSET as isize,
@@ -891,30 +891,30 @@ fn build_deep_release_helper(function: &AirFunction) -> Option<AirFunction> {
         for (idx, offset, offset_from_end, kind) in &reference_fields {
             let skip_label = format!("{}_release_skip_{}", function.sig.name, idx);
             let threshold = offset_from_end.saturating_sub(1);
-            items.push(AirStmt::Op(AirOp::JumpGt(AirJumpGt {
+            items.push(AirStmt::op(AirOp::JumpGt(AirJumpGt {
                 left: AirValue::Binding(num_remaining_binding.clone()),
                 right: AirValue::Literal(threshold as i64),
                 target: skip_label.clone(),
             })));
             let location = format!("{}_release_field_{}", function.sig.name, idx);
-            items.push(AirStmt::Op(AirOp::Field(AirField {
+            items.push(AirStmt::op(AirOp::Field(AirField {
                 result: location.clone(),
                 ptr: env_end_reg.clone(),
                 offset: *offset,
                 kind: kind.clone(),
             })));
-            items.push(AirStmt::Op(AirOp::CallPtr(AirCallPtr {
+            items.push(AirStmt::op(AirOp::CallPtr(AirCallPtr {
                 target: AirCallPtrTarget::Binding(location),
             })));
             items.push(AirStmt::Label(AirLabel { name: skip_label }));
         }
     }
 
-    items.push(AirStmt::Op(AirOp::ReleaseHeap(AirReleaseHeap {
+    items.push(AirStmt::op(AirOp::ReleaseHeap(AirReleaseHeap {
         name: env_end_reg.clone(),
     })));
 
-    items.push(AirStmt::Op(AirOp::Return(AirReturn { value: None })));
+    items.push(AirStmt::op(AirOp::Return(AirReturn { value: None })));
 
     Some(AirFunction {
         sig: FunctionSig {
@@ -940,7 +940,7 @@ fn build_deep_copy_helper(function: &AirFunction) -> Option<AirFunction> {
     let num_remaining_binding = "num_remaining".to_string();
     let env_end_reg = "__env_end".to_string();
 
-    items.push(AirStmt::Op(AirOp::Pin(AirPin {
+    items.push(AirStmt::op(AirOp::Pin(AirPin {
         result: env_end_reg.clone(),
         value: AirValue::Binding(env_param.name.clone()),
     })));
@@ -960,7 +960,7 @@ fn build_deep_copy_helper(function: &AirFunction) -> Option<AirFunction> {
         .collect::<Vec<_>>();
 
     if !reference_fields.is_empty() {
-        items.push(AirStmt::Op(AirOp::Field(AirField {
+        items.push(AirStmt::op(AirOp::Field(AirField {
             result: num_remaining_binding.clone(),
             ptr: env_end_reg.clone(),
             offset: NUM_REMAINING_METADATA_WORD_OFFSET as isize,
@@ -970,12 +970,12 @@ fn build_deep_copy_helper(function: &AirFunction) -> Option<AirFunction> {
             let skip_label = format!("{}_deepcopy_skip_{}", function.sig.name, idx);
             let offset_from_end = env_word_count.saturating_sub(*env_offset_from_start);
             let threshold = offset_from_end.saturating_sub(1);
-            items.push(AirStmt::Op(AirOp::JumpGt(AirJumpGt {
+            items.push(AirStmt::op(AirOp::JumpGt(AirJumpGt {
                 left: AirValue::Binding(num_remaining_binding.clone()),
                 right: AirValue::Literal(threshold as i64),
                 target: skip_label.clone(),
             })));
-            items.push(AirStmt::Op(AirOp::CopyField(AirField {
+            items.push(AirStmt::op(AirOp::CopyField(AirField {
                 result: format!("{}_deepcopy_field_{}", function.sig.name, idx),
                 ptr: env_end_reg.clone(),
                 offset: -(offset_from_end as isize),
@@ -985,7 +985,7 @@ fn build_deep_copy_helper(function: &AirFunction) -> Option<AirFunction> {
         }
     }
 
-    items.push(AirStmt::Op(AirOp::Return(AirReturn { value: None })));
+    items.push(AirStmt::op(AirOp::Return(AirReturn { value: None })));
 
     Some(AirFunction {
         sig: FunctionSig {
@@ -1016,7 +1016,7 @@ fn suffix_word_counts(kinds: &[SigKind]) -> Vec<usize> {
 }
 
 fn is_reference_type(ty: &SigKind) -> bool {
-    return matches!(ty, SigKind::Sig(_));
+    matches!(ty, SigKind::Sig(_))
 }
 
 fn instruction_op(builtin: builtins::Builtin, args: Vec<AirArg>) -> AirOp {
@@ -1177,11 +1177,6 @@ fn call_op(builtin: builtins::Builtin, args: Vec<AirArg>) -> AirOp {
             arg_kinds,
             target: continuation_target,
         }),
-        builtins::Builtin::Puts => AirOp::Puts(AirPuts {
-            args: call_args,
-            arg_kinds,
-            target: continuation_target,
-        }),
         builtins::Builtin::Exit => AirOp::SysExit(AirSysExit { args }),
         _ => unreachable!("unexpected call op: {}", builtin.name()),
     }
@@ -1212,24 +1207,24 @@ fn build_conditional_builtin_bridge(
     };
 
     vec![
-        AirStmt::Op(eq_jump),
+        AirStmt::op(eq_jump),
         AirStmt::Label(AirLabel {
             name: false_label.clone(),
         }),
-        AirStmt::Op(AirOp::ReleaseHeap(AirReleaseHeap {
+        AirStmt::op(AirOp::ReleaseHeap(AirReleaseHeap {
             name: true_cont.name.clone(),
         })),
-        AirStmt::Op(AirOp::JumpClosure(AirJumpClosure {
+        AirStmt::op(AirOp::JumpClosure(AirJumpClosure {
             env_end: false_cont.name.clone(),
             args: Vec::new(),
         })),
         AirStmt::Label(AirLabel {
             name: true_label.clone(),
         }),
-        AirStmt::Op(AirOp::ReleaseHeap(AirReleaseHeap {
+        AirStmt::op(AirOp::ReleaseHeap(AirReleaseHeap {
             name: false_cont.name.clone(),
         })),
-        AirStmt::Op(AirOp::JumpClosure(AirJumpClosure {
+        AirStmt::op(AirOp::JumpClosure(AirJumpClosure {
             env_end: true_cont.name.clone(),
             args: Vec::new(),
         })),
@@ -1246,18 +1241,18 @@ fn build_builtin_statements(
     }
 
     if builtin.is_instruction() {
-        return vec![AirStmt::Op(instruction_op(builtin, args))];
+        return vec![AirStmt::op(instruction_op(builtin, args))];
     }
 
     if builtin.is_libc_call() {
-        return vec![AirStmt::Op(call_op(builtin, args))];
+        return vec![AirStmt::op(call_op(builtin, args))];
     }
 
-    vec![AirStmt::Op(AirOp::SysExit(AirSysExit { args }))]
+    vec![AirStmt::op(AirOp::SysExit(AirSysExit { args }))]
 }
 
 fn is_inline_builtin(builtin: builtins::Builtin) -> bool {
-    return matches!(
+    matches!(
         builtin,
         builtins::Builtin::Add
             | builtins::Builtin::Sub
@@ -1271,5 +1266,5 @@ fn is_inline_builtin(builtin: builtins::Builtin) -> bool {
             | builtins::Builtin::Eqs
             | builtins::Builtin::Lt
             | builtins::Builtin::Gt
-    );
+    )
 }

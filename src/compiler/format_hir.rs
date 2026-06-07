@@ -6,12 +6,12 @@ pub fn render_normalized_rgo(items: &[BlockItem]) -> String {
     for (i, item) in items.iter().enumerate() {
         match item {
             BlockItem::FunctionDef(function) => {
-                write_function(&function, &mut out, 0);
+                write_function(function, &mut out, 0);
                 if matches!(items.get(i + 1), Some(BlockItem::FunctionDef(_))) {
                     out.push('\n');
                 }
             }
-            _ => write_block_item(&item, &mut out, 0),
+            _ => write_block_item(item, &mut out, 0),
         }
     }
 
@@ -51,7 +51,7 @@ fn write_block_item(item: &BlockItem, out: &mut String, indent: usize) {
         }
         BlockItem::LitDef { name, literal } => match literal {
             hir::Lit::Str(s) => {
-                write!(out, "{}: {}", name, format_string_literal(&s)).unwrap();
+                write!(out, "{}: {}", name, format_string_literal(s)).unwrap();
             }
             hir::Lit::Int(i) => {
                 write!(out, "{}: {}", name, i).unwrap();
@@ -124,6 +124,7 @@ fn format_param_list(params: &[hir::SigItem]) -> String {
 
 pub fn format_sig_kind(kind: &hir::SigKind) -> String {
     match kind {
+        hir::SigKind::Byte => "byte".to_string(),
         hir::SigKind::Int => "int".to_string(),
         hir::SigKind::Str => "str".to_string(),
         hir::SigKind::F64 => "f64".to_string(),
@@ -143,7 +144,7 @@ pub fn format_sig_kind(kind: &hir::SigKind) -> String {
         hir::SigKind::GenericInst { name, args } => {
             let entries = args
                 .iter()
-                .map(|arg| format_sig_kind(arg))
+                .map(format_sig_kind)
                 .collect::<Vec<_>>()
                 .join(", ");
             format!("{name}<{entries}>")

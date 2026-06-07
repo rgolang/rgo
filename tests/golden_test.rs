@@ -204,7 +204,7 @@ fn generate_artifacts(source: &str, target: &str) -> Result<GeneratedArtifacts, 
     let mut lowerer = hir::Lowerer::new();
     let mut hir_block_items = Vec::new();
 
-    while let Some(item) = parser.next()? {
+    while let Some(item) = parser.next_block_item()? {
         reject_root_execution(&item)?;
         block_items.push(item.clone());
         lowerer.consume(&mut ctx, item)?;

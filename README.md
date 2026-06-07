@@ -157,7 +157,7 @@ Install [asdf](https://asdf-vm.com/guide/getting-started.html), then from the re
 make install
 ```
 
-`make install` is idempotent. It installs the required asdf plugins if missing, installs the pinned Rust toolchain (`1.96.0`), builds NASM `3.01` into the asdf install directory if it is not already present, writes the local tool versions, and refreshes shims.
+`make install` is idempotent. It installs the required asdf plugins if missing, installs the pinned Rust toolchain, builds NASM `3.01` into the asdf install directory if it is not already present, writes the local tool versions, and refreshes shims.
 
 Verify the setup with:
 
@@ -168,7 +168,7 @@ cargo test
 Run the sample program with:
 
 ```sh
-make run
+make run hello
 ```
 
 ## Quick start (Using Docker)
@@ -181,7 +181,6 @@ docker run --rm -i rgo-compiler code/hello.rgo main
 ```
 
 This compiles and runs the `main` target in `code/hello.rgo`.
-The resulting executable is written next to the source file on your host machine when you mount a working directory into the container.
 
 This is what happens inside the container (or on your linux machine)
 ```sh
@@ -211,10 +210,9 @@ ld -dynamic-linker /lib64/ld-linux-x86-64.so.2 -lc bin/hello.o -o bin/hello
 ## Project structure
 
 - `src/`: Rust implementation of the lexer, parser, HIR, and back-end code generator.
-- `code/`: sample Rgo workspace files (`hello.rgo` contains the `main` target used by Makefile shortcuts).
+- `code/`: sample Rgo workspace files (`main.rgo` contains target functions such as `hello` for Makefile shortcuts).
 - `tests/`: integration and golden snapshot tests; `golden_test.rs` is the automated snapshot generator.
-- [SEMANTICS.md](SEMANTICS.md) describes source-language rules and
-  user-visible behavior.
+- [SEMANTICS.md](SEMANTICS.md) describes source-language rules, user-visible behavior, and runtime behavior.
 
 ## Compilation
 The compilation process flows as follows:
@@ -239,7 +237,7 @@ Functions such as sin, cos, sqrt, and friends are not yet exposed. Interfacing t
 - No arrays or slices  
 Aggregate data structures are not yet supported. There is no syntax or type-level encoding for contiguous memory layouts, indexing, or bounds semantics.
 - Minimal runtime surface  
-At present, the only “standard library” consists of write, sprintf, and arbitrary native NASM instructions. Everything else must be built manually.
+At present, the only “standard library” consists of @write, @sprintf, and arbitrary native NASM instructions.
 
 Despite that, functionality is slowly expanding, and the compiler architecture is structured so these features can be added piece by piece while keeping the language’s core goals (simplicity, explicitness, and predictability) intact.
 

@@ -11,7 +11,10 @@ fn parser_test() {
     let lexer = Lexer::new(cursor);
     let mut parser = Parser::new(lexer);
     let mut items = Vec::new();
-    while let Some(item) = parser.next().expect("parser should accept parser_test.rgo") {
+    while let Some(item) = parser
+        .next_block_item()
+        .expect("parser should accept parser_test.rgo")
+    {
         items.push(item);
     }
 

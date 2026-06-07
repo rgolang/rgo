@@ -30,7 +30,7 @@ fn codegen_test() {
         &asm,
         expected,
         "codegen_test",
-        "codegen should lower foo(a:int, b:int) -> int and tail-jump to foo(1, 2)",
+        "codegen should lower the printf-based sample program",
     );
 }
 

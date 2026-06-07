@@ -35,6 +35,12 @@ pub struct Context {
     pub emitted_closures: HashSet<String>,
 }
 
+impl Default for Context {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Context {
     pub fn new() -> Self {
         Context {
@@ -119,10 +125,8 @@ impl Context {
     pub fn new_name_for_fn(&mut self, display_name: Option<&str>) -> String {
         if self.scope_stack.is_empty() {
             if let Some(name) = display_name {
-                if !name.is_empty() {
-                    if !is_reserved_external_symbol(name) {
-                        return name.into();
-                    }
+                if !name.is_empty() && !is_reserved_external_symbol(name) {
+                    return name.into();
                 }
             }
         }
@@ -265,7 +269,7 @@ impl Context {
                 name: name.to_string(),
                 kind,
                 span,
-                is_builtin: is_builtin,
+                is_builtin,
                 is_root: true,
                 is_param: false,
                 is_capture: false,
@@ -346,7 +350,7 @@ impl Context {
 }
 
 fn is_reserved_external_symbol(name: &str) -> bool {
-    matches!(name, "exit" | "printf" | "puts" | "sprintf" | "write")
+    matches!(name, "exit" | "printf" | "sprintf" | "write")
 }
 
 pub fn register_import(

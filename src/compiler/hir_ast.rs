@@ -4,6 +4,7 @@ use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SigKind {
+    Byte,
     Int,
     Str,
     F64,

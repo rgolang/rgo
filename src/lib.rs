@@ -131,4 +131,45 @@ main: () {
         assert!(asm.contains("extern sprintf"));
         assert!(asm.contains("extern write"));
     }
+
+    #[test]
+    fn compile_user_defined_puts() {
+        let source = r#"
+str: @str
+exit: @exit
+write: @write
+
+puts: (s: str, ok:()) {
+    write(s, () {
+        write("\n", ok)
+    })
+}
+
+main: () {
+    puts("hello", exit(0))
+}
+        "#;
+        let mut output = Vec::new();
+        compile(Cursor::new(source.as_bytes()), "main", &mut output)
+            .expect("compiler produced asm");
+        let asm = String::from_utf8(output).expect("valid utf8");
+        assert!(asm.contains("global puts"));
+        assert!(asm.contains("extern write"));
+        assert!(asm.contains("extern exit"));
+        assert!(!asm.contains("extern puts"));
+    }
+
+    #[test]
+    fn reject_builtin_puts_import() {
+        let source = r#"
+puts: @puts
+main: () {
+    puts("hello", exit(0))
+}
+        "#;
+        let mut output = Vec::new();
+        let err = compile(Cursor::new(source.as_bytes()), "main", &mut output)
+            .expect_err("puts should no longer be a builtin import");
+        assert!(err.to_string().contains("@puts"));
+    }
 }
